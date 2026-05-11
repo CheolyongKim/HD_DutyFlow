@@ -1,0 +1,15 @@
+/bin/
+
+# Eclipse
+.metadata/
+.project
+.classpath
+.settings/
+
+# Java
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
