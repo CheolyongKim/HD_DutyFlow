@@ -9,4 +9,8 @@ public class MLPQ {
 	
 	private int promotionThresholdMinutes;
 	private int maxWaitTimeMinutes;
+	
+	public int size() {
+		return this.aq.size() + this.bq.size();
+	}
 }
