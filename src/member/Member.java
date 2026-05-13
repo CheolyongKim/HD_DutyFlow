@@ -13,8 +13,6 @@ public class Member {
 	private String passportNum;
 	private LocalDate passportExpiredDate;
 	private boolean isAdult;
-	private enum membership {
-		SILVER, GOLD, BLACK, PRESTIGE
-	}
+	private Membership membership;
 	private Cart cart;
 }
