@@ -42,6 +42,16 @@ public class MLPQ {
 		this.aq.add(this.bq.poll());
 	}
 	
+	private void promote() {
+		for (PickUpTicket p : this.bq) {
+			if (Duration.between(p.getAirplane().getDepartureAt(), /*Main.curTime*/).getSeconds()/60 < 30) {
+				PickUpTicket tempP = p;
+				this.aq.add(tempP);
+				this.bq.remove(p);
+			}
+		}
+	}
+	
 	public PickUpTicket peek() throws QueueException{
 		return aq.peek();
 	}
