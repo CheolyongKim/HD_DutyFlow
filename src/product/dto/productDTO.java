@@ -5,11 +5,13 @@ import java.sql.Date;
 import java.time.LocalDate;
 
 import category.Category;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 public class productDTO {
 	
 	private Category category;

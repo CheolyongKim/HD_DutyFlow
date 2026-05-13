@@ -20,58 +20,55 @@ import exception.SystemException;
 
 public class productDAO {
 
+	public List<productDTO> getAllProducts() throws SystemException {
 
-    public List<productDTO> getAllProducts() throws SystemException {
+		List<productDTO> productList = new ArrayList<>();
 
-        List<productDTO> productList = new ArrayList<>();
+		String sql = "select * from product join category using(categoryId) join brand using (brandId) join Event using (productId)";
 
-        String sql =
-            "select * from product " +
-            "join category using(categoryId) " +
-            "join brand using (brandId) " +
-            "join Event using (productId)";
+		System.out.println("sql = " + sql);
 
-        System.out.println("sql = " + sql);
+		try (Connection conn = OracleConnection.getConnection();
+				PreparedStatement pstmt = conn.prepareStatement(sql);
+				ResultSet rs = pstmt.executeQuery()) {
 
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+			boolean hasData = false;
 
-            boolean hasData = false;
+			while (rs.next()) {
+				hasData = true;
 
-            while (rs.next()) {
-                hasData = true;
+				Category category = Category.builder()
+				        .categoryName(rs.getString("categoryName"))
+				        .depth(rs.getInt("depth"))
+				        .build();
 
-                productDTO dto = new productDTO();
+				productDTO dto = productDTO.builder()
+				        .category(category)
+				        .productName(rs.getString("productName"))
+				        .brandName(rs.getString("brandName"))
+				        .stockAmount(rs.getInt("stockAmount"))
+				        .capacity(rs.getInt("capacity"))
+				        .priceUsd(rs.getBigDecimal("priceUsd"))
+				        .priceKrw(rs.getBigDecimal("priceKrw"))
+				        .discountRate(rs.getDouble("discountRate"))
+				        .thresholdValue(rs.getInt("thresholdValue"))
+				        .madeAt(rs.getDate("madeAt") != null
+				                ? rs.getDate("madeAt").toLocalDate()
+				                : null)
+				        .build();
 
-                Category category = new Category();
-                category.setCategoryName(rs.getString("categoryName"));
-                category.setDepth(rs.getInt("depth"));
-                dto.setCategory(category);
+				productList.add(dto);
+			}
 
-                dto.setProductName(rs.getString("productName"));
-                dto.setBrandName(rs.getString("brandName"));
+			if (!hasData) {
+				System.out.println("조회 결과 없음");
+			}
 
-                dto.setStockAmount(rs.getInt("stockAmount"));
-                dto.setCapacity(rs.getInt("capacity"));
-                dto.setPriceUsd(rs.getBigDecimal("priceUsd"));
-                dto.setPriceKrw(rs.getBigDecimal("priceKrw"));
-                dto.setDiscountRate(rs.getDouble("discountRate"));
-                dto.setThresholdValue(rs.getInt("thresholdValue"));
-                dto.setMadeAt(rs.getDate("madeAt").toLocalDate());
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
 
-                productList.add(dto);
-            }
+		return productList;
+	}
 
-            if (!hasData) {
-                System.out.println("조회 결과 없음");
-            }
-
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-
-        return productList;
-    }
-	
 }
