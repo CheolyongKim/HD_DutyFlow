@@ -1,7 +1,11 @@
 package category;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class Category {
-	private int depth;
 	private String categoryName;
-	private Category upperCategory;
+	private int depth;
 }
