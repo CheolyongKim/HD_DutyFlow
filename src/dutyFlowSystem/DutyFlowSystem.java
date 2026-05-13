@@ -3,6 +3,7 @@ package dutyFlowSystem;
 import java.util.List;
 import java.util.Queue;
 
+import cart.TotalCartDto;
 import exchangeRate.ExchangeRate;
 import member.Member;
 import order.Order;
@@ -28,7 +29,7 @@ public class DutyFlowSystem {
 	}
 
 	// 장바구니 조회
-	public void printCart() {
-	    member.getCart().printCart();
+	public TotalCartDto printCart() {
+	    return member.getCart().printCart();
 	}
 }

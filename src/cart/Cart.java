@@ -1,7 +1,9 @@
 package cart;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import exception.DataNotFoundException;
@@ -54,16 +56,15 @@ public class Cart {
     }
     
     
-    // 장바구니 콘솔 출력
-    public void printCart() {
+    // 장바구니 조회
+    public TotalCartDto printCart() {
 
         if (products.isEmpty()) {
-            System.out.println("장바구니가 비어 있습니다.");
-            return;
+            return new TotalCartDto(List.of(), 0, BigDecimal.ZERO, BigDecimal.ZERO); // 비어있는 장바구니 DTO 객체를 생성해서 반환함
         }
         
-	    // 장바구니 출력 중 일부만 출력되고 예외가 발생하는 상황을 방지하기 위해
-	    // 출력 전에 상품 정보 및 수량 데이터를 먼저 검증
+	    // DTO 생성 중 일부만 처리되고 예외가 발생하는 상황을 방지하기 위해
+	    // 반환 전에 상품 정보 및 수량 데이터를 먼저 검증
         for (Map.Entry<Product, Integer> entry : products.entrySet()) {
             Product product = entry.getKey();
             int quantity = entry.getValue();
@@ -84,36 +85,30 @@ public class Cart {
             }
         }
 
+        List<CartItemDto> items = new ArrayList<>();
+        
         int totalQuantity = 0;
 
         BigDecimal totalDollarPrice = BigDecimal.ZERO;
         BigDecimal totalWonPrice = BigDecimal.ZERO;
 
-        System.out.println("=========== [ 장바구니 조회 ] =============");
-
-        // 상품별 출력
         for (Map.Entry<Product, Integer> entry : products.entrySet()) {
-
             Product product = entry.getKey();
             int quantity = entry.getValue();
 
-
             BigDecimal dollarPrice = product.getDollarPrice().multiply(BigDecimal.valueOf(quantity));
             BigDecimal wonPrice = product.getWonPrice().multiply(BigDecimal.valueOf(quantity));
-
-            // 상품명, 수량, 달러가격, 원화가격 출력
-            System.out.println(product.getProductName() + "\t" + quantity + "\t" + dollarPrice + "\t" + wonPrice);
-
+            
+            // 상품별 DTO 생성
+            items.add(new CartItemDto(product.getProductName(), quantity, dollarPrice, wonPrice));
+            
             // 총합 계산
             totalQuantity += quantity;
             totalDollarPrice = totalDollarPrice.add(dollarPrice);
             totalWonPrice = totalWonPrice.add(wonPrice);
         }
 
-        System.out.println("====================================");
-
-        // 총합 출력
-        System.out.println("총합\t" + totalQuantity + "\t" + totalDollarPrice + "\t" + totalWonPrice);
+        return new TotalCartDto(items, totalQuantity, totalDollarPrice, totalWonPrice); 
     }
     
 }
