@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 
-import main.main;
+import main.Application;
 
 public class DepartureSoonSortStrategy implements SortStrategy {
 
@@ -19,7 +19,7 @@ public class DepartureSoonSortStrategy implements SortStrategy {
                                   .getDepartureAt();
 
                     return Duration.between(
-                            main.curTime,
+                            Application.curTime,
                             departureAt
                     ).toMinutes();
                 })

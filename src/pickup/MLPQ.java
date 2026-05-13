@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.PriorityQueue;
 
 import airplane.Airplane;
+import exception.QueueException;
+import main.Application;
 import member.Member;
 
 public class MLPQ {
@@ -16,8 +18,10 @@ public class MLPQ {
 	private final int maxWaitTimeMinutes;
 	
 	public MLPQ() {
-		this.aq = new PriorityQueue(DepartureSoonSortStrategy.getComparator());
-		this.bq = new PriorityQueue(PrioritySortStrategy.getComparator());
+		DepartureSoonSortStrategy ds = new DepartureSoonSortStrategy();
+		PrioritySortStrategy ps = new PrioritySortStrategy();
+		this.aq = new PriorityQueue(ds.getComparator());
+		this.bq = new PriorityQueue(ps.getComparator());
 		
 		this.lastNum = 1;
 		this.promotionThresholdMinutes = 30;
@@ -26,7 +30,7 @@ public class MLPQ {
 	
 	public void enqueue(Airplane airplane, Member member) {
 		if (this.size()==0 ||
-				Duration.between(/*Main.curTime*/, airplane.getDepartureAt).getMinutes() < 30) {
+				Duration.between(Application.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
 			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		}else {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
