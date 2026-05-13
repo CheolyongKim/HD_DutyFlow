@@ -20,6 +20,10 @@ public class MLPQ {
 		}
 	}
 	
+	public PickUpTicket pop() throws QueueException{
+		return this.aq.poll();
+	}
+	
 	public PickUpTicket peek(){
 		if (this.size()==0) {
 			// TODO: raise Exception
