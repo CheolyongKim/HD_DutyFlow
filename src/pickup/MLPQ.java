@@ -21,7 +21,8 @@ public class MLPQ {
 	}
 	
 	public PickUpTicket pop() throws QueueException{
-		return this.aq.poll();
+		if (this.aq.size()>0) return this.aq.poll();
+		else return this.bq.poll();
 	}
 	
 	private void moveToA(PickUpTicket p) {
