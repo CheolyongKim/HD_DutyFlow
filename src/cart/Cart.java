@@ -111,4 +111,8 @@ public class Cart {
         return new TotalCartDto(items, totalQuantity, totalDollarPrice, totalWonPrice); 
     }
     
+    public void flush() {
+    	products.clear();
+    }
+    
 }

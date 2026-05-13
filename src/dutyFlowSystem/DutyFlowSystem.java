@@ -32,4 +32,9 @@ public class DutyFlowSystem {
 	public TotalCartDto printCart() {
 	    return member.getCart().printCart();
 	}
+	
+	// 장바구니 비우기
+	public void deleteFromCart() {
+		member.getCart().flush();
+	}
 }
