@@ -24,6 +24,10 @@ public class MLPQ {
 		return this.aq.poll();
 	}
 	
+	private void moveToA(PickUpTicket p) {
+		this.aq.add(this.bq.poll());
+	}
+	
 	public PickUpTicket peek() throws QueueException{
 		return aq.peek();
 	}
