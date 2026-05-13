@@ -16,7 +16,8 @@ public enum ErrorCode {
 	
 	// 장바구니
 	INVALID_QUANTITY("INVALID_QUANTITY", "수량은 1개 이상이어야 합니다."),
-	PRODUCT_NOT_FOUND("PRODUCT_NOT_FOUND", "장바구니에 존재하지 않는 상품입니다.");
+	PRODUCT_NOT_FOUND("PRODUCT_NOT_FOUND", "장바구니에 존재하지 않는 상품입니다."),
+	CART_PRODUCT_NOT_FOUND("CART_PRODUCT_NOT_FOUND","장바구니에 존재하지 않는 상품입니다.");
 
     private final String code;
     private final String message;

@@ -21,4 +21,9 @@ public class DutyFlowSystem {
 	public void addToCart(Product p, int wishAmount) {
 		member.getCart().addToCart(p, wishAmount);
 	}
+	
+	// 장바구니 내 특정 상품 수량 변경
+	public void updateQuantity(Product p, int newAmount) {
+		member.getCart().updateQuantity(p, newAmount);
+	}
 }
