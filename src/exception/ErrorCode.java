@@ -22,6 +22,11 @@ public enum ErrorCode {
 	EMPTY_SELECTED_PRODUCTS("EMPTY_SELECTED_PRODUCTS", "선택된 상품이 없습니다."),
 	;
 
+	// DB연결
+	DB_CONNECTION("CONNECTION_ERROR","DB 연결 실패"),
+    DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다");
+	
     private final String code;
     private final String message;
+    
 }
