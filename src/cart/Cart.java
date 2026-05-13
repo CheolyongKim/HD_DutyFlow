@@ -111,8 +111,19 @@ public class Cart {
         return new TotalCartDto(items, totalQuantity, totalDollarPrice, totalWonPrice); 
     }
     
+    // 장바구니 비우기
     public void flush() {
     	products.clear();
     }
     
+    public Map<Product, Integer> flushByOrder() {
+        // 기존 장바구니 복사
+        Map<Product, Integer> orderedProducts = new HashMap<>(products);
+
+        // 장바구니 비우기
+        products.clear();
+
+        // 주문 상품 반환
+        return orderedProducts;
+    }
 }
