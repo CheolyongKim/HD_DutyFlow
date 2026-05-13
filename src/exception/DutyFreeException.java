@@ -17,4 +17,5 @@ public class DutyFreeException extends RuntimeException {
     public ErrorCode getErrorCode() {
         return errorCode;
     }
+    
 }
