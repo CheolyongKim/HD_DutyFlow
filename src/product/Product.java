@@ -2,8 +2,13 @@ package product;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import category.Category;
 
+import category.Category;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class Product {
 	private Category category;
 	private String productName;

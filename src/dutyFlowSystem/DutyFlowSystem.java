@@ -26,4 +26,9 @@ public class DutyFlowSystem {
 	public void updateQuantity(Product p, int newAmount) {
 		member.getCart().updateQuantity(p, newAmount);
 	}
+
+	// 장바구니 조회
+	public void printCart() {
+	    member.getCart().printCart();
+	}
 }
