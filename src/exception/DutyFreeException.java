@@ -8,6 +8,11 @@ public class DutyFreeException extends RuntimeException {
         super(message);
         this.errorCode = errorCode;
     }
+    
+    public DutyFreeException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode.getCode();
+    }
 
     public String getErrorCode() {
         return errorCode;

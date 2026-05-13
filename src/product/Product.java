@@ -17,12 +17,13 @@ public class Product {
 
 	private Category category;
 	private String productName;
-	private int amount;
+	private String brandName;
+	private int stockAmount;
 	private int capacity;
-	private BigDecimal dollarPrice;
-	private BigDecimal wonPrice;
-	private double eventSaleRate;
-	private int threshold;
+	private BigDecimal priceUsd;
+	private BigDecimal priceKrw;
+	private int discountRate;
+	private int thresholdValue;
 	private LocalDate madeAt;
 
 }
