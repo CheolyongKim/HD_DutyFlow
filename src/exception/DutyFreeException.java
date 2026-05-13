@@ -4,8 +4,8 @@ public class DutyFreeException extends RuntimeException {
 
     private final String errorCode;
 
-    public DutyFreeException(String errorCode, String message) {
-        super(message);
+    public DutyFreeException(String errorCode, String logMessage) {
+        super(logMessage);
         this.errorCode = errorCode;
     }
     
