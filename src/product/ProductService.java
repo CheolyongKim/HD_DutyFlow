@@ -25,7 +25,7 @@ public class ProductService {
 
 		List<productDTO> productList = new ArrayList<>();
 
-		String sql = "select * from product join category using(categoryId)";
+		String sql = "select * from product join category using(categoryId) join brand using (brandId) join Event using (productId)";
 		System.out.println("sql = " + sql);
 
 		try (Connection conn = OracleConnection.getConnection();
@@ -42,16 +42,17 @@ public class ProductService {
 		        Category category = new Category();
 		        category.setCategoryName(rs.getString("categoryName"));
 		        category.setDepth(rs.getInt("depth"));
-
 		        dto.setCategory(category);
-
+		        
 		        dto.setProductName(rs.getString("productName"));
-		        dto.setAmount(rs.getInt("amount"));
+		        dto.setBrandName(rs.getString("brandName"));
+		        
+		        dto.setStockAmount(rs.getInt("stockAmount"));
 		        dto.setCapacity(rs.getInt("capacity"));
-		        dto.setDollarPrice(rs.getBigDecimal("dollarPrice"));
-		        dto.setWonPrice(rs.getBigDecimal("wonPrice"));
-		        dto.setEventSaleRate(rs.getDouble("eventSaleRate"));
-		        dto.setThreshold(rs.getInt("threshold"));
+		        dto.setPriceUsd(rs.getBigDecimal("priceUsd"));
+		        dto.setPriceKrw(rs.getBigDecimal("priceKrw"));
+		        dto.setDiscountRate(rs.getDouble("discountRate"));
+		        dto.setThresholdValue(rs.getInt("thresholdValue"));
 		        dto.setMadeAt(rs.getDate("madeAt").toLocalDate());
 		        	
 		        productList.add(dto);
@@ -72,11 +73,21 @@ public class ProductService {
 
 		ProductService service = new ProductService();
 		List<productDTO> list = service.printAllProducts();
-
+		
 		for (productDTO dto : list) {
-			System.out.println(dto.getProductName() + " / " + dto.getProductName() + " / " + dto.getAmount() + " / "
-					+ dto.getCapacity() + " / " + dto.getDollarPrice() + " / " + dto.getWonPrice() + " / "
-					+ dto.getEventSaleRate() + " / " + dto.getThreshold());
+		    System.out.println("========================================");
+		    System.out.println("상품명      : " + dto.getProductName());
+		    System.out.println("카테고리     : " + dto.getCategory().getCategoryName());
+		    System.out.println("브랜드       : " + dto.getBrandName());
+		    System.out.println("재고        : " + dto.getStockAmount());
+		    System.out.println("용량        : " + dto.getCapacity());
+		    System.out.println("USD 가격    : " + dto.getPriceUsd());
+		    System.out.println("KRW 가격    : " + dto.getPriceKrw());
+		    System.out.println("할인율       : " + dto.getDiscountRate());
+		    System.out.println("임계값       : " + dto.getThresholdValue());
+		    System.out.println("========================================\n");
 		}
+
 	}
+	
 }
