@@ -24,13 +24,8 @@ public class MLPQ {
 		return this.aq.poll();
 	}
 	
-	public PickUpTicket peek(){
-		if (this.size()==0) {
-			// TODO: raise Exception
-			return null;
-		}else {
-			return aq.peek();
-		}
+	public PickUpTicket peek() throws QueueException{
+		return aq.peek();
 	}
 	
 	public int size() {
