@@ -2,7 +2,7 @@ package exception;
 
 public class DataException extends DutyFreeException {
 
-    public DataException(String errorCode, String logMessage) {
+    public DataException(ErrorCode errorCode, Exception logMessage) {
         super(errorCode, logMessage);
     }
     

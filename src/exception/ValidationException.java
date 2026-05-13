@@ -2,7 +2,7 @@ package exception;
 
 public class ValidationException extends DutyFreeException{
 	
-	public ValidationException(String errorCode, String logMessage) {
+	public ValidationException(ErrorCode errorCode, Exception logMessage) {
         super(errorCode, logMessage);
     }
 	

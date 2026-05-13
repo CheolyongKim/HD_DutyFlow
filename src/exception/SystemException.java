@@ -2,7 +2,7 @@ package exception;
 
 public class SystemException extends DutyFreeException {
 
-    public SystemException(String errorCode, String logMessage) {
+    public SystemException(ErrorCode errorCode, Exception logMessage) {
         super(errorCode, logMessage);
     }
     

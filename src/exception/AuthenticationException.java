@@ -2,7 +2,7 @@ package exception;
 
 public class AuthenticationException extends DutyFreeException {
 
-    public AuthenticationException(String errorCode, String logMessage) {
+    public AuthenticationException(ErrorCode errorCode, Exception logMessage) {
         super(errorCode, logMessage);
     }
     
