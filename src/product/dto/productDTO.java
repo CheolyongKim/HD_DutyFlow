@@ -1,20 +1,17 @@
-package product;
+package product.dto;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDate;
-import java.util.Locale.Category;
 
-import lombok.AllArgsConstructor;
+import category.Category;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class Product {
-
+public class productDTO {
+	
 	private Category category;
 	private String productName;
 	private String brandName;
@@ -22,8 +19,9 @@ public class Product {
 	private int capacity;
 	private BigDecimal priceUsd;
 	private BigDecimal priceKrw;
-	private int discountRate;
+	private double discountRate;
 	private int thresholdValue;
 	private LocalDate madeAt;
+
 
 }

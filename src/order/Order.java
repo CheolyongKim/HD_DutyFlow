@@ -3,11 +3,16 @@ package order;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import product.Product;
 
+@Getter
+@Setter
 public class Order {
 	private int flightResNum;
 	// private OrderState orderState;
@@ -18,4 +23,5 @@ public class Order {
 	private int totalAlcohol;
 	private LocalDateTime orderedAt;
 	private BigDecimal discountPrice;
+
 }
