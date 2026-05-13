@@ -6,14 +6,14 @@ import cart.Cart;
 
 public class Member {
 	private String loginId;
-	private String pwd;
-	private String memberName;
-	private LocalDate birthdate;
-	private String phoneNum;
+	private String password;
+	private String name;
+	private LocalDate birthDate;
+	private String phoneNumber;
 	private String passportNum;
 	private LocalDate passportExpiredDate;
 	private boolean isAdult;
-	private Membership membership;
+	private Grade grade;
 	private Cart cart = new Cart();
 	
 	public Cart getCart() {

@@ -80,7 +80,7 @@ public class Cart {
             }
 
             // 상품 가격 정보가 없는 경우
-            if (product.getDollarPrice() == null || product.getWonPrice() == null) {
+            if (product.getPriceUsd() == null || product.getPriceKrw() == null) {
                 throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
             }
         }
@@ -96,8 +96,8 @@ public class Cart {
             Product product = entry.getKey();
             int quantity = entry.getValue();
 
-            BigDecimal dollarPrice = product.getDollarPrice().multiply(BigDecimal.valueOf(quantity));
-            BigDecimal wonPrice = product.getWonPrice().multiply(BigDecimal.valueOf(quantity));
+            BigDecimal dollarPrice = product.getPriceUsd().multiply(BigDecimal.valueOf(quantity));
+            BigDecimal wonPrice = product.getPriceKrw().multiply(BigDecimal.valueOf(quantity));
             
             // 상품별 DTO 생성
             items.add(new CartItemDto(product.getProductName(), quantity, dollarPrice, wonPrice));
