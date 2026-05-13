@@ -2,6 +2,7 @@ package pickup;
 
 import java.util.List;
 
+import exception.QueueException;
 import member.Member;
 import order.Order;
 
@@ -16,7 +17,7 @@ public class PickUpSystem {
 		// this.pq.enqueue();
 	}
 	
-	public PickUpTicket popQueue() {
-		
+	public PickUpTicket popQueue() throws QueueException{
+		return this.pq.pop();
 	}
 }
