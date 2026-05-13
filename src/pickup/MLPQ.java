@@ -18,10 +18,7 @@ public class MLPQ {
 	private final int promotionThresholdMinutes;
 	private final int maxWaitTimeMinutes;
 	
-	public MLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
-		this.makeQueueWithStrategy(this.aq, aqStrategy.getComparator());
-		this.makeQueueWithStrategy(this.bq, bqStrategy.getComparator());
-		
+	public MLPQ() {
 		this.lastNum = 1;
 		this.promotionThresholdMinutes = 30;
 		this.maxWaitTimeMinutes = 40;
@@ -63,6 +60,11 @@ public class MLPQ {
 				this.bq.remove(p);
 			}
 		}
+	}
+	
+	public void makeMLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
+		this.makeQueueWithStrategy(this.aq, aqStrategy.getComparator());
+		this.makeQueueWithStrategy(this.bq, bqStrategy.getComparator());
 	}
 	
 	public void makeQueueWithStrategy(PriorityQueue<PickUpTicket> q, Comparator<PickUpTicket> c) {
