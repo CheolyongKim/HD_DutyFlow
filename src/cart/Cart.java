@@ -111,11 +111,36 @@ public class Cart {
         return new TotalCartDto(items, totalQuantity, totalDollarPrice, totalWonPrice); 
     }
     
-    // 장바구니 비우기
+    // 장바구니 전체 비우기
     public void flush() {
     	products.clear();
     }
     
+    // 장바구니 선택 상품 제거
+    public void flush(List<Product> selectedProducts) {
+
+    	// 선택된 상품이 없는 경우
+        if (selectedProducts == null || selectedProducts.isEmpty()) {
+            throw new ValidationException(ErrorCode.EMPTY_SELECTED_PRODUCTS);
+        }
+
+        for (Product product : selectedProducts) {
+
+            // 상품 정보가 없는 경우
+            if (product == null) {
+                throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+            }
+
+            // 장바구니에 존재하지 않는 상품인 경우
+            if (!products.containsKey(product)) {
+                throw new DataNotFoundException(ErrorCode.CART_PRODUCT_NOT_FOUND);
+            }
+
+            products.remove(product);
+        }
+    }
+    
+    // 장바구니 상품 전체 주문
     public Map<Product, Integer> flushByOrder() {
         // 기존 장바구니 복사
         Map<Product, Integer> orderedProducts = new HashMap<>(products);
@@ -124,6 +149,38 @@ public class Cart {
         products.clear();
 
         // 주문 상품 반환
+        return orderedProducts;
+    }
+    
+    // 장바구니 선택 상품 주문
+    public Map<Product, Integer> flushByOrder(List<Product> selectedProducts) {
+
+    	// 선택된 상품이 없는 경우
+        if (selectedProducts == null || selectedProducts.isEmpty()) {
+            throw new ValidationException(ErrorCode.EMPTY_SELECTED_PRODUCTS);
+        }
+
+        Map<Product, Integer> orderedProducts = new HashMap<>();
+
+        for (Product product : selectedProducts) {
+
+            // 상품 정보가 없는 경우
+            if (product == null) {
+                throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+            }
+
+            // 장바구니에 존재하지 않는 상품인 경우
+            if (!products.containsKey(product)) {
+                throw new DataNotFoundException(ErrorCode.CART_PRODUCT_NOT_FOUND);
+            }
+
+            // 주문 상품 저장
+            orderedProducts.put(product, products.get(product));
+
+            // 장바구니에서 제거
+            products.remove(product);
+        }
+
         return orderedProducts;
     }
 }

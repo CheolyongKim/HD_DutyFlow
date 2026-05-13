@@ -37,4 +37,9 @@ public class DutyFlowSystem {
 	public void deleteFromCart() {
 		member.getCart().flush();
 	}
+	
+	// 장바구니 선택 상품 제거
+	public void deleteFromCart(List<Product> selectedProducts) { 
+		member.getCart().flush(selectedProducts);
+	}
 }
