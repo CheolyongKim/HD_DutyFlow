@@ -12,7 +12,6 @@ import lombok.Setter;
 @Setter
 public class productDTO {
 	
-
 	private Category category;
 	private String productName;
 	private String brandName;

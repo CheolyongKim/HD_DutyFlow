@@ -2,19 +2,19 @@ package exception;
 
 public class DutyFreeException extends RuntimeException {
 
-    private final String errorCode;
+    private final ErrorCode errorCode;
 
-    public DutyFreeException(String errorCode, String message) {
-        super(message);
+    public DutyFreeException(ErrorCode errorCode, Exception e) {
+        super(e);
         this.errorCode = errorCode;
     }
     
     public DutyFreeException(ErrorCode errorCode) {
         super(errorCode.getMessage());
-        this.errorCode = errorCode.getCode();
+        this.errorCode = errorCode;
     }
 
-    public String getErrorCode() {
+    public ErrorCode getErrorCode() {
         return errorCode;
     }
 }
