@@ -18,11 +18,9 @@ public class MLPQ {
 	private final int promotionThresholdMinutes;
 	private final int maxWaitTimeMinutes;
 	
-	public MLPQ() {
-		DepartureSoonSortStrategy ds = new DepartureSoonSortStrategy();
-		PrioritySortStrategy ps = new PrioritySortStrategy();
-		this.aq = new PriorityQueue(ds.getComparator());
-		this.bq = new PriorityQueue(ps.getComparator());
+	public MLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
+		this.makeQueueWithStrategy(this.aq, aqStrategy.getComparator());
+		this.makeQueueWithStrategy(this.bq, bqStrategy.getComparator());
 		
 		this.lastNum = 1;
 		this.promotionThresholdMinutes = 30;
