@@ -12,7 +12,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-    	// DB 연결 테스트입니다. 
+    		// DB 연결 테스트입니다. 
         String sql = "SELECT * FROM Brand";
 
         try (
