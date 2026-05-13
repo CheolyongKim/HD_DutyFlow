@@ -24,8 +24,7 @@ public class productDAO {
 
 		List<productDTO> productList = new ArrayList<>();
 
-		String sql = "select * from product " + "join category using(categoryId) " + "join brand using (brandId) "
-				+ "join Event using (productId)";
+		String sql = "select * from product join category using(categoryId) join brand using (brandId) join Event using (productId)";
 
 		System.out.println("sql = " + sql);
 
