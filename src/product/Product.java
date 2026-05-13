@@ -2,16 +2,16 @@ package product;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Locale.Category;
+import category.Category;
 
-public abstract class Product {
+public class Product {
 	private Category category;
 	private String productName;
-	private int amoun;
+	private int amount;
 	private int capacity;
 	private BigDecimal dollarPrice;
 	private BigDecimal wonPrice;
 	private int eventSaleRate;
-	private int threshole;
+	private int threshold;
 	private LocalDate madeAt;
 }

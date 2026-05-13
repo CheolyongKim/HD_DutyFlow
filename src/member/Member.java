@@ -14,5 +14,9 @@ public class Member {
 	private LocalDate passportExpiredDate;
 	private boolean isAdult;
 	private Membership membership;
-	private Cart cart;
+	private Cart cart = new Cart();
+	
+	public Cart getCart() {
+		return cart;
+	}
 }
