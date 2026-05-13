@@ -2,7 +2,9 @@ package pickup;
 
 import java.time.LocalDateTime;
 
+import airplane.Airplane;
 import lombok.Data;
+import member.Member;
 
 @Data
 public class PickUpTicket {
