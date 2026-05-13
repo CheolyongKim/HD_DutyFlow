@@ -1,15 +1,28 @@
 package pickup;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.PriorityQueue;
+
+import airplane.Airplane;
+import member.Member;
 
 public class MLPQ {
 	private PriorityQueue<PickUpTicket> aq;
 	private PriorityQueue<PickUpTicket> bq;
 	
 	private int lastNum;
-	private int promotionThresholdMinutes;
-	private int maxWaitTimeMinutes;
+	private final int promotionThresholdMinutes;
+	private final int maxWaitTimeMinutes;
+	
+	public MLPQ() {
+		this.aq = new PriorityQueue(DepartureSoonSortStrategy.getComparator());
+		this.bq = new PriorityQueue(PrioritySortStrategy.getComparator());
+		
+		this.lastNum = 1;
+		this.promotionThresholdMinutes = 30;
+		this.maxWaitTimeMinutes = 40;
+	}
 	
 	public void enqueue(Airplane airplane, Member member) {
 		if (this.size()==0 ||

@@ -5,7 +5,7 @@ import java.util.Comparator;
 public class DepartureSoonSortStrategy implements SortStrategy {
 
 	@Override
-    public Comparator<PickUpTicket> getComparator() {
+    public static Comparator<PickUpTicket> getComparator() {
 
         return Comparator
                 .comparingLong(ticket -> {

@@ -5,7 +5,7 @@ import java.util.Comparator;
 public class PrioritySortStrategy implements SortStrategy {
 
     @Override
-    public Comparator<PickUpTicket> getComparator() {
+    public static Comparator<PickUpTicket> getComparator() {
 
         return Comparator
                 .comparingInt(ticket ->
