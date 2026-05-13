@@ -42,9 +42,19 @@ public class MLPQ {
 		this.aq.add(this.bq.poll());
 	}
 	
-	private void promote() {
+	private void promote(LocalDateTime currentSimulationTime) {
 		for (PickUpTicket p : this.bq) {
-			if (Duration.between(p.getAirplane().getDepartureAt(), /*Main.curTime*/).getSeconds()/60 < 30) {
+			if (Duration.between(p.getAirplane().getDepartureAt(), currentSimulationTime).getSeconds()/60 < this.promotionThresholdMinutes) {
+				PickUpTicket tempP = p;
+				this.aq.add(tempP);
+				this.bq.remove(p);
+			}
+		}
+	}
+	
+	private void handleStarvation(LocalDateTime currentSimulationTime) {
+		for (PickUpTicket p : this.bq) {
+			if (Duration.between(p.getTicketIssueTime(), currentSimulationTime).getSeconds()/60 < this.maxWaitTimeMinutes) {
 				PickUpTicket tempP = p;
 				this.aq.add(tempP);
 				this.bq.remove(p);
