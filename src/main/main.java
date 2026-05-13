@@ -3,10 +3,12 @@ package main;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 
 import common.OracleConnection;
 
 public class main {
+	public static LocalDateTime curTime = LocalDateTime.now();
 
     public static void main(String[] args) {
 

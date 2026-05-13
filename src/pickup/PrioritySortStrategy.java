@@ -5,11 +5,11 @@ import java.util.Comparator;
 public class PrioritySortStrategy implements SortStrategy {
 
     @Override
-    public static Comparator<PickUpTicket> getComparator() {
+    public Comparator<PickUpTicket> getComparator() {
 
         return Comparator
-                .comparingInt(ticket ->
-                        ((PickUpTicket) ticket).getMember()
+                .comparingInt((PickUpTicket ticket) ->
+                        ticket.getMember()
                               .getMembership()
                               .getPriority()
                 )

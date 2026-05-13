@@ -1,26 +1,30 @@
 package pickup;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Comparator;
+
+import main.main;
 
 public class DepartureSoonSortStrategy implements SortStrategy {
 
 	@Override
-    public static Comparator<PickUpTicket> getComparator() {
+    public Comparator<PickUpTicket> getComparator() {
 
         return Comparator
-                .comparingLong(ticket -> {
+                .comparingLong((PickUpTicket ticket) -> {
 
                     LocalDateTime departureAt =
-                            ticket.getMember()
-                                  .getAirplane()
+                            ticket.getAirplane()
                                   .getDepartureAt();
 
                     return Duration.between(
-                            Main.curTime,
+                            main.curTime,
                             departureAt
                     ).toMinutes();
                 })
-                .thenComparingInt(PickUpTicket::getTicketNum)
+                .thenComparingInt((PickUpTicket ticket) ->
+                				ticket.getTicketNum())
                 .thenComparingInt(ticket ->
                         ticket.getMember()
                               .getMembership()
