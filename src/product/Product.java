@@ -7,11 +7,12 @@ import java.util.Locale.Category;
 public abstract class Product {
 	private Category category;
 	private String productName;
-	private int amoun;
+	private String brandName;
+	private int stockAmount;
 	private int capacity;
-	private BigDecimal dollarPrice;
-	private BigDecimal wonPrice;
-	private int eventSaleRate;
-	private int threshole;
+	private BigDecimal priceUsd;
+	private BigDecimal priceKrw;
+	private int discountRate;
+	private int thresholdValue;
 	private LocalDate madeAt;
 }

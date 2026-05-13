@@ -1,6 +1,6 @@
 package member;
 
-public enum Membership {
+public enum Grade {
     PRESTIGE(1),
     BLACK(2),
     GOLD(3),
@@ -8,7 +8,7 @@ public enum Membership {
 
     private final int priority;
 
-    Membership(int priority) {
+    Grade(int priority) {
         this.priority = priority;
     }
 
