@@ -2,6 +2,7 @@ package pickup;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.PriorityQueue;
 
 import airplane.Airplane;
@@ -64,6 +65,10 @@ public class MLPQ {
 				this.bq.remove(p);
 			}
 		}
+	}
+	
+	public void makeQueueWithStrategy(PriorityQueue<PickUpTicket> q, Comparator<PickUpTicket> c) {
+		q = new PriorityQueue<PickUpTicket>(c);
 	}
 	
 	public PickUpTicket peek() throws QueueException{
