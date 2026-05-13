@@ -7,7 +7,7 @@ import lombok.Data;
 import member.Member;
 
 @Data
-public class PickUpTicket {
+public class PickUpTicket{
 	private Member member;
 	private Airplane airplane;
 	private LocalDateTime ticketIssueTime;
