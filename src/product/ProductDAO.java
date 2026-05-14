@@ -36,7 +36,7 @@ public class ProductDAO {
 	 * productDto에 데이터 넣는 기능 공통 메서드화
 	 * 
 	 * @param rs(DB에서 가져온 결과값 여러개)
-	 * @return: ProductDto
+	 * @return: ProductDto 
 	 * @throws SQLException
 	 */
 	private ProductDTO mapProduct(ResultSet rs) throws SQLException {

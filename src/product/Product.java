@@ -27,5 +27,5 @@ public class Product {
 	private int discountRate;
 	private int thresholdValue;
 	private LocalDate madeAt;
-
+ 
 }

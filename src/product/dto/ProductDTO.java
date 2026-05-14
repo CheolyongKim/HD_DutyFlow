@@ -34,5 +34,5 @@ public class ProductDTO {
 	private BigDecimal finalPriceKrw; // 화면에 뿌릴것이므로 DTO에 추가
 	private BigDecimal finalPriceUsd; // 화면에 뿌릴것이므로 DTO에 추가
 	
-
+  
 }
