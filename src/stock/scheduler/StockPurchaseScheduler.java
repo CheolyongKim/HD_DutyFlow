@@ -25,9 +25,10 @@ public class StockPurchaseScheduler {
     public void start() {
         scheduler.scheduleAtFixedRate(() -> {
             try {
-//                stockPurchaseService.completeReceivablePurchases();
+                stockPurchaseService.completeReceivablePurchases();
             } catch (Exception e) {
-                System.out.println("[자동 입고 처리 오류] " + e.getMessage());
+                System.out.println("[자동 입고 처리 오류]");
+                e.printStackTrace();
             }
         }, 0, 10, TimeUnit.SECONDS);
     }

@@ -22,25 +22,25 @@ public class StockDao {
 
         String sql =
                 "SELECT " +
+                "    p.productId, " +
                 "    p.productName, " +
-                "    p.stockAmount, " +
                 "    p.capacity, " +
                 "    p.priceUsd, " +
                 "    p.priceKrw, " +
                 "    p.thresholdValue, " +
-                "    p.madeAt, " +
                 "    b.brandName, " +
+                "    c.categoryId, " +
                 "    c.categoryName, " +
                 "    c.depth, " +
+                "    s.stockId, " +
                 "    s.amount, " +
                 "    s.manufacturedDate " +
                 "FROM product p " +
                 "JOIN stock s ON p.productId = s.productId " +
                 "JOIN brand b ON p.brandId = b.brandId " +
                 "JOIN category c ON p.categoryId = c.categoryId " +
-                "WHERE b.brandName = ?";
-
-        System.out.println("sql = " + sql);
+                "WHERE b.brandName = ? " +
+                "ORDER BY p.productName, s.manufacturedDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -49,12 +49,9 @@ public class StockDao {
 
             try (ResultSet rs = pstmt.executeQuery()) {
 
-                boolean hasData = false;
-
                 while (rs.next()) {
-                    hasData = true;
-
                     Category category = Category.builder()
+                            .categoryId(rs.getInt("categoryId"))
                             .categoryName(rs.getString("categoryName"))
                             .depth(rs.getInt("depth"))
                             .build();
@@ -63,14 +60,10 @@ public class StockDao {
                             .category(category)
                             .productName(rs.getString("productName"))
                             .brandName(rs.getString("brandName"))
-                            .stockAmount(rs.getInt("stockAmount"))
                             .capacity(rs.getInt("capacity"))
                             .priceUsd(rs.getBigDecimal("priceUsd"))
                             .priceKrw(rs.getBigDecimal("priceKrw"))
                             .thresholdValue(rs.getInt("thresholdValue"))
-                            .madeAt(rs.getDate("madeAt") != null
-                                    ? rs.getDate("madeAt").toLocalDate()
-                                    : null)
                             .amount(rs.getInt("amount"))
                             .manufacturedDate(rs.getDate("manufacturedDate") != null
                                     ? rs.getDate("manufacturedDate").toLocalDate()
@@ -78,10 +71,6 @@ public class StockDao {
                             .build();
 
                     stockProductList.add(dto);
-                }
-
-                if (!hasData) {
-                    System.out.println("조회 결과 없음");
                 }
             }
 
@@ -92,26 +81,21 @@ public class StockDao {
         return stockProductList;
     }
 
-    public List<Stock> findByProductNameOrderByManufacturedDate(String productName) throws SystemException {
+    public List<Stock> findByProductIdOrderByManufacturedDate(int productId) throws SystemException {
 
         List<Stock> stockList = new ArrayList<>();
 
         String sql =
-                "SELECT " +
-                "    s.stockId, " +
-                "    s.productId, " +
-                "    s.manufacturedDate, " +
-                "    s.amount " +
-                "FROM stock s " +
-                "JOIN product p ON s.productId = p.productId " +
-                "WHERE p.productName = ? " +
-                "  AND s.amount > 0 " +
-                "ORDER BY s.manufacturedDate ASC";
+                "SELECT stockId, productId, manufacturedDate, amount " +
+                "FROM stock " +
+                "WHERE productId = ? " +
+                "  AND amount > 0 " +
+                "ORDER BY manufacturedDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, productName);
+            pstmt.setInt(1, productId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -135,18 +119,23 @@ public class StockDao {
         return stockList;
     }
 
-    public int getTotalAmountByProductName(String productName) throws SystemException {
+    public List<Stock> findByProductNameOrderByManufacturedDate(String productName) throws SystemException {
+
+        int productId = findProductIdByProductName(productName);
+        return findByProductIdOrderByManufacturedDate(productId);
+    }
+
+    public int getTotalAmountByProductId(int productId) throws SystemException {
 
         String sql =
-                "SELECT NVL(SUM(s.amount), 0) AS totalAmount " +
-                "FROM stock s " +
-                "JOIN product p ON s.productId = p.productId " +
-                "WHERE p.productName = ?";
+                "SELECT NVL(SUM(amount), 0) AS totalAmount " +
+                "FROM stock " +
+                "WHERE productId = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, productName);
+            pstmt.setInt(1, productId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -159,6 +148,12 @@ public class StockDao {
         }
 
         return 0;
+    }
+
+    public int getTotalAmountByProductName(String productName) throws SystemException {
+
+        int productId = findProductIdByProductName(productName);
+        return getTotalAmountByProductId(productId);
     }
 
     public int updateAmount(int stockId, int amount) throws SystemException {
@@ -223,6 +218,47 @@ public class StockDao {
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("productId");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        throw new SystemException(ErrorCode.DB_CONNECTION);
+    }
+    
+    public int deleteZeroAmountStocks() throws SystemException {
+
+        String sql =
+                "DELETE FROM stock " +
+                "WHERE amount = 0";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            return pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    public int getThresholdValueByProductId(int productId) throws SystemException {
+
+        String sql =
+                "SELECT thresholdValue " +
+                "FROM product " +
+                "WHERE productId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, productId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("thresholdValue");
                 }
             }
 
