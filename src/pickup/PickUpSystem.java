@@ -16,8 +16,8 @@ import product.productDAO;
 
 public class PickUpSystem {
 	private MLPQ pq; 
-	private List<Member> members;	// 시뮬레이션용 
-	private List<Order> orders;
+	private List<Member> members;	// 시뮬레이션용 (인도장에 찾아온) 고객들 리스트
+	private List<Order> orders;		// (DB에서 받아온) 픽업 가능 시간이 현재기준 + 24시간 이내인 주문들의 리스트
 	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
