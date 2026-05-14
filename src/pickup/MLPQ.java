@@ -25,6 +25,16 @@ public class MLPQ {
 		this.maxWaitTimeMinutes = 40;
 	}
 	
+	public void oneMinutePassed() {
+		// 1분이 흐른다
+		// BQ 안의 모든 티켓들의 대기한 시간 증가
+		// 0순위로 starvation 방지용 자동 poll
+		// 없으면, BQ 안의 모든 티켓들 중 조건 만족 시 promote
+		// 1순위로 AQ에 티켓이 하나라도 있으면 poll
+		// 없으면, 2순위로 BQ에서 poll
+		// 없으면, continue;
+	}
+	
 	public void enqueue(Airplane airplane, Member member) {
 		if (this.size()==0 ||
 				Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
