@@ -4,9 +4,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 
+import common.CurrentTime;
 import main.Application;
 
-public class DepartureSoonSortStrategy implements SortStrategy {
+public class DepartureSoonSortStrategy implements SortStrategy { 
 
 	@Override
     public Comparator<PickUpTicket> getComparator() {
@@ -19,7 +20,7 @@ public class DepartureSoonSortStrategy implements SortStrategy {
                                   .getDepartureAt();
 
                     return Duration.between(
-                            Application.curTime,
+                            CurrentTime.curTime,
                             departureAt
                     ).toMinutes();
                 })
@@ -27,7 +28,7 @@ public class DepartureSoonSortStrategy implements SortStrategy {
                 				ticket.getTicketNum())
                 .thenComparingInt(ticket ->
                         ticket.getMember()
-                              .getMembership()
+                              .getGrade()
                               .getPriority()
                 );
     }

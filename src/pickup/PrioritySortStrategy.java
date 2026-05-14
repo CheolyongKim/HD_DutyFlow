@@ -10,7 +10,7 @@ public class PrioritySortStrategy implements SortStrategy {
         return Comparator
                 .comparingInt((PickUpTicket ticket) ->
                         ticket.getMember()
-                              .getMembership()
+                              .getGrade()
                               .getPriority()
                 )
                 .thenComparingInt(PickUpTicket::getTicketNum);
