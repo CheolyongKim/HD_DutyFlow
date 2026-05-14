@@ -7,8 +7,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-
 public class Category {
+	private int categoryId;
 	private String categoryName;
 	private int depth;
 }
