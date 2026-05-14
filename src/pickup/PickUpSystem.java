@@ -4,11 +4,14 @@ import java.util.List;
 import exception.QueueException;
 import member.Member;
 import order.Order;
+import product.productDAO;
 
 public class PickUpSystem {
 	private MLPQ pq; 
 	private List<Member> members;
 	private List<Order> orders;
+	
+	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
 	public void realPickUp(String passportNum, int flightResNum) {
 		/*
@@ -18,7 +21,8 @@ public class PickUpSystem {
 		 */
 		
 		// 파라미터로 제시된 고객의 정보가 DB에 존재하는지 확인
-			// PickUp 테이블 -> PickUpDAO -> PickUpOrdersFlightBookFlightDTO 데이터 수령
+			// PickUp 테이블 -> PickUpDAO -> RealPickUpDTO 데이터 수령
+			// 
 		
 		// 존재함
 			// updateOrderState()의 대상 = popQueue()
