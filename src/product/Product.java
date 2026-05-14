@@ -16,6 +16,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Product {
 
+	private int productId;
 	private Category category;
 	private String productName;
 	private String brandName;

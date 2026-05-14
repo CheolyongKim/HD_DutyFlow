@@ -1,8 +1,10 @@
 package main;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import category.Category;
+import common.Currency;
 import product.ProductService;
 import product.dto.productDTO;
 
@@ -44,6 +46,27 @@ public class main {
 	     System.out.println("===== 상품명으로 상품 1개 조회 =====");
 	     productDTO product = service.printProduct("조니워커 블루라벨");
 	     System.out.println(product);
-        
+	     
+	     // =========================
+	     //특정 금액 범위 테스트
+	     // =========================
+
+	        BigDecimal min = new BigDecimal("100");
+	        BigDecimal max = new BigDecimal("50000");
+	
+	        try {
+	            List<productDTO> list =
+	                service.printProduct(min, max, Currency.KRW);
+	
+	            System.out.println("===== 결과 =====");
+	            for (productDTO p : list) {
+	                System.out.println(p);
+	            }
+	
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+    
+	     
     }
 }

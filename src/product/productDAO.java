@@ -1,5 +1,6 @@
 package product;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,12 +11,27 @@ import java.util.List;
 
 import category.Category;
 import product.dto.productDTO;
+import common.Currency;
 import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
 
 public class productDAO {
 
+	String baseSql =
+			"SELECT p.productId, p.productName, c.categoryId, c.categoryName, c.depth, " +
+			"b.brandName, p.stockAmount, p.capacity, p.priceUsd, p.priceKrw, " +
+			"NVL(e.discountRate, 0) AS discountRate, " +
+			"CASE WHEN e.productId IS NULL THEN 'N' ELSE 'Y' END AS hasEvent, " +
+			"p.thresholdValue, p.madeAt, " +
+			"(p.priceKrw * (1 - NVL(e.discountRate, 0) / 100)) AS finalPriceKrw, " +
+			"(p.priceUsd * (1 - NVL(e.discountRate, 0) / 100)) AS finalPriceUsd " +
+			"FROM product p " +
+			"JOIN category c ON p.categoryId = c.categoryId " +
+			"JOIN brand b ON p.brandId = b.brandId " +
+			"LEFT JOIN event e ON p.productId = e.productId ";
+	
+	
 	/***
 	 * productDto에 데이터 넣는 기능 공통 메서드화
 	 * 
@@ -25,15 +41,27 @@ public class productDAO {
 	 */
 	private productDTO mapProduct(ResultSet rs) throws SQLException {
 
-		Category category = Category.builder().categoryName(rs.getString("categoryName")).depth(rs.getInt("depth"))
-				.build();
+	    Category category = Category.builder()
+	            .categoryId(rs.getInt("categoryId"))
+	            .categoryName(rs.getString("categoryName"))
+	            .depth(rs.getInt("depth"))
+	            .build();
 
-		return productDTO.builder().category(category).productName(rs.getString("productName"))
-				.brandName(rs.getString("brandName")).stockAmount(rs.getInt("stockAmount"))
-				.capacity(rs.getInt("capacity")).priceUsd(rs.getBigDecimal("priceUsd"))
-				.priceKrw(rs.getBigDecimal("priceKrw")).discountRate(rs.getDouble("discountRate"))
-				.thresholdValue(rs.getInt("thresholdValue"))
-				.madeAt(rs.getDate("madeAt") != null ? rs.getDate("madeAt").toLocalDate() : null).build();
+	    return productDTO.builder()
+	            .category(category)
+	            .productName(rs.getString("productName"))
+	            .brandName(rs.getString("brandName"))
+	            .stockAmount(rs.getInt("stockAmount"))
+	            .capacity(rs.getInt("capacity"))
+	            .priceUsd(rs.getBigDecimal("priceUsd"))
+	            .priceKrw(rs.getBigDecimal("priceKrw"))
+	            .discountRate(rs.getDouble("discountRate"))
+	            .hasEvent("Y".equalsIgnoreCase(rs.getString("hasEvent")))
+	            .finalPriceKrw(rs.getBigDecimal("finalPriceKrw"))
+	            .finalPriceUsd(rs.getBigDecimal("finalPriceUsd"))
+	            .thresholdValue(rs.getInt("thresholdValue"))
+	            .madeAt(rs.getDate("madeAt") != null ? rs.getDate("madeAt").toLocalDate() : null)
+	            .build();
 	}
 
 	/***
@@ -45,7 +73,7 @@ public class productDAO {
 	 */
 	public List<productDTO> getAllProducts() throws SystemException {
 
-		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId)";
+		String sql = baseSql;
 
 		try (Connection conn = OracleConnection.getConnection();
 				PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -73,7 +101,7 @@ public class productDAO {
 	 */
 	public List<productDTO> getProductsByCategory(Category category) {
 
-		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId) where categoryName = ?";
+		String sql = baseSql + "WHERE c.categoryName = ?";
 
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, category.getCategoryName());
@@ -98,7 +126,7 @@ public class productDAO {
 	 */
 	public productDTO getProductsByProductName(String productName) {
 
-		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId) where productName = ?";
+		String sql = baseSql + "WHERE p.productName = ?";
 
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, productName);
@@ -114,6 +142,41 @@ public class productDAO {
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		}
 	}
+	
+	/***
+	 * 금액 범위 지정한 상품 list 보기
+	 * @return List<ProductDto> (상품 리트스 반환)
+	 * @throws SystemException
+	 * 
+	 */
+	public List<productDTO> getProductsFilterByPrice(BigDecimal minPrice, BigDecimal maxPrice , Currency currency) {
+		
+	    String priceExpr = currency.equals(Currency.USD)
+	            ? "p.priceUsd"
+	            : "p.priceKrw";
+
+	    String finalPriceExpr =
+	            "(" + priceExpr + " * (1 - NVL(e.discountRate, 0) / 100))";
+
+	    String sql = baseSql +
+	            "WHERE " + finalPriceExpr + " BETWEEN ? AND ?";
+		
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			pstmt.setBigDecimal(1, minPrice);
+			pstmt.setBigDecimal(2, maxPrice);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				List<productDTO> productList = new ArrayList<>();
+				while (rs.next()) {
+					productList.add(mapProduct(rs));
+				}
+				return productList;
+			}
+
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
+	
 	
 
 }
