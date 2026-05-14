@@ -2,8 +2,8 @@ package product;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Locale.Category;
 
+import category.Category;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,10 +12,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Product {
-
+	private int productId;
 	private Category category;
 	private String productName;
 	private String brandName;
