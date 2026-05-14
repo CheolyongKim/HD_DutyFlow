@@ -3,22 +3,31 @@ package tax;
 import java.math.BigDecimal;
 
 import order.Order;
+import regulation.RegulationDTO;
 
 public class GeneralTaxStrategy implements TaxStrategy{
 	
-	//  면세 한도 (800달러)
-	private static final BigDecimal DUTY_FREE_LIMIT_USD = new BigDecimal("800");
+	private final RegulationDTO regulationDTO;
 	
-	// 초과분 적용 로직 (일반상품 - 15%)
-	private static final BigDecimal GENERAL_TAX_RATE = new BigDecimal("0.15");
+	 public GeneralTaxStrategy(RegulationDTO regulationDTO) {
+	        this.regulationDTO = regulationDTO;
+	 }
 
 	@Override
 	public BigDecimal calculateTax(Order order) {
+		 
+		BigDecimal dutyFreeLimit = BigDecimal.valueOf(regulationDTO.getLimitCapacity());
+	     
+		BigDecimal taxRate = BigDecimal.valueOf(regulationDTO.getOverageRate()).divide(BigDecimal.valueOf(100));
+		
 		BigDecimal totalDollarsPrice = order.getTotalPrice();
+		BigDecimal exceededAmount = totalDollarsPrice.subtract(dutyFreeLimit);
 		
-		BigDecimal exceededAmount = totalDollarsPrice.subtract(DUTY_FREE_LIMIT_USD);
+		if (exceededAmount.compareTo(BigDecimal.ZERO) <= 0) {
+			return BigDecimal.ZERO;
+		}
 		
-		return exceededAmount.multiply(GENERAL_TAX_RATE);
+		return exceededAmount.multiply(taxRate);
 	}
 
 }

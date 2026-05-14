@@ -3,23 +3,33 @@ package tax;
 import java.math.BigDecimal;
 
 import order.Order;
+import regulation.RegulationDTO;
 
 public class AlcoholTaxStrategy implements TaxStrategy{
-	
-	private static final int ALCOHOL_LIMIT_CAPACITY = 2;
-	
-	// 초과분 적용 로직 (15%)
-	private static final BigDecimal ALCOHOL_TAX_RATE = new BigDecimal("0.70");
 
+	private final RegulationDTO regulationDTO;
+
+	public AlcoholTaxStrategy(RegulationDTO regulationDTO) {
+	        this.regulationDTO = regulationDTO;
+	 }
 
 	@Override
-	public BigDecimal calculateTax(Order order) {
-		int totalAlcoholCapacity = order.getTotalAlcohol();
-			
-		BigDecimal exceededCapacity = BigDecimal.valueOf(totalAlcoholCapacity - ALCOHOL_LIMIT_CAPACITY);
+    public BigDecimal calculateTax(Order order) {
 
-		return exceededCapacity.multiply(ALCOHOL_TAX_RATE);
+        int limitCapacity = regulationDTO.getLimitCapacity();
+        
+        BigDecimal taxRate = BigDecimal.valueOf(regulationDTO.getOverageRate())
+                                      .divide(BigDecimal.valueOf(100)); 
 
-	}
+        int totalAlcohol = order.getTotalAlcohol();
+        int exceeded = totalAlcohol - limitCapacity;
+
+        if (exceeded <= 0) {
+        	return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.valueOf(exceeded).multiply(taxRate);
+    }
+
 
 }
