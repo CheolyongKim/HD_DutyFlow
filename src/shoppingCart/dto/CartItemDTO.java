@@ -1,11 +1,16 @@
 package shoppingCart.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.math.BigDecimal;
 
-public record CartItemDTO(
-    String productName,
-    int quantity,
-    BigDecimal dollarPrice,
-    BigDecimal wonPrice
-) {
+@Getter
+@AllArgsConstructor
+public class CartItemDTO {
+
+    private final String productName;
+    private final int quantity;
+    private final BigDecimal dollarPrice;
+    private final BigDecimal wonPrice;
 }

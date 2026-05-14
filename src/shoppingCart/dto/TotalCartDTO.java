@@ -1,12 +1,17 @@
 package shoppingCart.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.math.BigDecimal;
 import java.util.List;
 
-public record TotalCartDTO(
-    List<CartItemDTO> items,
-    int totalQuantity,
-    BigDecimal totalDollarPrice,
-    BigDecimal totalWonPrice
-) {
+@Getter
+@AllArgsConstructor
+public class TotalCartDTO {
+
+    private final List<CartItemDTO> items;
+    private final int totalQuantity;
+    private final BigDecimal totalDollarPrice;
+    private final BigDecimal totalWonPrice;
 }
