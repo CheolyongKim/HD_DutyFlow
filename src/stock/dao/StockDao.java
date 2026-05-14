@@ -20,14 +20,25 @@ public class StockDao {
 
         List<StockProductDto> stockProductList = new ArrayList<>();
 
-        String sql = """
-            SELECT *
-            FROM product
-            JOIN stock USING(productId)
-            JOIN brand USING(brandId)
-            JOIN category USING(categoryId)
-            WHERE brandName = ?
-        """;
+        String sql =
+                "SELECT " +
+                "    p.productName, " +
+                "    p.stockAmount, " +
+                "    p.capacity, " +
+                "    p.priceUsd, " +
+                "    p.priceKrw, " +
+                "    p.thresholdValue, " +
+                "    p.madeAt, " +
+                "    b.brandName, " +
+                "    c.categoryName, " +
+                "    c.depth, " +
+                "    s.amount, " +
+                "    s.manufacturedDate " +
+                "FROM product p " +
+                "JOIN stock s ON p.productId = s.productId " +
+                "JOIN brand b ON p.brandId = b.brandId " +
+                "JOIN category c ON p.categoryId = c.categoryId " +
+                "WHERE b.brandName = ?";
 
         System.out.println("sql = " + sql);
 
@@ -61,7 +72,9 @@ public class StockDao {
                                     ? rs.getDate("madeAt").toLocalDate()
                                     : null)
                             .amount(rs.getInt("amount"))
-                            .manufacturedDate(rs.getDate("manufacturedDate").toLocalDate())
+                            .manufacturedDate(rs.getDate("manufacturedDate") != null
+                                    ? rs.getDate("manufacturedDate").toLocalDate()
+                                    : null)
                             .build();
 
                     stockProductList.add(dto);
@@ -78,23 +91,22 @@ public class StockDao {
 
         return stockProductList;
     }
-    
+
     public List<Stock> findByProductNameOrderByManufacturedDate(String productName) throws SystemException {
 
         List<Stock> stockList = new ArrayList<>();
 
-        String sql = """
-            SELECT 
-                s.stockId,
-                s.productId,
-                s.manufacturedDate,
-                s.amount
-            FROM stock s
-            JOIN product p ON s.productId = p.productId
-            WHERE p.productName = ?
-              AND s.amount > 0
-            ORDER BY s.manufacturedDate ASC
-        """;
+        String sql =
+                "SELECT " +
+                "    s.stockId, " +
+                "    s.productId, " +
+                "    s.manufacturedDate, " +
+                "    s.amount " +
+                "FROM stock s " +
+                "JOIN product p ON s.productId = p.productId " +
+                "WHERE p.productName = ? " +
+                "  AND s.amount > 0 " +
+                "ORDER BY s.manufacturedDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -106,7 +118,9 @@ public class StockDao {
                     Stock stock = Stock.builder()
                             .stockId(rs.getInt("stockId"))
                             .productId(rs.getInt("productId"))
-                            .manufacturedDate(rs.getDate("manufacturedDate").toLocalDate())
+                            .manufacturedDate(rs.getDate("manufacturedDate") != null
+                                    ? rs.getDate("manufacturedDate").toLocalDate()
+                                    : null)
                             .amount(rs.getInt("amount"))
                             .build();
 
@@ -120,15 +134,14 @@ public class StockDao {
 
         return stockList;
     }
-    
+
     public int getTotalAmountByProductName(String productName) throws SystemException {
 
-        String sql = """
-            SELECT NVL(SUM(s.amount), 0) AS totalAmount
-            FROM stock s
-            JOIN product p ON s.productId = p.productId
-            WHERE p.productName = ?
-        """;
+        String sql =
+                "SELECT NVL(SUM(s.amount), 0) AS totalAmount " +
+                "FROM stock s " +
+                "JOIN product p ON s.productId = p.productId " +
+                "WHERE p.productName = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -147,14 +160,13 @@ public class StockDao {
 
         return 0;
     }
-    
+
     public int updateAmount(int stockId, int amount) throws SystemException {
 
-        String sql = """
-            UPDATE stock
-            SET amount = ?
-            WHERE stockId = ?
-        """;
+        String sql =
+                "UPDATE stock " +
+                "SET amount = ? " +
+                "WHERE stockId = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -168,22 +180,19 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-    
+
     public int insertStock(Stock stock) throws SystemException {
 
-        String sql = """
-            INSERT INTO stock (
-                stockId,
-                productId,
-                manufacturedDate,
-                amount
-            ) VALUES (
-                STOCK_SEQ.NEXTVAL,
-                ?,
-                ?,
-                ?
-            )
-        """;
+        String sql =
+                "INSERT INTO stock ( " +
+                "    productId, " +
+                "    manufacturedDate, " +
+                "    amount " +
+                ") VALUES ( " +
+                "    ?, " +
+                "    ?, " +
+                "    ? " +
+                ")";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -198,14 +207,13 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-    
+
     public int findProductIdByProductName(String productName) throws SystemException {
 
-        String sql = """
-            SELECT productId
-            FROM product
-            WHERE productName = ?
-        """;
+        String sql =
+                "SELECT productId " +
+                "FROM product " +
+                "WHERE productName = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {

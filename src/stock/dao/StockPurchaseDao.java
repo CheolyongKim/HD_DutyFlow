@@ -17,21 +17,20 @@ public class StockPurchaseDao {
 
     public int insertPurchaseByProductName(String productName, int amount) throws SystemException {
 
-        String sql = """
-            INSERT INTO StockPurchase (
-                productId,
-                purchaseDate,
-                amount,
-                status
-            )
-            SELECT
-                productId,
-                SYSDATE,
-                ?,
-                ?
-            FROM Product
-            WHERE productName = ?
-        """;
+        String sql =
+                "INSERT INTO StockPurchase ( " +
+                "    productId, " +
+                "    purchaseDate, " +
+                "    amount, " +
+                "    status " +
+                ") " +
+                "SELECT " +
+                "    productId, " +
+                "    SYSDATE, " +
+                "    ?, " +
+                "    ? " +
+                "FROM Product " +
+                "WHERE productName = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -49,11 +48,10 @@ public class StockPurchaseDao {
 
     public StockPurchase findById(int purchaseId) throws SystemException {
 
-        String sql = """
-            SELECT purchaseId, productId, purchaseDate, amount, status
-            FROM StockPurchase
-            WHERE purchaseId = ?
-        """;
+        String sql =
+                "SELECT purchaseId, productId, purchaseDate, amount, status " +
+                "FROM StockPurchase " +
+                "WHERE purchaseId = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -77,11 +75,10 @@ public class StockPurchaseDao {
 
         List<StockPurchase> purchaseList = new ArrayList<>();
 
-        String sql = """
-            SELECT purchaseId, productId, purchaseDate, amount, status
-            FROM StockPurchase
-            ORDER BY purchaseId DESC
-        """;
+        String sql =
+                "SELECT purchaseId, productId, purchaseDate, amount, status " +
+                "FROM StockPurchase " +
+                "ORDER BY purchaseId DESC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -102,13 +99,12 @@ public class StockPurchaseDao {
 
         List<StockPurchase> purchaseList = new ArrayList<>();
 
-        String sql = """
-            SELECT sp.purchaseId, sp.productId, sp.purchaseDate, sp.amount, sp.status
-            FROM StockPurchase sp
-            JOIN Product p ON sp.productId = p.productId
-            WHERE p.productName = ?
-            ORDER BY sp.purchaseId DESC
-        """;
+        String sql =
+                "SELECT sp.purchaseId, sp.productId, sp.purchaseDate, sp.amount, sp.status " +
+                "FROM StockPurchase sp " +
+                "JOIN Product p ON sp.productId = p.productId " +
+                "WHERE p.productName = ? " +
+                "ORDER BY sp.purchaseId DESC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -132,12 +128,11 @@ public class StockPurchaseDao {
 
         List<StockPurchase> purchaseList = new ArrayList<>();
 
-        String sql = """
-            SELECT purchaseId, productId, purchaseDate, amount, status
-            FROM StockPurchase
-            WHERE status = ?
-            ORDER BY purchaseDate ASC
-        """;
+        String sql =
+                "SELECT purchaseId, productId, purchaseDate, amount, status " +
+                "FROM StockPurchase " +
+                "WHERE status = ? " +
+                "ORDER BY purchaseDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -167,11 +162,10 @@ public class StockPurchaseDao {
 
     public int updateStatus(int purchaseId, StockPurchaseStatus status) throws SystemException {
 
-        String sql = """
-            UPDATE StockPurchase
-            SET status = ?
-            WHERE purchaseId = ?
-        """;
+        String sql =
+                "UPDATE StockPurchase " +
+                "SET status = ? " +
+                "WHERE purchaseId = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -186,30 +180,16 @@ public class StockPurchaseDao {
         }
     }
 
-    private StockPurchase mapToStockPurchase(ResultSet rs) throws SQLException {
-        return StockPurchase.builder()
-                .purchaseId(rs.getInt("purchaseId"))
-                .productId(rs.getInt("productId"))
-                .purchaseDate(rs.getDate("purchaseDate") != null
-                        ? rs.getDate("purchaseDate").toLocalDate()
-                        : null)
-                .amount(rs.getInt("amount"))
-                .status(StockPurchaseStatus.valueOf(rs.getString("status")))
-                .build();
-    }
-    
     public List<StockPurchase> findReceivablePurchases() throws SystemException {
 
         List<StockPurchase> purchaseList = new ArrayList<>();
 
-        String sql = """
-            SELECT purchaseId, productId, purchaseDate, amount, status
-            FROM StockPurchase
-            WHERE status = ?
-              AND purchaseDate <= SYSDATE - (3 / 1440)
-            ORDER BY purchaseDate ASC
-        """;
-        // 3분이 지나서 발주 완료 처리
+        String sql =
+                "SELECT purchaseId, productId, purchaseDate, amount, status " +
+                "FROM StockPurchase " +
+                "WHERE status = ? " +
+                "  AND purchaseDate <= SYSDATE - (3 / 1440) " +
+                "ORDER BY purchaseDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -228,19 +208,18 @@ public class StockPurchaseDao {
 
         return purchaseList;
     }
-    
+
     public int updateStatusIfCurrentStatus(
             int purchaseId,
             StockPurchaseStatus currentStatus,
             StockPurchaseStatus nextStatus
     ) throws SystemException {
 
-        String sql = """
-            UPDATE StockPurchase
-            SET status = ?
-            WHERE purchaseId = ?
-              AND status = ?
-        """;
+        String sql =
+                "UPDATE StockPurchase " +
+                "SET status = ? " +
+                "WHERE purchaseId = ? " +
+                "  AND status = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -255,7 +234,7 @@ public class StockPurchaseDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-    
+
     public int cancelPurchase(int purchaseId) throws SystemException {
         return updateStatusIfCurrentStatus(
                 purchaseId,
@@ -263,12 +242,24 @@ public class StockPurchaseDao {
                 StockPurchaseStatus.CANCELED
         );
     }
-    
+
     public int markAsReceived(int purchaseId) throws SystemException {
         return updateStatusIfCurrentStatus(
                 purchaseId,
                 StockPurchaseStatus.REQUESTED,
                 StockPurchaseStatus.RECEIVED
         );
+    }
+
+    private StockPurchase mapToStockPurchase(ResultSet rs) throws SQLException {
+        return StockPurchase.builder()
+                .purchaseId(rs.getInt("purchaseId"))
+                .productId(rs.getInt("productId"))
+                .purchaseDate(rs.getDate("purchaseDate") != null
+                        ? rs.getDate("purchaseDate").toLocalDate()
+                        : null)
+                .amount(rs.getInt("amount"))
+                .status(StockPurchaseStatus.valueOf(rs.getString("status")))
+                .build();
     }
 }
