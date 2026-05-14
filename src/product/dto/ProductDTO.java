@@ -5,14 +5,20 @@ import java.sql.Date;
 import java.time.LocalDate;
 
 import category.Category;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
 @Builder
-public class productDTO {
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductDTO {
 	
 	private Category category;
 	private String productName;
@@ -24,6 +30,9 @@ public class productDTO {
 	private double discountRate;
 	private int thresholdValue;
 	private LocalDate madeAt;
-
-
+	private boolean hasEvent; // 상품 할인 유무
+	private BigDecimal finalPriceKrw; // 화면에 뿌릴것이므로 DTO에 추가
+	private BigDecimal finalPriceUsd; // 화면에 뿌릴것이므로 DTO에 추가
+	
+  
 }
