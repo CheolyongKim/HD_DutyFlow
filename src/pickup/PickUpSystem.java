@@ -12,7 +12,7 @@ import exception.ValidationException;
 import member.Member;
 import order.Order;
 import pickup.dto.RealPickUpDTO;
-import product.productDAO;
+import product.ProductDAO;
 
 public class PickUpSystem {
 	private MLPQ pq; 

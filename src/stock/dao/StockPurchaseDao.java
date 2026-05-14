@@ -188,7 +188,7 @@ public class StockPurchaseDao {
                 "SELECT purchaseId, productId, purchaseDate, amount, status " +
                 "FROM StockPurchase " +
                 "WHERE status = ? " +
-                "  AND purchaseDate <= SYSDATE - (3 / 1440) " +
+                "  AND purchaseDate <= SYSDATE - (3 / 1440) " + // 발주 후 3분이 지났을 때
                 "ORDER BY purchaseDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
@@ -261,5 +261,35 @@ public class StockPurchaseDao {
                 .amount(rs.getInt("amount"))
                 .status(StockPurchaseStatus.valueOf(rs.getString("status")))
                 .build();
+    }
+    
+    public List<StockPurchase> findByBrandName(String brandName) throws SystemException {
+
+        List<StockPurchase> purchaseList = new ArrayList<>();
+
+        String sql =
+                "SELECT sp.purchaseId, sp.productId, sp.purchaseDate, sp.amount, sp.status " +
+                "FROM StockPurchase sp " +
+                "JOIN Product p ON sp.productId = p.productId " +
+                "JOIN Brand b ON p.brandId = b.brandId " +
+                "WHERE b.brandName = ? " +
+                "ORDER BY sp.purchaseId DESC";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, brandName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    purchaseList.add(mapToStockPurchase(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        return purchaseList;
     }
 }

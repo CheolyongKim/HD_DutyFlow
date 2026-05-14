@@ -90,7 +90,7 @@ public class StockDao {
                 "FROM stock " +
                 "WHERE productId = ? " +
                 "  AND amount > 0 " +
-                "ORDER BY manufacturedDate ASC";
+                "ORDER BY manufacturedDate ASC"; // 제조일자가 오래된 것 부터 -> 값이 작은 것부터 -> 오름차순 
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -259,6 +259,56 @@ public class StockDao {
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("thresholdValue");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        throw new SystemException(ErrorCode.DB_CONNECTION);
+    }
+    public String getBrandNameByProductId(int productId) throws SystemException {
+
+        String sql =
+                "SELECT b.brandName " +
+                "FROM product p " +
+                "JOIN brand b ON p.brandId = b.brandId " +
+                "WHERE p.productId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, productId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("brandName");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        throw new SystemException(ErrorCode.DB_CONNECTION);
+    }
+    public String getBrandNameByProductName(String productName) throws SystemException {
+
+        String sql =
+                "SELECT b.brandName " +
+                "FROM product p " +
+                "JOIN brand b ON p.brandId = b.brandId " +
+                "WHERE p.productName = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, productName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("brandName");
                 }
             }
 
