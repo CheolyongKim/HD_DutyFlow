@@ -13,6 +13,7 @@ public enum ErrorCode {
 	DUPLICATE_DATA("DUPLICATE_DATA", "이미 존재하는 데이터입니다."),
 	UNAUTHORIZED("UNAUTHORIZED", "로그인이 필요합니다."),
 	ACCESS_DENIED("ACCESS_DENIED", "접근 권한이 없습니다."),
+	ILLEGAL_STATE("ILLEGAL_STATE", "시스템 검증 과정에 오류가 존재합니다."), // 이전에서 검증되었어야 할 조건을 만족하지 못했을 때
 	
 	// 장바구니
 	INVALID_QUANTITY("INVALID_QUANTITY", "수량은 1개 이상이어야 합니다."),
