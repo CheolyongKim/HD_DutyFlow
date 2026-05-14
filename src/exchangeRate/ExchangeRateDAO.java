@@ -39,4 +39,19 @@ public class ExchangeRateDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
+    
+    // 오늘 환율 저장
+    public void insertTodayRate(Connection conn, BigDecimal exchangeRate) {
+        String sql =
+            "INSERT INTO ExchangeRate(exchangeDate, exchangeRate, isLatest) "
+        	+ "VALUES (TRUNC(SYSDATE), ?, 'Y')"; // 가장 최신 환율이므로 isLastest = Y로 설정
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setBigDecimal(1, exchangeRate);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }
