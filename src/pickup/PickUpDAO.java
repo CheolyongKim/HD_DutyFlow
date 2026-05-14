@@ -17,7 +17,7 @@ import product.dto.productDTO;
 
 public class PickUpDAO {
 
-	public List<RealPickUpDTO> getAllRealPickUp() throws SystemException{
+	public List<RealPickUpDTO> getAllRealPickUp(String passportNum, int flightResNum) throws SystemException{
 		List<RealPickUpDTO> realPickUpList = new ArrayList<RealPickUpDTO>();
 		
 		String sql = ""
