@@ -23,9 +23,6 @@ public class productDAO {
 	 * @return: ProductDto
 	 * @throws SQLException
 	 */
-	// =========================
-	// 공통 매핑 로직 (핵심)
-	// =========================
 	private productDTO mapProduct(ResultSet rs) throws SQLException {
 
 		Category category = Category.builder().categoryName(rs.getString("categoryName")).depth(rs.getInt("depth"))
@@ -42,7 +39,7 @@ public class productDAO {
 	/***
 	 * 모든 상품 조회
 	 * 
-	 * @return List<ProductDto>
+	 * @return List<ProductDto> (상품 리트스 반환)
 	 * @throws SystemException
 	 * 
 	 */
@@ -70,17 +67,16 @@ public class productDAO {
 	/***
 	 * 해당하는 카테고리의 상품 조회
 	 * 
-	 * @return List<ProductDto>
+	 * @return List<ProductDto> (상품 리트스 반환)
 	 * @throws SystemException
 	 * 
 	 */
 	public List<productDTO> getProductsByCategory(Category category) {
 
-		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId) where category.categoryName = ?";
+		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId) where categoryName = ?";
 
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, category.getCategoryName());
-			pstmt.setInt(2, category.getDepth());
 			try (ResultSet rs = pstmt.executeQuery()) {
 				List<productDTO> productList = new ArrayList<>();
 				while (rs.next()) {
@@ -93,5 +89,31 @@ public class productDAO {
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		}
 	}
+	
+	/***
+	 * 특정 하나의 상품을 출력하는 메서드	 
+	 * @return ProductDto (상품 단일 반환)
+	 * @throws SystemException
+	 * 
+	 */
+	public productDTO getProductsByProductName(String productName) {
+
+		String sql = "select * from product join category using(categoryId) join brand using(brandId) join event using(productId) where productName = ?";
+
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			pstmt.setString(1, productName);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				productDTO pdto = new productDTO();
+				if(rs.next()) {
+					pdto = mapProduct(rs);
+				}
+				return pdto;
+			}
+
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
+	
 
 }

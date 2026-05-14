@@ -37,5 +37,13 @@ public class main {
         for (productDTO p : byCategory) {
             System.out.println(p);
         }
+        
+	     // =========================
+	     // 3. 상품명으로  단건 조회 테스트
+	     // =========================
+	     System.out.println("===== 상품명으로 상품 1개 조회 =====");
+	     productDTO product = service.printProduct("조니워커 블루라벨");
+	     System.out.println(product);
+        
     }
 }
