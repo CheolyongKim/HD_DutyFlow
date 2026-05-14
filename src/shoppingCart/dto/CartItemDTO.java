@@ -1,8 +1,8 @@
-package cart;
+package shoppingCart.dto;
 
 import java.math.BigDecimal;
 
-public record CartItemDto(
+public record CartItemDTO(
     String productName,
     int quantity,
     BigDecimal dollarPrice,

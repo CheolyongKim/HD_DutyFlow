@@ -3,11 +3,12 @@ package dutyFlowSystem;
 import java.util.List;
 import java.util.Queue;
 
-import cart.TotalCartDto;
 import exchangeRate.ExchangeRate;
 import member.Member;
 import order.Order;
 import product.Product;
+import shoppingCart.ShoppingCartService;
+import shoppingCart.dto.TotalCartDTO;
 
 public class DutyFlowSystem {
 	
@@ -18,28 +19,30 @@ public class DutyFlowSystem {
 	// private List<BrandSystemDao> brandRepository;
 	// private TaxCalculator taxCalculator;
 	
+	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
+	
 	// 회원 장바구니에 상품 추가
 	public void addToCart(Product p, int wishAmount) {
-		member.getCart().addToCart(p, wishAmount);
+		shoppingCartService.addToCart(member.getMemberId(), p, wishAmount);
 	}
 	
 	// 장바구니 내 특정 상품 수량 변경
 	public void updateQuantity(Product p, int newAmount) {
-		member.getCart().updateQuantity(p, newAmount);
+		shoppingCartService.updateQuantity(member.getMemberId(), p, newAmount);
 	}
 
 	// 장바구니 조회
-	public TotalCartDto printCart() {
-	    return member.getCart().printCart();
+	public TotalCartDTO printCart() {
+	    return shoppingCartService.getCart(member.getMemberId());
 	}
 	
 	// 장바구니 비우기
 	public void deleteFromCart() {
-		member.getCart().flush();
+		shoppingCartService.flush(member.getMemberId());
 	}
 	
 	// 장바구니 선택 상품 제거
 	public void deleteFromCart(List<Product> selectedProducts) { 
-		member.getCart().flush(selectedProducts);
+		shoppingCartService.flush(member.getMemberId(), selectedProducts);
 	}
 }
