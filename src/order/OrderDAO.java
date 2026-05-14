@@ -12,7 +12,7 @@ import common.OracleConnection;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
-import pickup.dto.RealPickUpDTO;
+import pickup.dto.PickUpDTO;
 
 public class OrderDAO {
 	// 작업중

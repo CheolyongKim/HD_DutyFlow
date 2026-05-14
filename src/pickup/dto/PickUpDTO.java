@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class RealPickUpDTO {
+public class PickUpDTO {
 	/*
 	 * 필요 데이터:
 	 * 픽업.픽업가능일시, 회원.여권번호, 예약.예약번호, 비행기.출발시간

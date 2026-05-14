@@ -13,13 +13,13 @@ import common.OracleConnection;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
-import pickup.dto.RealPickUpDTO;
+import pickup.dto.PickUpDTO;
 import product.dto.productDTO;
 
 public class PickUpDAO {
 
-	public List<RealPickUpDTO> getAllRealPickUp(String passportNum, int flightResNum) throws SystemException{
-		List<RealPickUpDTO> realPickUpList = new ArrayList<RealPickUpDTO>();
+	public List<PickUpDTO> getAllRealPickUp(String passportNum, int flightResNum) throws SystemException{
+		List<PickUpDTO> realPickUpList = new ArrayList<PickUpDTO>();
 		
 		String sql = ""
 				+ "SELECT P.pickUpAvailableAt, M.passportNumber, B.reservationCode, F.departureAt"
@@ -39,7 +39,7 @@ public class PickUpDAO {
 			while (rs.next()) {
 				hasData = true;
 
-				RealPickUpDTO dto = RealPickUpDTO.builder()
+				PickUpDTO dto = PickUpDTO.builder()
 				        .pickupAvailableAt(rs.getObject("pickupAvailableAt", LocalDateTime.class))
 				        .passportNumber(rs.getString("passportNumber"))
 				        .reservationCode(rs.getString("reservationCode"))
