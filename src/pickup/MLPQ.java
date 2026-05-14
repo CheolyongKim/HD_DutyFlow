@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 
 import airplane.Airplane;
+import common.CurrentTime;
 import exception.QueueException;
 import main.Application;
 import member.Member;
@@ -26,7 +27,7 @@ public class MLPQ {
 	
 	public void enqueue(Airplane airplane, Member member) {
 		if (this.size()==0 ||
-				Duration.between(Application.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
+				Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
 			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		}else {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
