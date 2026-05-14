@@ -27,7 +27,7 @@ public class DepartureSoonSortStrategy implements SortStrategy {
                 				ticket.getTicketNum())
                 .thenComparingInt(ticket ->
                         ticket.getMember()
-                              .getMembership()
+                              .getGrade()
                               .getPriority()
                 );
     }
