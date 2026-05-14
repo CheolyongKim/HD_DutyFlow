@@ -8,7 +8,7 @@ import common.Currency;
 import product.ProductService;
 import product.dto.ProductDTO;
 
-public class chaeyeonMain {
+public class ChaeyeonMain {
 
     public static void main(String[] args) {
 
