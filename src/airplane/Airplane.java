@@ -1,5 +1,6 @@
 package airplane;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,11 +68,13 @@ public class Airplane {
 			return;
 		}
 		
-		System.out.println("FlightCode : " + flightCode + " || 지연 : " +  this.departureAt + " -> "  + newTime);
-		
-		this.setDepartureAt(newTime);
-		this.isDelayed = 1;
-		notifyObserver();
+		if(newTime.isAfter(this.departureAt)) {
+			System.out.println("FlightCode : " + flightCode + " || 지연 : " +  this.departureAt + " -> "  + newTime);
+			
+			this.departureAt = newTime;
+			this.isDelayed = 1;
+			notifyObserver();
+		}
 		
 	}
 	
