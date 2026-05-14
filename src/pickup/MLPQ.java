@@ -7,6 +7,7 @@ import java.util.PriorityQueue;
 
 import airplane.Airplane;
 import common.CurrentTime;
+import exception.ErrorCode;
 import exception.QueueException;
 import main.Application;
 import member.Member;
@@ -25,16 +26,28 @@ public class MLPQ {
 		this.maxWaitTimeMinutes = 40;
 	}
 	
-	public void oneMinutePassed() {
+	public PickUpTicket oneMinutePassed() {
+		PickUpTicket poll = null;
 		// 1분이 흐른다
 		CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
-		// BQ 안의 모든 티켓들의 대기한 시간 증가 - ticketIssueTime이 고정되어있으므로 자동적
-		// 0순위로 starvation 방지용 자동 poll
 		
-		// 없으면, BQ 안의 모든 티켓들 중 조건 만족 시 promote
+		// BQ 안의 모든 티켓들의 대기한 시간 증가 - ticketIssueTime이 고정되어있으므로 자동적
+		// (자동적) BQ 안의 모든 티켓들 중 조건 만족 시 promote
+		this.promote();
+		
+		// 0순위로 starvation 방지용 자동 poll
+		poll = this.handleStarvation();
+		if (poll != null) return poll;
+		
 		// 1순위로 AQ에 티켓이 하나라도 있으면 poll
 		// 없으면, 2순위로 BQ에서 poll
-		// 없으면, continue;
+		try {
+			return this.pop();
+		} catch (QueueException e) {
+			// TODO: handle exception
+		}
+		// 없으면, continue = return null;
+		return null;
 	}
 	
 	public void enqueue(Airplane airplane, Member member) {
@@ -48,16 +61,17 @@ public class MLPQ {
 	
 	public PickUpTicket pop() throws QueueException{
 		if (this.aq.size()>0) return this.aq.poll();
-		else return this.bq.poll();
+		else if (this.bq.size()>0) return this.bq.poll();
+		else throw new QueueException(ErrorCode.DATA_NOT_FOUND);
 	}
 	
 	private void moveToA(PickUpTicket p) {
 		this.aq.add(this.bq.poll());
 	}
 	
-	private void promote(LocalDateTime currentSimulationTime) {
+	private void promote() {
 		for (PickUpTicket p : this.bq) {
-			if (Duration.between(p.getAirplane().getDepartureAt(), currentSimulationTime).getSeconds()/60 < this.promotionThresholdMinutes) {
+			if (Duration.between(p.getAirplane().getDepartureAt(), CurrentTime.curTime).getSeconds()/60 < this.promotionThresholdMinutes) {
 				PickUpTicket tempP = p;
 				this.aq.add(tempP);
 				this.bq.remove(p);
@@ -65,14 +79,22 @@ public class MLPQ {
 		}
 	}
 	
-	private void handleStarvation(LocalDateTime time) {
-		for (PickUpTicket p : this.bq) {
-			if (Duration.between(p.getTicketIssueTime(), time).getSeconds()/60 >= this.maxWaitTimeMinutes) {
+	private PickUpTicket handleStarvation() {
+		for (PickUpTicket p : this.aq) {
+			if (Duration.between(p.getTicketIssueTime(), CurrentTime.curTime).getSeconds()/60 >= this.maxWaitTimeMinutes) {
 				PickUpTicket tempP = p;
-				this.aq.add(tempP);
-				this.bq.remove(p);
+				this.aq.remove(p);
+				return tempP;
 			}
 		}
+		for (PickUpTicket p : this.bq) {
+			if (Duration.between(p.getTicketIssueTime(), CurrentTime.curTime).getSeconds()/60 >= this.maxWaitTimeMinutes) {
+				PickUpTicket tempP = p;
+				this.bq.remove(p);
+				return tempP;
+			}
+		}
+		return null;
 	}
 	
 	public void makeMLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
