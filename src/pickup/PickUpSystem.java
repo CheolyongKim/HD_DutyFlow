@@ -1,7 +1,9 @@
 package pickup;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import common.CurrentTime;
 import exception.DataNotFoundException;
 import exception.QueueException;
 import exception.SystemException;
@@ -12,7 +14,7 @@ import product.productDAO;
 
 public class PickUpSystem {
 	private MLPQ pq; 
-	private List<Member> members;
+	private List<Member> members;	// 시뮬레이션용 
 	private List<Order> orders;
 	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
@@ -28,17 +30,28 @@ public class PickUpSystem {
 			// PickUp 테이블 -> PickUpDAO -> RealPickUpDTO 데이터 수령
 		try {
 			List<RealPickUpDTO> realPickUpList = this.pickUpDAO.getAllRealPickUp(passportNum, flightResNum);
+			
+			// 존재함
+			try {
+				// 픽업가능시간 <= RealPickUp하러 온 현재 시간 <= 출국시간 이어야 함
+				LocalDateTime pickUpAvailableAt = realPickUpList.get(0).getPickupAvailableAt();
+				LocalDateTime departureAt = realPickUpList.get(0).getDepartureAt();
+				if (CurrentTime.curTime.isBefore(pickUpAvailableAt)) {
+					System.out.println("아직 픽업 가능 시간이 아닙니다.");
+				} else if (CurrentTime.curTime.isAfter(departureAt)) {
+					System.out.println("출국시간이 지나 노쇼 처리되셨습니다.");
+				} else {
+					// updateOrderState()의 대상 = popQueue()
+					
+				}
+			} catch (QueueException e) {
+				// popQueue()에서 발생 가능한 예외(비어있는 큐에서 pop시도) catch
+			}
 		} catch (SystemException e) {
 			
 		} catch (DataNotFoundException e) {
 			// 존재하지 않음 -> 예외처리
 			System.out.println("주문한 적이 없거나 오늘 픽업 대상자가 아닙니다.");
-		}
-		// 존재함
-		try {
-			// updateOrderState()의 대상 = popQueue()
-		} catch (QueueException e) {
-			// popQueue()에서 발생 가능한 예외(비어있는 큐에서 pop시도) catch
 		}
 	}
 	
