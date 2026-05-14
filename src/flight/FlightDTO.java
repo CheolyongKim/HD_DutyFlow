@@ -1,4 +1,4 @@
-package flight.dto;
+package flight;
 
 import java.time.LocalDate;
 
