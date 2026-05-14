@@ -27,8 +27,10 @@ public class MLPQ {
 	
 	public void oneMinutePassed() {
 		// 1분이 흐른다
-		// BQ 안의 모든 티켓들의 대기한 시간 증가
+		CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
+		// BQ 안의 모든 티켓들의 대기한 시간 증가 - ticketIssueTime이 고정되어있으므로 자동적
 		// 0순위로 starvation 방지용 자동 poll
+		
 		// 없으면, BQ 안의 모든 티켓들 중 조건 만족 시 promote
 		// 1순위로 AQ에 티켓이 하나라도 있으면 poll
 		// 없으면, 2순위로 BQ에서 poll
@@ -63,9 +65,9 @@ public class MLPQ {
 		}
 	}
 	
-	private void handleStarvation(LocalDateTime currentSimulationTime) {
+	private void handleStarvation(LocalDateTime time) {
 		for (PickUpTicket p : this.bq) {
-			if (Duration.between(p.getTicketIssueTime(), currentSimulationTime).getSeconds()/60 < this.maxWaitTimeMinutes) {
+			if (Duration.between(p.getTicketIssueTime(), time).getSeconds()/60 >= this.maxWaitTimeMinutes) {
 				PickUpTicket tempP = p;
 				this.aq.add(tempP);
 				this.bq.remove(p);
@@ -74,12 +76,8 @@ public class MLPQ {
 	}
 	
 	public void makeMLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
-		this.makeQueueWithStrategy(this.aq, aqStrategy.getComparator());
-		this.makeQueueWithStrategy(this.bq, bqStrategy.getComparator());
-	}
-	
-	public void makeQueueWithStrategy(PriorityQueue<PickUpTicket> q, Comparator<PickUpTicket> c) {
-		q = new PriorityQueue<PickUpTicket>(c);
+		this.aq = new PriorityQueue<PickUpTicket>(aqStrategy.getComparator());
+		this.bq = new PriorityQueue<PickUpTicket>(bqStrategy.getComparator());
 	}
 	
 	public PickUpTicket peek() throws QueueException{
