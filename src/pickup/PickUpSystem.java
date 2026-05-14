@@ -18,6 +18,7 @@ public class PickUpSystem {
 		 */
 		
 		// 파라미터로 제시된 고객의 정보가 DB에 존재하는지 확인
+			// PickUp 테이블 -> PickUpDAO -> PickUpOrdersFlightBookFlightDTO 데이터 수령
 		
 		// 존재함
 			// updateOrderState()의 대상 = popQueue()
