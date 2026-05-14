@@ -4,9 +4,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 
+import common.CurrentTime;
 import main.Application;
 
-public class DepartureSoonSortStrategy implements SortStrategy {
+public class DepartureSoonSortStrategy implements SortStrategy { 
 
 	@Override
     public Comparator<PickUpTicket> getComparator() {
