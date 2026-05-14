@@ -1,9 +1,13 @@
 package pickup;
 
 import java.util.List;
+
+import exception.DataNotFoundException;
 import exception.QueueException;
+import exception.SystemException;
 import member.Member;
 import order.Order;
+import pickup.dto.RealPickUpDTO;
 import product.productDAO;
 
 public class PickUpSystem {
@@ -22,13 +26,20 @@ public class PickUpSystem {
 		
 		// 파라미터로 제시된 고객의 정보가 DB에 존재하는지 확인
 			// PickUp 테이블 -> PickUpDAO -> RealPickUpDTO 데이터 수령
-			// 
-		
+		try {
+			List<RealPickUpDTO> realPickUpList = this.pickUpDAO.getAllRealPickUp(passportNum, flightResNum);
+		} catch (SystemException e) {
+			
+		} catch (DataNotFoundException e) {
+			// 존재하지 않음 -> 예외처리
+			System.out.println("주문한 적이 없거나 오늘 픽업 대상자가 아닙니다.");
+		}
 		// 존재함
+		try {
 			// updateOrderState()의 대상 = popQueue()
+		} catch (QueueException e) {
 			// popQueue()에서 발생 가능한 예외(비어있는 큐에서 pop시도) catch
-		
-		// 존재하지 않음 -> 예외처리
+		}
 	}
 	
 	public void appendQueue(String passportNum, int flightResNum) {

@@ -10,6 +10,7 @@ import java.util.List;
 
 import category.Category;
 import common.OracleConnection;
+import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
 import pickup.dto.RealPickUpDTO;
@@ -49,7 +50,7 @@ public class PickUpDAO {
 			}
 
 			if (!hasData) {
-				System.out.println("조회 결과 없음");
+				throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND, new Exception("데이터 조회 결과 없음"));
 			}
 
 		} catch (SQLException e) {
