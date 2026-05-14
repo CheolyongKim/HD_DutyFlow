@@ -2,7 +2,7 @@ package exception;
 
 public class QueueException extends DutyFreeException {
 
-    public QueueException(String errorCode, String logMessage) {
+    public QueueException(ErrorCode errorCode, Exception logMessage) {
         super(errorCode, logMessage);
     }
     
