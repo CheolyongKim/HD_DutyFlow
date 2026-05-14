@@ -33,8 +33,7 @@ public class ExchangeRateDAO {
         String sql = "UPDATE ExchangeRate SET isLatest = 'N' WHERE isLatest = 'Y'";
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.executeUpdate();
-
+            int count = pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
