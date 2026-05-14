@@ -57,6 +57,10 @@ public class PickUpSystem {
 		}
 	}
 	
+	public void loadOrders() {
+		
+	}
+	
 	public void appendQueue(String passportNum, int flightResNum) {
 		// TODO: DB에서 비행기 정보 flightResNum 일치하는 것 SELECT
 		// this.pq.enqueue();
