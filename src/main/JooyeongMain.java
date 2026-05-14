@@ -3,6 +3,7 @@ package main;
 import java.math.BigDecimal;
 import java.util.List;
 
+import exchangeRate.ExchangeRateService;
 import product.Product;
 import shoppingCart.ShoppingCartService;
 import shoppingCart.dto.TotalCartDTO;
@@ -10,6 +11,12 @@ import shoppingCart.dto.TotalCartDTO;
 public class JooyeongMain {
 
     public static void main(String[] args) {
+    	
+        ExchangeRateService exchangeRateService = new ExchangeRateService();
+
+        exchangeRateService.updateDailyExchangeRate();
+
+        System.out.println("환율 갱신 완료");
 
         ShoppingCartService service = new ShoppingCartService();
 
