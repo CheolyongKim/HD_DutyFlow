@@ -7,19 +7,75 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import category.Category;
 import common.OracleConnection;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
+import member.Grade;
+import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
-import product.dto.productDTO;
 
 public class PickUpDAO {
+	
+	public AppendQueueDTO getAppendingInfo(String passportNum, int flightResNum) throws SystemException{
+		AppendQueueDTO dto = null;
+		
+		String sql = ""
+				+ "SELECT F.flightCode, F.departureAt, F.isDelayed, M.memberId, M.grade"
+				+ "FROM Flight F JOIN FlightBook B USING(flightId)"
+				+ "				 JOIN Member M USING(memberId)"
+				+ "WHERE M.passportNum=? AND B.flightResNum=?;";
+		System.out.println("sql = " + sql);
+		
+		Connection conn = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
 
-	public List<PickUpDTO> getAllRealPickUp(String passportNum, int flightResNum) throws SystemException{
-		List<PickUpDTO> realPickUpList = new ArrayList<PickUpDTO>();
+		try {
+		    conn = OracleConnection.getConnection();
+
+		    pstmt = conn.prepareStatement(sql);
+
+		    pstmt.setInt(1, passportNum);
+		    pstmt.setString(2, flightResNum);
+
+		    rs = pstmt.executeQuery();
+
+		    boolean hasData = false;
+
+		    if (rs.next()) {
+		        hasData = true;
+
+		        dto = AppendQueueDTO.builder()
+		                .flightCode(rs.getString("flightCode"))
+		                .departureAt(rs.getObject("departureAt", LocalDateTime.class))
+		                .isDelayed(rs.getInt("isDelayed"))
+		                .memberId(rs.getInt("memberId"))
+		                .grade(Grade.fromPriority(rs.getInt("grade")))
+		                .build();
+		    }
+		    if (!hasData) {
+		        throw new DataNotFoundException(
+		                ErrorCode.DATA_NOT_FOUND,
+		                new Exception("데이터 조회 결과 없음")
+		        );
+		    }
+		} catch (SQLException e) {
+		    throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		} finally {
+		    try {
+		    		rs.close();
+		    		pstmt.close();
+		    		conn.close();
+		    } catch (SQLException e) {
+		        e.printStackTrace();
+		    }
+		}
+		return dto;
+	}
+
+	public List<PickUpDTO> getAllPickUp(String passportNum, int flightResNum) throws SystemException{
+		List<PickUpDTO> pickUpList = new ArrayList<PickUpDTO>();
 		
 		String sql = ""
 				+ "SELECT P.pickUpAvailableAt, M.passportNumber, B.reservationCode, F.departureAt"
@@ -35,6 +91,9 @@ public class PickUpDAO {
 				ResultSet rs = pstmt.executeQuery()) {
 
 			boolean hasData = false;
+			
+			pstmt.setString(1, passportNum);
+			pstmt.setInt(2, flightResNum);
 
 			while (rs.next()) {
 				hasData = true;
@@ -46,7 +105,7 @@ public class PickUpDAO {
 				        .departureAt(rs.getObject("departureAt", LocalDateTime.class))
 				        .build();
 
-				realPickUpList.add(dto);
+				pickUpList.add(dto);
 			}
 
 			if (!hasData) {
@@ -57,7 +116,7 @@ public class PickUpDAO {
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		}
 		
-		return realPickUpList;
+		return pickUpList;
 	}
 	
 }

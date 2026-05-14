@@ -3,6 +3,7 @@ package pickup;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import airplane.Airplane;
 import common.CurrentTime;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
@@ -11,8 +12,8 @@ import exception.SystemException;
 import exception.ValidationException;
 import member.Member;
 import order.Order;
-import pickup.dto.RealPickUpDTO;
-import product.ProductDAO;
+import pickup.dto.AppendQueueDTO;
+import pickup.dto.PickUpDTO;
 
 public class PickUpSystem {
 	private MLPQ pq; 
@@ -21,7 +22,57 @@ public class PickUpSystem {
 	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
+	public void appendQueue(String passportNum, int flightResNum) {
+		List<PickUpDTO> pickUpList;
+		AppendQueueDTO aqdto;
+		// 신원검증
+		try {
+			pickUpList = this.validateInfo(passportNum, flightResNum);
+			
+			// enqueue 위해 Airplane, Member 넣어야 함
+			// Airplane: flightResNum 으로 찾아온다 
+			// 필요한거- flightCode, departureAt, isDelayed
+			// Member: passportNum 으로 찾아온다 
+			// 필요한거- memberId, grade
+			// -> 한꺼번에 DTO로 찾아온다 (나머지는 불필요)
+			aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+					
+			this.pq.enqueue(
+					new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
+					new Member(aqdto.getMemberId(), null, null, null, null, null,
+							passportNum, null, false, aqdto.getGrade(), null));
+		} catch (ValidationException e) {
+			// TODO: 신원검증에서 걸림
+		} catch (SystemException e) {
+			
+		} catch (DataNotFoundException e) {
+			
+		} 
+	}
+	
 	public void realPickUp(String passportNum, int flightResNum) {
+		List<PickUpDTO> pickUpList;
+		// 신원검증
+		try {
+			pickUpList = this.validateInfo(passportNum, flightResNum);
+			// updateOrderState()의 대상 = popQueue()
+		} catch (ValidationException e) {
+			// TODO: 신원검증에서 걸림
+		} catch (SystemException e) {
+			
+		} catch (DataNotFoundException e) {
+			
+		} catch (QueueException e) {
+			// pop 시도하기 때문에 비어있었다면 QueueException 발생 가능
+		}
+	}
+	
+	public void loadOrders() {
+		
+	}
+	
+	// 신원검증 메서드: 문제가 없다면 해당하는 PickUpDTO 리스트 리턴, 문제가 있으면 예외 throw
+	private List<PickUpDTO> validateInfo(String passportNum, int flightResNum) throws ValidationException, SystemException, DataNotFoundException{
 		/*
 		 * 여권 실물 검증과 같은 작업은 현실에서 이루어진다고 가정
 		 * 파라미터 passportNum, flightResNum: 자신의 순번이 호출되어 인도받으러 온
@@ -30,40 +81,18 @@ public class PickUpSystem {
 		
 		// 파라미터로 제시된 고객의 정보가 DB에 존재하는지 확인
 			// PickUp 테이블 -> PickUpDAO -> RealPickUpDTO 데이터 수령
-		try {
-			List<RealPickUpDTO> realPickUpList = this.pickUpDAO.getAllRealPickUp(passportNum, flightResNum);
-			
-			// 존재함
-			try {
-				// 픽업가능시간 <= RealPickUp하러 온 현재 시간 <= 출국시간 이어야 함
-				LocalDateTime pickUpAvailableAt = realPickUpList.get(0).getPickupAvailableAt();
-				LocalDateTime departureAt = realPickUpList.get(0).getDepartureAt();
-				if (CurrentTime.curTime.isBefore(pickUpAvailableAt) || CurrentTime.curTime.isAfter(departureAt)) {
-					throw new ValidationException(ErrorCode.ILLEGAL_STATE);
-				} else {
-					// updateOrderState()의 대상 = popQueue()
-					
-				}
-			} catch (QueueException e) {
-				// popQueue()에서 발생 가능한 예외(비어있는 큐에서 pop시도) catch
-			} catch (ValidationException e) {
-				// 검증 과정에서의 이상 현상 예외
-			}
-		} catch (SystemException e) {
-			System.out.println(e.getMessage());
-		} catch (DataNotFoundException e) {
-			// 존재하지 않음 -> 예외처리
-			System.out.println("주문한 적이 없거나 오늘 픽업 대상자가 아닙니다.");
-		}
-	}
-	
-	public void loadOrders() {
+		List<PickUpDTO> realPickUpList = this.pickUpDAO.getAllPickUp(passportNum, flightResNum);
 		
-	}
-	
-	public void appendQueue(String passportNum, int flightResNum) {
-		// TODO: DB에서 비행기 정보 flightResNum 일치하는 것 SELECT
-		// this.pq.enqueue();
+		// 픽업가능시간 <= (Real)PickUp하러 온 현재 시간 <= 출국시간 이어야 함
+		LocalDateTime pickUpAvailableAt = realPickUpList.get(0).getPickupAvailableAt();
+		LocalDateTime departureAt = realPickUpList.get(0).getDepartureAt();
+		if (CurrentTime.curTime.isBefore(pickUpAvailableAt)) {
+			throw new ValidationException(ErrorCode.ILLEGAL_STATE);
+		}
+		if (CurrentTime.curTime.isAfter(departureAt)) {
+			// TODO: 노쇼처리 -> 자동환불로 넘어가야 함 (결제내역 테이블의 결제상태 변경)
+		}
+		return realPickUpList;
 	}
 	
 	public PickUpTicket popQueue() throws QueueException{
