@@ -36,8 +36,8 @@ public class PickUpDAO {
 
 		    pstmt = conn.prepareStatement(sql);
 
-		    pstmt.setInt(1, passportNum);
-		    pstmt.setString(2, flightResNum);
+		    pstmt.setString(1, passportNum);
+		    pstmt.setInt(2, flightResNum);
 
 		    rs = pstmt.executeQuery();
 

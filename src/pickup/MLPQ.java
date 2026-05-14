@@ -3,7 +3,9 @@ package pickup;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.List;
 import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 
 import airplane.Airplane;
 import common.CurrentTime;
@@ -69,14 +71,15 @@ public class MLPQ {
 		this.aq.add(this.bq.poll());
 	}
 	
+	// 수정 예시: removeIf 활용 (Java 8 이상)
 	private void promote() {
-		for (PickUpTicket p : this.bq) {
-			if (Duration.between(p.getAirplane().getDepartureAt(), CurrentTime.curTime).getSeconds()/60 < this.promotionThresholdMinutes) {
-				PickUpTicket tempP = p;
-				this.aq.add(tempP);
-				this.bq.remove(p);
-			}
-		}
+	    // 출국시간이 30분 미만인 것들을 임시 리스트에 담고 aq에 넣은 뒤 bq에서 제거
+	    List<PickUpTicket> toPromote = this.bq.stream()
+	        .filter(p -> Duration.between(CurrentTime.curTime, p.getAirplane().getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes)
+	        .collect(Collectors.toList()); // <--- 이 부분을 수정했습니다!
+	        
+	    this.aq.addAll(toPromote);
+	    this.bq.removeAll(toPromote);
 	}
 	
 	private PickUpTicket handleStarvation() {

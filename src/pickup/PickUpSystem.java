@@ -16,16 +16,16 @@ import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 
 public class PickUpSystem {
-	private MLPQ pq; 
-	private List<Member> members;	// 시뮬레이션용 (인도장에 찾아온) 고객들 리스트
+	public MLPQ pq; 
+	//private List<Member> members;	// 시뮬레이션용 (인도장에 찾아온) 고객들 리스트
 	private List<Order> orders;		// (DB에서 받아온) 픽업 가능 시간이 현재시간-3시간 ~ 현재시간+3시간 이내인, 수령완료하지 않은 주문들의 리스트
 	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
-	public PickUpSystem(List<Member> members) {
+	public PickUpSystem() {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
-		this.members = members;
+		//this.members = members;
 	}
 	
 	public void appendQueue(String passportNum, int flightResNum) {

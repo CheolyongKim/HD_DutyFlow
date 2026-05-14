@@ -24,4 +24,8 @@ public class Member {
 	public ShoppingCart getCart() {
 		return cart;
 	}
+
+	public Member() {
+		// TODO Auto-generated constructor stub
+	}
 }
