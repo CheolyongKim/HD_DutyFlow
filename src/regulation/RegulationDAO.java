@@ -20,9 +20,8 @@ public class RegulationDAO {
         try {
 			conn = OracleConnection.getConnection();
 			
-			String sql = "SELECT regulation_id, category_id, limit_capacity, established_date, overage_rate "
-	                   + "FROM regulation WHERE category_id = ?";
-	        
+			String sql = "SELECT regulationId, categoryId, limitCapacity, establishedDate, overageRate "
+			           + "FROM Regulation WHERE categoryId = ?";
 			  
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, categoryId);
@@ -32,11 +31,11 @@ public class RegulationDAO {
 			if(rs.next()) {
 			    RegulationDTO dto = new RegulationDTO();
 				
-			    dto.setRegulationId(rs.getInt("regulation_id"));
-			    dto.setCategoryId(rs.getInt("category_id"));
-			    dto.setLimitCapacity(rs.getInt("limit_capacity"));
-			    dto.setEstablishedDate(rs.getDate("established_date").toLocalDate());
-			    dto.setOverageRate(rs.getInt("overage_rate"));
+			    dto.setRegulationId(rs.getInt("regulationId"));
+			    dto.setCategoryId(rs.getInt("categoryId"));
+			    dto.setLimitCapacity(rs.getInt("limitCapacity"));
+			    dto.setEstablishedDate(rs.getDate("establishedDate").toLocalDate());
+			    dto.setOverageRate(rs.getInt("overageRate"));
 			    
                 return dto;
 			}
