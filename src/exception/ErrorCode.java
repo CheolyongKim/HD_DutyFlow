@@ -21,6 +21,10 @@ public enum ErrorCode {
 	INVALID_PRODUCT_PRICE("INVALID_PRODUCT_PRICE", "상품 가격 정보가 올바르지 않습니다."),
 	EMPTY_SELECTED_PRODUCTS("EMPTY_SELECTED_PRODUCTS", "선택된 상품이 없습니다."),
 
+	// ORDER
+	ORDER_INVALID_STATE("ORDER_INVALID_STATE", "현재 주문 상태에서는 수행할 수 없는 작업입니다."),
+	ORDER_PAYMENT_FAILED("ORDER_PAYMENT_FAILED", "결제 처리 중 오류가 발생했습니다."),
+	
 	// DB연결
 	DB_CONNECTION("CONNECTION_ERROR","DB 연결 실패"),
     DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
