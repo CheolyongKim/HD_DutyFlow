@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import category.Category;
-import product.dto.productDTO;
+import product.dto.ProductDTO;
 import common.Currency;
 import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
 
-public class productDAO {
+public class ProductDAO {
 
 	String baseSql =
 			"SELECT p.productId, p.productName, c.categoryId, c.categoryName, c.depth, " +
@@ -39,7 +39,7 @@ public class productDAO {
 	 * @return: ProductDto
 	 * @throws SQLException
 	 */
-	private productDTO mapProduct(ResultSet rs) throws SQLException {
+	private ProductDTO mapProduct(ResultSet rs) throws SQLException {
 
 	    Category category = Category.builder()
 	            .categoryId(rs.getInt("categoryId"))
@@ -47,7 +47,7 @@ public class productDAO {
 	            .depth(rs.getInt("depth"))
 	            .build();
 
-	    return productDTO.builder()
+	    return ProductDTO.builder()
 	            .category(category)
 	            .productName(rs.getString("productName"))
 	            .brandName(rs.getString("brandName"))
@@ -71,7 +71,7 @@ public class productDAO {
 	 * @throws SystemException
 	 * 
 	 */
-	public List<productDTO> getAllProducts() throws SystemException {
+	public List<ProductDTO> getAllProducts() throws SystemException {
 
 		String sql = baseSql;
 
@@ -79,7 +79,7 @@ public class productDAO {
 				PreparedStatement pstmt = conn.prepareStatement(sql);
 				ResultSet rs = pstmt.executeQuery()) {
 
-			List<productDTO> productList = new ArrayList<>();
+			List<ProductDTO> productList = new ArrayList<>();
 
 			while (rs.next()) {
 				productList.add(mapProduct(rs));
@@ -99,14 +99,14 @@ public class productDAO {
 	 * @throws SystemException
 	 * 
 	 */
-	public List<productDTO> getProductsByCategory(Category category) {
+	public List<ProductDTO> getProductsByCategory(Category category) {
 
 		String sql = baseSql + "WHERE c.categoryName = ?";
 
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, category.getCategoryName());
 			try (ResultSet rs = pstmt.executeQuery()) {
-				List<productDTO> productList = new ArrayList<>();
+				List<ProductDTO> productList = new ArrayList<>();
 				while (rs.next()) {
 					productList.add(mapProduct(rs));
 				}
@@ -124,14 +124,14 @@ public class productDAO {
 	 * @throws SystemException
 	 * 
 	 */
-	public productDTO getProductsByProductName(String productName) {
+	public ProductDTO getProductsByProductName(String productName) {
 
 		String sql = baseSql + "WHERE p.productName = ?";
 
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setString(1, productName);
 			try (ResultSet rs = pstmt.executeQuery()) {
-				productDTO pdto = new productDTO();
+				ProductDTO pdto = new ProductDTO();
 				if(rs.next()) {
 					pdto = mapProduct(rs);
 				}
@@ -149,7 +149,7 @@ public class productDAO {
 	 * @throws SystemException
 	 * 
 	 */
-	public List<productDTO> getProductsFilterByPrice(BigDecimal minPrice, BigDecimal maxPrice , Currency currency) {
+	public List<ProductDTO> getProductsFilterByPrice(BigDecimal minPrice, BigDecimal maxPrice , Currency currency) {
 		
 	    String priceExpr = currency.equals(Currency.USD)
 	            ? "p.priceUsd"
@@ -165,7 +165,7 @@ public class productDAO {
 			pstmt.setBigDecimal(1, minPrice);
 			pstmt.setBigDecimal(2, maxPrice);
 			try (ResultSet rs = pstmt.executeQuery()) {
-				List<productDTO> productList = new ArrayList<>();
+				List<ProductDTO> productList = new ArrayList<>();
 				while (rs.next()) {
 					productList.add(mapProduct(rs));
 				}

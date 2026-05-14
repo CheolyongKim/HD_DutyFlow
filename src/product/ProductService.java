@@ -5,24 +5,24 @@ import java.util.List;
 
 import category.Category;
 import common.Currency;
-import product.dto.productDTO;
+import product.dto.ProductDTO;
 
 public class ProductService {
 
-	private final productDAO productDAO = new productDAO();
+	private final ProductDAO productDAO = new ProductDAO();
 
-	public List<productDTO> printAllProducts() {
+	public List<ProductDTO> printAllProducts() {
 		return productDAO.getAllProducts();
 	}
 
-	public List<productDTO> printAllProducts(Category category) {
+	public List<ProductDTO> printAllProducts(Category category) {
 		return productDAO.getProductsByCategory(category);
 	}
 
-	public productDTO printProduct(String productName) {
+	public ProductDTO printProduct(String productName) {
 		return productDAO.getProductsByProductName(productName);
 	}
-	public List<productDTO> printProduct(BigDecimal minPrice, BigDecimal maxPrice , Currency currency) {
+	public List<ProductDTO> printProduct(BigDecimal minPrice, BigDecimal maxPrice , Currency currency) {
 		return productDAO.getProductsFilterByPrice(minPrice, maxPrice, currency);
 	}
 
