@@ -177,6 +177,17 @@ public class ProductDAO {
 		}
 	}
 	
-	
+	// 상품 원화 가격 업데이트 
+	public void updateAllPriceKrw(Connection conn, BigDecimal exchangeRate) {
+	    String sql = "UPDATE Product SET priceKrw = ROUND(priceUsd * ?, 0)";
+
+	    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        pstmt.setBigDecimal(1, exchangeRate);
+	        pstmt.executeUpdate();
+
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+	}
 
 }
