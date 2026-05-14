@@ -109,4 +109,38 @@ public class ExchangeRateService {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
+    
+    // 테스트용: 10초마다 다른 날짜로 환율 갱신을 확인하기 위한 메서드
+    public void updateExchangeRateForTest(LocalDate exchangeDate) {
+        Connection conn = null;
+
+        try {
+            conn = OracleConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            BigDecimal latestRate = exchangeRateDAO.findLatestRate(conn);
+
+            if (latestRate == null) {
+                latestRate = DEFAULT_EXCHANGE_RATE;
+            }
+
+            BigDecimal newExchangeRate = latestRate.add(BigDecimal.ONE);
+
+            exchangeRateDAO.updateLatestToN(conn);
+            exchangeRateDAO.insertRate(conn, exchangeDate, newExchangeRate);
+            productDAO.updateAllPriceKrw(conn, newExchangeRate);
+
+            conn.commit();
+
+            ExchangeRateProvider.getInstance()
+                    .update(newExchangeRate, exchangeDate);
+
+        } catch (Exception e) {
+            rollback(conn);
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+
+        } finally {
+            close(conn);
+        }
+    }
 }

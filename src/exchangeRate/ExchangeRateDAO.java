@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 
 import exception.ErrorCode;
 import exception.SystemException;
@@ -47,6 +48,22 @@ public class ExchangeRateDAO {
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setBigDecimal(1, exchangeRate);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    // 테스트용 메서드 / 호출 시 날짜 지정 가능
+    public void insertRate(Connection conn, LocalDate exchangeDate, BigDecimal exchangeRate) {
+        String sql =
+            "INSERT INTO ExchangeRate(exchangeDate, exchangeRate, isLatest) " +
+            "VALUES (?, ?, 'Y')";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setDate(1, java.sql.Date.valueOf(exchangeDate));
+            pstmt.setBigDecimal(2, exchangeRate);
             pstmt.executeUpdate();
 
         } catch (SQLException e) {
