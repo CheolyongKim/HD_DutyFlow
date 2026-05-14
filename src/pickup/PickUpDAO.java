@@ -14,7 +14,7 @@ import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
 import pickup.dto.RealPickUpDTO;
-import product.dto.productDTO;
+import product.dto.ProductDTO;
 
 public class PickUpDAO {
 
