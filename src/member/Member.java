@@ -3,7 +3,9 @@ package member;
 import java.time.LocalDate;
 
 import cart.Cart;
+import lombok.Data;
 
+@Data
 public class Member {
 	private String loginId;
 	private String password;
