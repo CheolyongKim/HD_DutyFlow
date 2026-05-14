@@ -22,6 +22,12 @@ public class PickUpSystem {
 	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
+	public PickUpSystem(List<Member> members) {
+		this.pq = new MLPQ();
+		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
+		this.members = members;
+	}
+	
 	public void appendQueue(String passportNum, int flightResNum) {
 		List<PickUpDTO> pickUpList;
 		AppendQueueDTO aqdto;
