@@ -22,3 +22,48 @@ INSERT INTO Product (productId, categoryId, brandId, productName, stockAmount, c
 
 
 select * from category;
+
+
+-- 0-x-14 테스트
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('SILVER', '가입 즉시', 10);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('GOLD', '1년간 $800 이상 구매 시', 15);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('BLACK', '1년간 $2,000 이상 구매 시', 20);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('PRESTIGE', '1년간 $4,000 이상 구매 시', 20);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('SILVER', '가입 즉시', 10);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('GOLD', '1년간 $800 이상 구매 시', 15);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('BLACK', '1년간 $2,000 이상 구매 시', 20);
+
+INSERT INTO Membership(grade, criteria, discountRate)
+VALUES ('PRESTIGE', '1년간 $4,000 이상 구매 시', 20);
+
+INSERT INTO Category(categoryId, parentCategoryId, categoryName, depth) VALUES (1, NULL, '향수', 1);
+
+INSERT INTO Manager(managerId, managerName, managerType) VALUES (1, '관리자', 'SHOP');
+
+INSERT INTO Brand(brandId, brandName, managerId) VALUES (1, 'CHANEL', 1);
+
+INSERT INTO Product(productId, categoryId, brandId, productName, stockAmount, capacity, priceUsd, priceKrw, thresholdValue, madeAt)
+VALUES (1, 1, 1, '샤넬 향수', 100, 100, 120, 160000, 600, SYSDATE);
+
+INSERT INTO Member(memberId, grade, loginId, password, name, birthDate, phoneNumber, gradeSelectionDate, adult, passportNumber, passportExpiryDate)
+VALUES (1, 'SILVER', 'test1', '1234', '테스트회원', SYSDATE, '010-1111-1111', SYSDATE, 'Y', 'M123456', SYSDATE + 365);
+
+INSERT INTO ShoppingCart(productId, memberId, amount) VALUES (1, 1, 2);
+
+SELECT p.productName, p.priceUsd, p.priceKrw, sc.amount
+FROM ShoppingCart sc
+JOIN Product p ON sc.productId = p.productId
+WHERE sc.memberId = 1;

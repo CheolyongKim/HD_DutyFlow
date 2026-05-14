@@ -1,28 +1,7 @@
-DROP TABLE ShoppingCart CASCADE CONSTRAINTS;
-DROP TABLE StockPurchase CASCADE CONSTRAINTS;
-DROP TABLE Pickup CASCADE CONSTRAINTS;
-DROP TABLE OrderDetail CASCADE CONSTRAINTS;
-DROP TABLE Orders CASCADE CONSTRAINTS;
-DROP TABLE FlightBook CASCADE CONSTRAINTS;
-DROP TABLE Flight CASCADE CONSTRAINTS;
-DROP TABLE Member CASCADE CONSTRAINTS;
-DROP TABLE ExchangeRate CASCADE CONSTRAINTS;
-DROP TABLE Regulation CASCADE CONSTRAINTS;
-DROP TABLE Stock CASCADE CONSTRAINTS;
-DROP TABLE Event CASCADE CONSTRAINTS;
-DROP TABLE Product CASCADE CONSTRAINTS;
-DROP TABLE Brand CASCADE CONSTRAINTS;
-DROP TABLE Category CASCADE CONSTRAINTS;
-DROP TABLE AirportManager CASCADE CONSTRAINTS;
-DROP TABLE ShopManager CASCADE CONSTRAINTS;
-DROP TABLE Manager CASCADE CONSTRAINTS;
-DROP TABLE Membership CASCADE CONSTRAINTS;
-DROP TABLE SystemLog CASCADE CONSTRAINTS;
-
 CREATE TABLE Membership (
     grade             VARCHAR2(100)   NOT NULL,
     criteria          VARCHAR2(100)   NOT NULL,
-    discountRate      NUMBER(3, 2)    DEFAULT 0 NOT NULL,
+    discountRate      NUMBER    DEFAULT 0 NOT NULL,
 
     CONSTRAINT PK_MEMBERSHIP PRIMARY KEY (grade)
 );
@@ -98,7 +77,7 @@ CREATE TABLE Product (
 
 CREATE TABLE Event (
     productId      NUMBER          NOT NULL,
-    discountRate   NUMBER(3, 2)    NOT NULL,
+    discountRate   NUMBER    NOT NULL,
 
     CONSTRAINT PK_EVENT PRIMARY KEY (productId),
     CONSTRAINT FK_PRODUCT_TO_EVENT_1
@@ -122,7 +101,7 @@ CREATE TABLE Regulation (
     categoryId        NUMBER  NOT NULL,
     limitCapacity     NUMBER  NOT NULL,
     establishedDate   DATE    NOT NULL,
-    overageRate   NUMBER(3, 2)    DEFAULT 0.15 NOT NULL,
+    overageRate   NUMBER    NOT NULL,
 
     CONSTRAINT PK_REGULATION PRIMARY KEY (regulationId),
     CONSTRAINT FK_CATEGORY_TO_REGULATION_1
@@ -196,7 +175,7 @@ CREATE TABLE FlightBook (
 );
 
 CREATE TABLE Orders (
-    orderId         VARCHAR2(20)   NOT NULL,
+    orderId         NUMBER         NOT NULL,
     memberId        NUMBER         NOT NULL,
     reservationId   NUMBER         NOT NULL,
     exchangeDate    DATE           NOT NULL,
@@ -227,7 +206,7 @@ CREATE TABLE Orders (
 
 CREATE TABLE OrderDetail (
     productId       NUMBER          NOT NULL,
-    orderId         VARCHAR2(20)    NOT NULL,
+    orderId         NUMBER          NOT NULL,
     quantity        NUMBER          NOT NULL,
     discountAmount  NUMBER(12, 2)   NOT NULL,
     dollarPrice     NUMBER(12, 2)   NOT NULL,
@@ -243,7 +222,7 @@ CREATE TABLE OrderDetail (
 
 CREATE TABLE Pickup (
     pickupId            VARCHAR2(20)   NOT NULL,
-    orderId             VARCHAR2(20)   NOT NULL,
+    orderId             NUMBER          NOT NULL,
     managerId           NUMBER         NOT NULL,
     pickupAvailableAt   DATE      NOT NULL,
     pickedUpAt          DATE      NULL,
