@@ -1,9 +1,12 @@
 package dutyFlowSystem;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Queue;
 
 import exchangeRate.ExchangeRate;
+import exchangeRate.ExchangeRateScheduler;
+import exchangeRate.ExchangeRateService;
 import member.Member;
 import order.Order;
 import product.Product;
@@ -15,7 +18,6 @@ public class DutyFlowSystem {
 	private Member member = new Member();
 	private List<Member> members;
 	private Queue<Order> orderQueue;
-	private List<ExchangeRate> exchangeRate;
 	// private List<BrandSystemDao> brandRepository;
 	// private TaxCalculator taxCalculator;
 	
@@ -44,5 +46,36 @@ public class DutyFlowSystem {
 	// 장바구니 선택 상품 제거
 	public void deleteFromCart(List<Product> selectedProducts) { 
 		shoppingCartService.flush(member.getMemberId(), selectedProducts);
+	}
+	
+	// 환율 서비스 및 스케줄러
+	private final ExchangeRateService exchangeRateService = new ExchangeRateService();
+
+	private final ExchangeRateScheduler exchangeRateScheduler = new ExchangeRateScheduler(exchangeRateService);
+
+	// 환율 자동 갱신 스케줄러 시작
+	public void startExchangeRateScheduler() {
+		exchangeRateScheduler.start();
+	}
+
+	// 환율 자동 갱신 스케줄러 종료
+	// 스케줄러 lifecycle을 명시적으로 관리하기 위해 추가
+	public void stopExchangeRateScheduler() {
+		exchangeRateScheduler.stop();
+	}
+	
+	// 오늘 환율 조회
+	public BigDecimal getTodayExchangeRate() {
+	    return exchangeRateService.getTodayExchangeRate();
+	}
+
+	// 최근 일주일 환율 조회
+	public List<ExchangeRate> getWeeklyExchangeRates() {
+	    return exchangeRateService.getWeeklyExchangeRates();
+	}
+
+	// 최근 한 달 환율 조회
+	public List<ExchangeRate> getMonthlyExchangeRates() {
+	    return exchangeRateService.getMonthlyExchangeRates();
 	}
 }

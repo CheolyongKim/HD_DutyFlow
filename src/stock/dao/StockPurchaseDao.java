@@ -256,7 +256,7 @@ public class StockPurchaseDao {
                 .purchaseId(rs.getInt("purchaseId"))
                 .productId(rs.getInt("productId"))
                 .purchaseDate(rs.getDate("purchaseDate") != null
-                        ? rs.getDate("purchaseDate").toLocalDate()
+                        ? rs.getTimestamp("purchaseDate").toLocalDateTime()
                         : null)
                 .amount(rs.getInt("amount"))
                 .status(StockPurchaseStatus.valueOf(rs.getString("status")))

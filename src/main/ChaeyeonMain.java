@@ -152,8 +152,7 @@ public class ChaeyeonMain {
                      order.getOrderState().getClass().getSimpleName(),
                      order.getDollarPrice()));
              }
-        	
-            
+
         } catch (Exception e) {
             System.out.println("해당 주문을 찾을 수 없습니다: " + e.getMessage());
         }
