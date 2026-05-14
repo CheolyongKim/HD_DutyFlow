@@ -3,22 +3,32 @@ package tax;
 import java.math.BigDecimal;
 
 import order.Order;
+import regulation.RegulationDTO;
 
 public class PerfumeTaxStrategy implements TaxStrategy{
-	
-	private static final int Perfume_LIMIT_CAPACITY = 100;
-	
-	// 초과분 적용 로직 (15%)
-	private static final BigDecimal Perfume_TAX_RATE = new BigDecimal("0.15");
+
+	private final RegulationDTO regulationDTO;
+
+	public PerfumeTaxStrategy(RegulationDTO regulationDTO) {
+	        this.regulationDTO = regulationDTO;
+	 }
 
 	@Override
-	public BigDecimal calculateTax(Order order) {
-		int totalPerfumeCapacity = order.getTotalAlcohol();
+    public BigDecimal calculateTax(Order order) {
 		
-		BigDecimal exceededCapacity = BigDecimal.valueOf(totalPerfumeCapacity - Perfume_LIMIT_CAPACITY);
+        int limitCapacity = regulationDTO.getLimitCapacity();
+        
+        BigDecimal taxRate = BigDecimal.valueOf(regulationDTO.getOverageRate())
+                                      .divide(BigDecimal.valueOf(100));
 
-		return exceededCapacity.multiply(Perfume_TAX_RATE);
- 
-	}
+        int totalPerfume = order.getTotalPerfume();
+        int exceeded = totalPerfume - limitCapacity;
+
+        if (exceeded <= 0) {
+        	return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.valueOf(exceeded).multiply(taxRate);
+    }
 
 }
