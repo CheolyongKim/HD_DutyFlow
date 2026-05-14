@@ -5,7 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import exception.ErrorCode;
 import exception.SystemException;
@@ -55,19 +56,80 @@ public class ExchangeRateDAO {
         }
     }
     
-    // 테스트용 메서드 / 호출 시 날짜 지정 가능
-    public void insertRate(Connection conn, LocalDate exchangeDate, BigDecimal exchangeRate) {
+    // 오늘 환율 조회
+    public BigDecimal findTodayRate(Connection conn) {
         String sql =
-            "INSERT INTO ExchangeRate(exchangeDate, exchangeRate, isLatest) " +
-            "VALUES (?, ?, 'Y')";
+                "SELECT exchangeRate " 
+              + "FROM ExchangeRate "
+              + "WHERE exchangeDate = TRUNC(SYSDATE)";
 
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDate(1, java.sql.Date.valueOf(exchangeDate));
-            pstmt.setBigDecimal(2, exchangeRate);
-            pstmt.executeUpdate();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            if (rs.next()) {
+                return rs.getBigDecimal("exchangeRate");
+            }
+
+            // 조회 결과 없으면 null 반환
+            return null;
 
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
+    
+	
+	 // 최근 일주일 환율 조회
+	 public List<ExchangeRate> findWeeklyRates(Connection conn) {
+	     String sql =
+	             "SELECT exchangeDate, exchangeRate, isLatest " +
+	             "FROM ExchangeRate " +
+	             "WHERE exchangeDate >= TRUNC(SYSDATE) - 6 " +
+	             "ORDER BY exchangeDate DESC";
+	
+	     return findRates(conn, sql);
+	 }
+	
+	 // 최근 한 달 환율 조회
+	 public List<ExchangeRate> findMonthlyRates(Connection conn) {
+	     String sql =
+	             "SELECT exchangeDate, exchangeRate, isLatest " +
+	             "FROM ExchangeRate " +
+	             "WHERE exchangeDate >= ADD_MONTHS(TRUNC(SYSDATE), -1) " +
+	             "ORDER BY exchangeDate DESC";
+	
+	     return findRates(conn, sql);
+	 }
+	
+	 // 환율 목록 매핑
+	 private List<ExchangeRate> findRates(Connection conn, String sql) {
+	     List<ExchangeRate> exchangeRates = new ArrayList<>();
+	
+	     try (PreparedStatement pstmt = conn.prepareStatement(sql);
+	          ResultSet rs = pstmt.executeQuery()) {
+	
+	         while (rs.next()) {
+	             ExchangeRate exchangeRate = new ExchangeRate();
+	
+	             exchangeRate.setExchangeDate(
+	                     rs.getDate("exchangeDate").toLocalDate()
+	             );
+	
+	             exchangeRate.setExchangeRate(
+	                     rs.getBigDecimal("exchangeRate")
+	             );
+	
+	             exchangeRate.setIsLatest(
+	                     rs.getString("isLatest").charAt(0)
+	             );
+	
+	             exchangeRates.add(exchangeRate);
+	         }
+	
+	         return exchangeRates;
+	
+	     } catch (SQLException e) {
+	         throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	     }
+	 }
 }

@@ -6,6 +6,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import exception.SystemException;
+
 // 매일 자정마다 환율을 자동 갱신하는 스케줄러
 public class ExchangeRateScheduler {
 
@@ -39,8 +41,7 @@ public class ExchangeRateScheduler {
             } catch (Exception e) {
                 System.out.println("[환율 자동 갱신 오류] " + e.getMessage());
             }
-        // }, initialDelay, TimeUnit.DAYS.toSeconds(1), TimeUnit.SECONDS);
-		}, 0, 10, TimeUnit.SECONDS); // 테스트용, 프로그램 시작 후 대기시간 없고 10초마다 갱신
+        }, initialDelay, TimeUnit.DAYS.toSeconds(1), TimeUnit.SECONDS);
     }
 
     public void stop() {

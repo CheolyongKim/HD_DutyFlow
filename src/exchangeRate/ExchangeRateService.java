@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.List;
 
 import common.OracleConnection;
 import exception.ErrorCode;
@@ -43,6 +44,7 @@ public class ExchangeRateService {
             
             // 원래 JDBC는 SQL 실행마다 자동 commit하지만,
             // 환율 업데이트와 상품 가격 수정을 모두 성공해야 커밋되도록 AutoCommit 설정을 끔
+            // 환율 업데이트와 상품 가격 갱신을 하나의 트랜잭션으로 처리
             conn.setAutoCommit(false);
 
             // DB에서 최신 환율을 가져옴
@@ -110,37 +112,33 @@ public class ExchangeRateService {
         }
     }
     
-    // 테스트용: 10초마다 다른 날짜로 환율 갱신을 확인하기 위한 메서드
-    public void updateExchangeRateForTest(LocalDate exchangeDate) {
-        Connection conn = null;
+    // 오늘 환율 조회
+    public BigDecimal getTodayExchangeRate() {
+        try (Connection conn = OracleConnection.getConnection()) {
+            return exchangeRateDAO.findTodayRate(conn);
 
-        try {
-            conn = OracleConnection.getConnection();
-            conn.setAutoCommit(false);
-
-            BigDecimal latestRate = exchangeRateDAO.findLatestRate(conn);
-
-            if (latestRate == null) {
-                latestRate = DEFAULT_EXCHANGE_RATE;
-            }
-
-            BigDecimal newExchangeRate = latestRate.add(BigDecimal.ONE);
-
-            exchangeRateDAO.updateLatestToN(conn);
-            exchangeRateDAO.insertRate(conn, exchangeDate, newExchangeRate);
-            productDAO.updateAllPriceKrw(conn, newExchangeRate);
-
-            conn.commit();
-
-            ExchangeRateProvider.getInstance()
-                    .update(newExchangeRate, exchangeDate);
-
-        } catch (Exception e) {
-            rollback(conn);
+        } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 
-        } finally {
-            close(conn);
+    // 최근 일주일 환율 조회
+    public List<ExchangeRate> getWeeklyExchangeRates() {
+        try (Connection conn = OracleConnection.getConnection()) {
+            return exchangeRateDAO.findWeeklyRates(conn);
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+    // 최근 한 달 환율 조회
+    public List<ExchangeRate> getMonthlyExchangeRates() {
+        try (Connection conn = OracleConnection.getConnection()) {
+            return exchangeRateDAO.findMonthlyRates(conn);
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
 }

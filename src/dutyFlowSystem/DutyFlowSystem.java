@@ -1,5 +1,6 @@
 package dutyFlowSystem;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Queue;
 
@@ -61,5 +62,20 @@ public class DutyFlowSystem {
 	// 스케줄러 lifecycle을 명시적으로 관리하기 위해 추가
 	public void stopExchangeRateScheduler() {
 		exchangeRateScheduler.stop();
+	}
+	
+	// 오늘 환율 조회
+	public BigDecimal getTodayExchangeRate() {
+	    return exchangeRateService.getTodayExchangeRate();
+	}
+
+	// 최근 일주일 환율 조회
+	public List<ExchangeRate> getWeeklyExchangeRates() {
+	    return exchangeRateService.getWeeklyExchangeRates();
+	}
+
+	// 최근 한 달 환율 조회
+	public List<ExchangeRate> getMonthlyExchangeRates() {
+	    return exchangeRateService.getMonthlyExchangeRates();
 	}
 }
