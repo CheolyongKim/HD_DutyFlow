@@ -67,3 +67,5 @@ SELECT p.productName, p.priceUsd, p.priceKrw, sc.amount
 FROM ShoppingCart sc
 JOIN Product p ON sc.productId = p.productId
 WHERE sc.memberId = 1;
+
+commit;
