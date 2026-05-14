@@ -3,6 +3,7 @@ package order;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +14,7 @@ import product.Product;
 
 @Getter
 @Setter
+@Builder
 public class OrderDTO {
 	private int flightResNum;
 	// private OrderState orderState;
