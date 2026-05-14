@@ -20,7 +20,13 @@ public class PickUpDAO {
 	public List<RealPickUpDTO> getAllRealPickUp() throws SystemException{
 		List<RealPickUpDTO> realPickUpList = new ArrayList<RealPickUpDTO>();
 		
-		String sql = "";
+		String sql = ""
+				+ "SELECT P.pickUpAvailableAt, M.passportNumber, B.reservationCode, F.departureAt"
+				+ "FROM PickUp P JOIN Orders O USING(orderId)"
+				+ "				 JOIN Member M USING(memberId)"
+				+ "				 JOIN FlightBook B USING(memberId)"
+				+ "				 JOIN Flight F USING(flightId)"
+				+ "WHERE M.passportNumber=? AND B.reservationCode=?;";
 		System.out.println("sql = " + sql);
 		
 		try (Connection conn = OracleConnection.getConnection();
