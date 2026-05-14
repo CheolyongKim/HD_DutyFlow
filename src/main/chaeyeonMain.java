@@ -36,7 +36,7 @@ public class ChaeyeonMain {
 
         List<ProductDTO> byCategory = service.printAllProducts(category);
 
-        for (ProductDTO p : byCategory) {
+        for (ProductDTO p : byCategory) { 
             System.out.println(p);
         }
         
