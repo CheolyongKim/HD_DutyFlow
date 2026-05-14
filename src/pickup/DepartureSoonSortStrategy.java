@@ -19,7 +19,7 @@ public class DepartureSoonSortStrategy implements SortStrategy {
                                   .getDepartureAt();
 
                     return Duration.between(
-                            Application.curTime,
+                            CurrentTime.curTime,
                             departureAt
                     ).toMinutes();
                 })
