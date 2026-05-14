@@ -1,31 +1,41 @@
 package main;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.util.List;
 
-import common.OracleConnection;
+import category.Category;
+import product.ProductService;
+import product.dto.productDTO;
 
 public class main {
 
     public static void main(String[] args) {
 
-    	// DB 연결 테스트입니다. 
-        String sql = "SELECT * FROM ShoppingCart";
+        ProductService service = new ProductService();
 
-        try (
-            Connection conn = OracleConnection.getConnection();
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-        ) {
-            while(rs.next()) {
-                System.out.println( rs.getInt("productId") + " / " + rs.getInt("memberId") + " / " + rs.getInt("amount"));
-            }
+        // =========================
+        // 1. 전체 조회 테스트
+        // =========================
+        System.out.println("===== 전체 상품 조회 =====");
 
-        } catch(Exception e) {
-            e.printStackTrace();
+        List<productDTO> all = service.printAllProducts();
+
+        for (productDTO p : all) {
+            System.out.println(p);
         }
-        
+
+        // =========================
+        // 2. 카테고리 조회 테스트
+        // =========================
+        System.out.println("===== 카테고리별 상품 조회 =====");
+
+        Category category = Category.builder()
+                .categoryName("전자제품") // DB에 있는 값으로 맞춰야 함
+                .build();
+
+        List<productDTO> byCategory = service.printAllProducts(category);
+
+        for (productDTO p : byCategory) {
+            System.out.println(p);
+        }
     }
-    
 }
