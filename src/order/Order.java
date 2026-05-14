@@ -3,7 +3,10 @@ package order;
 import java.util.List;
 import java.util.Map;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -13,10 +16,12 @@ import product.Product;
 
 @Getter
 @Setter
-
+@Builder
+@AllArgsConstructor
 public class Order {
 	
-	private OrderState state;
+	@Builder.Default
+	private OrderState state = new PendingState(); // 빌더로 생성 시에도 기본값 보장
 	
 	private int flightResNum;
 	private String loginId;
