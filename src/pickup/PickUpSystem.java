@@ -5,8 +5,10 @@ import java.util.List;
 
 import common.CurrentTime;
 import exception.DataNotFoundException;
+import exception.ErrorCode;
 import exception.QueueException;
 import exception.SystemException;
+import exception.ValidationException;
 import member.Member;
 import order.Order;
 import pickup.dto.RealPickUpDTO;
@@ -36,19 +38,19 @@ public class PickUpSystem {
 				// 픽업가능시간 <= RealPickUp하러 온 현재 시간 <= 출국시간 이어야 함
 				LocalDateTime pickUpAvailableAt = realPickUpList.get(0).getPickupAvailableAt();
 				LocalDateTime departureAt = realPickUpList.get(0).getDepartureAt();
-				if (CurrentTime.curTime.isBefore(pickUpAvailableAt)) {
-					System.out.println("아직 픽업 가능 시간이 아닙니다.");
-				} else if (CurrentTime.curTime.isAfter(departureAt)) {
-					System.out.println("출국시간이 지나 노쇼 처리되셨습니다.");
+				if (CurrentTime.curTime.isBefore(pickUpAvailableAt) || CurrentTime.curTime.isAfter(departureAt)) {
+					throw new ValidationException(ErrorCode.ILLEGAL_STATE);
 				} else {
 					// updateOrderState()의 대상 = popQueue()
 					
 				}
 			} catch (QueueException e) {
 				// popQueue()에서 발생 가능한 예외(비어있는 큐에서 pop시도) catch
+			} catch (ValidationException e) {
+				// 검증 과정에서의 이상 현상 예외
 			}
 		} catch (SystemException e) {
-			
+			System.out.println(e.getMessage());
 		} catch (DataNotFoundException e) {
 			// 존재하지 않음 -> 예외처리
 			System.out.println("주문한 적이 없거나 오늘 픽업 대상자가 아닙니다.");
