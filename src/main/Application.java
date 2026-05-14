@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import common.OracleConnection;
 
 public class Application {
-	public static LocalDateTime curTime = LocalDateTime.now();
 
     public static void main(String[] args) {
 
