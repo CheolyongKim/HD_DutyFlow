@@ -4,9 +4,12 @@ import java.time.LocalDateTime;
 
 import airplane.Airplane;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import member.Member;
 
-@Data
+@Getter
+@Setter
 public class PickUpTicket{
 	private Member member;
 	private Airplane airplane;
