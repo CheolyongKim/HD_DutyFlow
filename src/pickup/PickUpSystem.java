@@ -37,7 +37,7 @@ public class PickUpSystem implements FlightObserver{
 		airplane.registerObserver(this);
 		
 		Member member = new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null,
-						passportNum, null, false, aqdto.getGrade(), null, null));
+						passportNum, null, false, aqdto.getGrade(), null, null);
 				
 		// 4. 큐에 삽입
 		this.pq.enqueue(airplane, member);

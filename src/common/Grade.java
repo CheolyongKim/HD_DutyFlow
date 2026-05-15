@@ -1,4 +1,4 @@
-package member;
+package common;
 
 import java.math.BigDecimal;
 
