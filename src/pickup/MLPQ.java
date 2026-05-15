@@ -28,29 +28,23 @@ public class MLPQ {
 		this.maxWaitTimeMinutes = 40;
 	}
 	
-	public PickUpTicket oneMinutePassed() {
-		PickUpTicket poll = null;
-		// 1분이 흐른다
-		CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
-		
-		// BQ 안의 모든 티켓들의 대기한 시간 증가 - ticketIssueTime이 고정되어있으므로 자동적
-		// (자동적) BQ 안의 모든 티켓들 중 조건 만족 시 promote
-		this.promote();
-		
-		// 0순위로 starvation 방지용 자동 poll
-		poll = this.handleStarvation();
-		if (poll != null) return poll;
-		
-		// 1순위로 AQ에 티켓이 하나라도 있으면 poll
-		// 없으면, 2순위로 BQ에서 poll
-		try {
-			return this.pop();
-		} catch (QueueException e) {
-			// TODO: handle exception
+	// 1. 시간 경과 및 승격(Promote)만 처리하는 메서드
+		public void passTime() {
+			CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
+			this.promote();
 		}
-		// 없으면, continue = return null;
-		return null;
-	}
+		
+		// 2. 데이터 팝(Pop) 시점에 Starvation(에이징) 대상자를 최우선으로 가로채도록 수정
+		public PickUpTicket pop() {
+			// 0순위: 40분 이상 대기자(Starvation)가 있는지 먼저 확인하고 있으면 바로 꺼냄
+			PickUpTicket starved = this.handleStarvation();
+			if (starved != null) return starved;
+
+			// 1, 2순위: AQ -> BQ 순서로 팝
+			if (this.aq.size() > 0) return this.aq.poll();
+			else if (this.bq.size() > 0) return this.bq.poll();
+			else throw new QueueException(ErrorCode.QUEUE_EMPTY, new Exception("호출할 대기열이 비어있습니다."));
+		}
 	
 	public void enqueue(Airplane airplane, Member member) {
 		if (this.size()==0 ||

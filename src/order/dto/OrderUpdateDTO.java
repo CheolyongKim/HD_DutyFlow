@@ -1,4 +1,4 @@
-package order;
+package order.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderUpdateDTO {
-    private int orderId;
-    private String newState; // DB에 들어갈 값 (예: "PICKED_UP")
+	private int orderId;
+	private String newState; // DB에 들어갈 값 (예: "PICKED_UP")
 }

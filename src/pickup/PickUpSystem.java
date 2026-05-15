@@ -11,7 +11,7 @@ import exception.ValidationException;
 import member.Member;
 import order.Order;
 import order.OrderDAO;
-import order.OrderUpdateDTO;
+import order.dto.OrderUpdateDTO;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 
