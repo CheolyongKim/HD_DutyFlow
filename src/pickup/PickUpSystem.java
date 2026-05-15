@@ -97,6 +97,34 @@ public class PickUpSystem implements FlightObserver {
 
 		this.tryCallNextCustomer();
 	}
+	
+	// ---------------------------------------------------------
+	// [NO_SHOW] 출국 시간이 경과한 티켓을 자동으로 NO_SHOW 처리
+	// ---------------------------------------------------------
+	private void updateNoShowState() {
+		// 1. 현재 호출 중인 currentTicket 검사
+		if (this.currentTicket != null) {
+			LocalDateTime departure = this.currentTicket.getAirplane().getDepartureAt();
+			if (CurrentTime.curTime.isAfter(departure)) {
+				processNoShow(this.currentTicket);
+				this.currentTicket = null;
+				this.callTime = null;
+			}
+		}
+ 
+		// 2. 큐(AQ + BQ) 내 출국 경과 티켓 수집
+		List<PickUpTicket> allTickets = new ArrayList<>();
+		allTickets.addAll(this.pq.getAllFromAq());
+		allTickets.addAll(this.pq.getAllFromBq());
+ 
+		for (PickUpTicket ticket : allTickets) {
+			LocalDateTime departure = ticket.getAirplane().getDepartureAt();
+			if (CurrentTime.curTime.isAfter(departure)) {
+				processNoShow(ticket);
+				this.pq.removeTicket(ticket);
+			}
+		}
+	}
 
 	public void passTime() {
 		this.pq.passTime();
