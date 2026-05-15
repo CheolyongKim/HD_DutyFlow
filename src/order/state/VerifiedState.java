@@ -5,7 +5,13 @@ import exception.ErrorCode;
 import order.Order;
 import order.OrderState;
 
-public class PaidState implements OrderState {
+public class VerifiedState implements OrderState {
+
+	@Override
+	public String name() {
+		// TODO Auto-generated method stub
+		return "VERIFIED";
+	}
 
     @Override
     public void verify(Order order) {
@@ -14,12 +20,7 @@ public class PaidState implements OrderState {
 
     @Override
     public void pay(Order order) {
-        throw new BusinessException(ErrorCode.INVALID_ORDER_STATE);
+        order.setState(new PaidState());
     }
 
-	@Override
-	public String name() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

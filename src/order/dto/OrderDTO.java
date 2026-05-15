@@ -33,8 +33,8 @@ public class OrderDTO {
     private int reservationId;
     private LocalDate exchangeDate;
     private LocalDateTime orderedAt;
-    private OrderState orderState;
-    private BigDecimal totalAmount;
+    private String orderState;
+private BigDecimal totalAmount;
 
     // OrderDetail
     private int productId;

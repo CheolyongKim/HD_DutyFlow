@@ -18,7 +18,8 @@ public interface OrderState {
     default void pickup(Order order) {
         throw new BusinessException(ErrorCode.DENIED_PICKUP);
     }
-	
+    void verify(Order order);
+
 	
 }
 

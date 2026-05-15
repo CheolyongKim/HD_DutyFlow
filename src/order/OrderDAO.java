@@ -17,316 +17,303 @@ import order.state.PendingState;
 
 public class OrderDAO {
 
-	private final String baseSql = 
-		    "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, " +
-		    "d.productId, d.quantity, d.discountPrice, d.dollarPrice, " +
-		    "p.productName, p.capacity, p.categoryId, " +
-		    "c.categoryName " + 
-		    "FROM orders o " +
-		    "JOIN orderdetail d ON o.orderId = d.orderId " +
-		    "JOIN product p ON d.productid = p.productid " +
-		    "JOIN category c ON p.categoryid = c.categoryid ";    /**
-     * 빌더 패턴을 사용하여 Order 객체 매핑
-     */
+	private final String baseSql = "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, "
+			+ "d.productId, d.quantity, d.discountPrice, d.dollarPrice, " + "p.productName, p.capacity, p.categoryId, "
+			+ "c.categoryName " + "FROM orders o " + "JOIN orderdetail d ON o.orderId = d.orderId "
+			+ "JOIN product p ON d.productid = p.productid " + "JOIN category c ON p.categoryid = c.categoryid ";
+
+	/**
+	 * 빌더 패턴을 사용하여 Order 객체 매핑
+	 */
 	private OrderDTO mapOrder(ResultSet rs) throws SQLException {
 
-//        String stateStr = rs.getString("orderState");
-//        OrderState currentState = convertStringToState(stateStr);
-        
-	    return OrderDTO.builder()
-	            .orderId(rs.getInt("orderId"))
-	            .memberId(rs.getInt("memberId"))
-	            .reservationId(rs.getInt("reservationId"))
-	            // 날짜 매핑 시 null 체크 추가가 안전합니다.
-	            .exchangeDate(rs.getDate("exchangeDate") != null ? rs.getDate("exchangeDate").toLocalDate() : null)
-	            .orderedAt(rs.getTimestamp("orderedAt") != null ? rs.getTimestamp("orderedAt").toLocalDateTime() : null)
-//	            .orderState(currentState) // DTO에 상태 문자열 저장
-	            .totalAmount(rs.getBigDecimal("totalAmount"))
-	            .productId(rs.getInt("productId"))
-	            .quantity(rs.getInt("quantity"))
-	            .discountPrice(rs.getBigDecimal("discountPrice"))
-	            .dollarPrice(rs.getBigDecimal("dollarPrice"))
-	            .productName(rs.getString("productName"))
-	            .categoryId(rs.getInt("categoryId"))
-	            .categoryName(rs.getString("categoryName")) // 이 부분이 누락되었을 수 있습니다.
-	            .capacity(rs.getInt("capacity")) 
-	            .build();
+		return OrderDTO.builder()
+		        .orderId(rs.getInt("orderId"))
+		        .memberId(rs.getInt("memberId"))
+		        .reservationId(rs.getInt("reservationId"))
+		        .exchangeDate(
+		                rs.getDate("exchangeDate") != null
+		                        ? rs.getDate("exchangeDate").toLocalDate()
+		                        : null)
+		        .orderedAt(
+		                rs.getTimestamp("orderedAt") != null
+		                        ? rs.getTimestamp("orderedAt").toLocalDateTime()
+		                        : null)
+		        .orderState(rs.getString("orderState"))
+		        .totalAmount(rs.getBigDecimal("totalAmount"))
+		        .productId(rs.getInt("productId"))
+		        .quantity(rs.getInt("quantity"))
+		        .discountPrice(rs.getBigDecimal("discountPrice"))
+		        .dollarPrice(rs.getBigDecimal("dollarPrice"))
+		        .productName(rs.getString("productName"))
+		        .categoryId(rs.getInt("categoryId"))
+		        .categoryName(rs.getString("categoryName"))
+		        .capacity(rs.getInt("capacity"))
+		        .build();
 	}
 
 	/**
-     * 주문 상태 및 최종 결제 금액 업데이트
-     */
+	 * 주문 상태 및 최종 결제 금액 업데이트
+	 */
 	public void update(Order order) {
 
-	    String sql =
-	        "UPDATE orders " +
-	        "SET orderState = ?, totalAmount = ? " +
-	        "WHERE orderId = ?";
+		String sql = "UPDATE orders " + "SET orderState = ?, totalAmount = ? " + "WHERE orderId = ?";
 
-	    try (Connection conn = OracleConnection.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-	        String stateName;
+			String stateName;
 
-	        if (order.getState() instanceof PaidState) {
-	            stateName = "PAID";
-	        } else {
-	            stateName = "ORDERED";
-	        }
+			if (order.getState() instanceof PaidState) {
+				stateName = "PAID";
+			} else {
+				stateName = "ORDERED";
+			}
 
-	        pstmt.setString(1, stateName);
-	        pstmt.setBigDecimal(2, order.getTotalPrice());
-	        pstmt.setInt(3, order.getOrderId());
+			pstmt.setString(1, stateName);
+			pstmt.setBigDecimal(2, order.getTotalPrice());
+			pstmt.setInt(3, order.getOrderId());
 
-	        pstmt.executeUpdate();
+			pstmt.executeUpdate();
 
-	    } catch (SQLException e) {
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
 	}
 
-    /**
-     * 주문번호 + 상품 ID로 단건 조회
-     */
-    public OrderDTO findByorderIdAndProductId(int orderId, int productId) {
-        String sql = baseSql + "WHERE orderdetail.orderId = ? and orderdetail.productId = ?";
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, orderId);
-            pstmt.setInt(2, productId);
-            
-            System.out.println("sql = " + sql);
+	/**
+	 * 주문번호 + 상품 ID로 단건 조회
+	 */
+	public OrderDTO findByorderIdAndProductId(int orderId, int productId) {
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapOrder(rs);
-                }
-                return null;            }
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-    }
+		String sql = baseSql + "WHERE d.orderId = ? " + "AND d.productId = ?";
 
-    /**
-     * 주문번호로 여러 상품 출력
-     */
-    public List<OrderDTO> findByOrderId(int orderId) {
-    	String sql = baseSql + " WHERE d.orderId = ?";
-    	try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, orderId);
-            
-            System.out.println("sql = " + sql);
+		try (Connection conn = OracleConnection.getConnection();
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                List<OrderDTO> orders = new ArrayList<>();
-                while (rs.next()) {
-                    orders.add(mapOrder(rs));
-                }
-                return orders;
-            }
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-    }
-    
-    /**
-     * 상태 변경을 위해 DB에서 단일 Order 도메인 객체를 조회하여 반환
-     */
-    public Order findOneOrderByOrderId(int orderId) {
+				PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-        String sql =
-            "SELECT orderId, orderState, totalAmount " +
-            "FROM orders " +
-            "WHERE orderId = ?";
+			pstmt.setInt(1, orderId);
+			pstmt.setInt(2, productId);
 
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			System.out.println("sql = " + sql);
 
-            pstmt.setInt(1, orderId);
+			try (ResultSet rs = pstmt.executeQuery()) {
 
-            try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) {
+					return mapOrder(rs);
+				}
 
-                if (rs.next()) {
+				return null;
+			}
 
-                    int id = rs.getInt("orderId");
+		} catch (SQLException e) {
 
-                    BigDecimal totalAmount =
-                        rs.getBigDecimal("totalAmount");
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
 
-                    String stateStr =
-                        rs.getString("orderState");
+	/**
+	 * 주문번호로 여러 상품 출력
+	 */
+	public List<OrderDTO> findByOrderId(int orderId) {
+		String sql = baseSql + " WHERE d.orderId = ?";
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-                    OrderState currentState =
-                        convertStringToState(stateStr);
+			pstmt.setInt(1, orderId);
 
-                    Order order =
-                        new Order(id, currentState);
+			System.out.println("sql = " + sql);
 
-                    order.setTotalPrice(totalAmount);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				List<OrderDTO> orders = new ArrayList<>();
+				while (rs.next()) {
+					orders.add(mapOrder(rs));
+				}
+				return orders;
+			}
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
 
-                    return order;
-                }
-            }
+	/**
+	 * 상태 변경을 위해 DB에서 단일 Order 도메인 객체를 조회하여 반환
+	 */
+	public Order findOneOrderByOrderId(int orderId) {
 
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
+		String sql = "SELECT orderId, orderState, totalAmount " + "FROM orders " + "WHERE orderId = ?";
 
-        return null;
-    }
-    
-    /**
-     * 전체 주문 목록 조회
-     */
-    public List<OrderDTO> findAll() {
-        String sql = baseSql + "ORDER BY orderedAt DESC";
-        System.out.println("sql="+sql);
-        
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            List<OrderDTO> orders = new ArrayList<>();
-            while (rs.next()) {
-                orders.add(mapOrder(rs));
-            }
-            return orders;
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-    }
+			pstmt.setInt(1, orderId);
 
-    /**
-     * 특정 사용자의 주문 목록 조회
-     */
-    
-    public List<OrderDTO> findByLoginId(int memberId) {
-        String sql = baseSql + "WHERE memberId = ? ORDER BY orderedAt DESC";
+			try (ResultSet rs = pstmt.executeQuery()) {
 
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, memberId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                List<OrderDTO> orders = new ArrayList<>();
-                while (rs.next()) {
-                    orders.add(mapOrder(rs));
-                }
-                return orders;
-            }
-        } catch (SQLException e) {
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-    }
+				if (rs.next()) {
 
-    /**
-     * DB의 텍스트 상태값을 구체적인 State 객체로 생성 (팩토리 로직)
-     */
-    private OrderState convertStringToState(String stateStr) {
-        if (stateStr == null) {
-            return new PendingState();
-        }
+					int id = rs.getInt("orderId");
 
-        switch (stateStr.toUpperCase()) {
-        	case "ORDERED":
-        		return new PendingState();
-            case "PAID":
-            default:
-                return new PendingState();
-        }
-    }
-    
-    public int insertOrder(Order order, List<OrderDTO> items) {
+					BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
 
-        String orderSql =
-            "INSERT INTO Orders " +
-            "(memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " +
-            "VALUES (?, ?, " +
-            "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " +
-            "SYSDATE, 'ORDERED', ?)";
+					String stateStr = rs.getString("orderState");
 
-        String detailSql =
-            "INSERT INTO OrderDetail " +
-            "(productId, orderId, quantity, discountPrice, dollarPrice) " +
-            "VALUES (?, ?, ?, ?, ?)";
+					OrderState currentState = convertStringToState(stateStr);
 
-        Connection conn = null;
+					Order order = new Order(id, currentState);
 
-        try {
-            conn = OracleConnection.getConnection();
+					order.setTotalPrice(totalAmount);
 
-            // 트랜잭션 시작
-            conn.setAutoCommit(false);
+					return order;
+				}
+			}
 
-            int orderId = 0;
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
 
-            // 1. Orders insert
-            try (PreparedStatement pstmt =
-                         conn.prepareStatement(orderSql, new String[]{"orderId"})) {
+		return null;
+	}
 
-                pstmt.setInt(1, order.getMemberId());
-                pstmt.setInt(2, order.getReservationId());
-                pstmt.setBigDecimal(3, order.getTotalPrice());
+	/**
+	 * 전체 주문 목록 조회
+	 */
+	public List<OrderDTO> findAll() {
+		String sql = baseSql + "ORDER BY orderedAt DESC";
+		System.out.println("sql=" + sql);
 
-                pstmt.executeUpdate();
+		try (Connection conn = OracleConnection.getConnection();
+				PreparedStatement pstmt = conn.prepareStatement(sql);
+				ResultSet rs = pstmt.executeQuery()) {
 
-                try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        orderId = rs.getInt(1);
-                    }
-                }
-            }
+			List<OrderDTO> orders = new ArrayList<>();
+			while (rs.next()) {
+				orders.add(mapOrder(rs));
+			}
+			return orders;
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
 
-            // 2. OrderDetail insert
-            try (PreparedStatement pstmt =
-                         conn.prepareStatement(detailSql)) {
+	/**
+	 * 특정 사용자의 주문 목록 조회
+	 */
 
-                for (OrderDTO item : items) {
+	public List<OrderDTO> findByLoginId(int memberId) {
+		String sql = baseSql + "WHERE o.memberId = ? ORDER BY orderedAt DESC";
 
-                    pstmt.setInt(1, item.getProductId());
-                    pstmt.setInt(2, orderId);
-                    pstmt.setInt(3, item.getQuantity());
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-                    pstmt.setBigDecimal(
-                        4,
-                        item.getDiscountPrice() != null
-                            ? item.getDiscountPrice()
-                            : BigDecimal.ZERO
-                    );
+			pstmt.setInt(1, memberId);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				List<OrderDTO> orders = new ArrayList<>();
+				while (rs.next()) {
+					orders.add(mapOrder(rs));
+				}
+				return orders;
+			}
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+	}
 
-                    pstmt.setBigDecimal(5, item.getDollarPrice());
+	/**
+	 * DB의 텍스트 상태값을 구체적인 State 객체로 생성 (팩토리 로직)
+	 */
+	private OrderState convertStringToState(String stateStr) {
 
-                    pstmt.addBatch();
-                }
+	    if (stateStr == null) {
+	        return new PendingState();
+	    }
 
-                pstmt.executeBatch();
-            }
+	    switch (stateStr.toUpperCase()) {
 
-            // 커밋
-            conn.commit();
+	    case "ORDERED":
+	        return new PendingState();
 
-            return orderId;
+	    case "PAID":
+	        return new PaidState();
 
-        } catch (SQLException e) {
+	    default:
+	        return new PendingState();
+	    }
+	}
+	public int insertOrder(Order order, List<OrderDTO> items) {
 
-            try {
-                if (conn != null) conn.rollback();
-            } catch (SQLException rollbackEx) {
-                rollbackEx.printStackTrace();
-            }
+		String orderSql = "INSERT INTO Orders "
+				+ "(memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " + "VALUES (?, ?, "
+				+ "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " + "SYSDATE, 'ORDERED', ?)";
 
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		String detailSql = "INSERT INTO OrderDetail " + "(productId, orderId, quantity, discountPrice, dollarPrice) "
+				+ "VALUES (?, ?, ?, ?, ?)";
 
-        } finally {
+		Connection conn = null;
 
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+		try {
+			conn = OracleConnection.getConnection();
+
+			// 트랜잭션 시작
+			conn.setAutoCommit(false);
+
+			int orderId = 0;
+
+			// 1. Orders insert
+			try (PreparedStatement pstmt = conn.prepareStatement(orderSql, new String[] { "orderId" })) {
+
+				pstmt.setInt(1, order.getMemberId());
+				pstmt.setInt(2, order.getReservationId());
+				pstmt.setBigDecimal(3, order.getTotalPrice());
+
+				pstmt.executeUpdate();
+
+				try (ResultSet rs = pstmt.getGeneratedKeys()) {
+					if (rs.next()) {
+						orderId = rs.getInt(1);
+					}
+				}
+			}
+
+			// 2. OrderDetail insert
+			try (PreparedStatement pstmt = conn.prepareStatement(detailSql)) {
+
+				for (OrderDTO item : items) {
+
+					pstmt.setInt(1, item.getProductId());
+					pstmt.setInt(2, orderId);
+					pstmt.setInt(3, item.getQuantity());
+
+					pstmt.setBigDecimal(4, item.getDiscountPrice() != null ? item.getDiscountPrice() : BigDecimal.ZERO);
+
+					pstmt.setBigDecimal(5, item.getDollarPrice());
+
+					pstmt.addBatch();
+				}
+
+				pstmt.executeBatch();
+			}
+
+			// 커밋
+			conn.commit();
+
+			return orderId;
+
+		} catch (SQLException e) {
+
+			try {
+				if (conn != null)
+					conn.rollback();
+			} catch (SQLException rollbackEx) {
+				rollbackEx.printStackTrace();
+			}
+
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+
+		} finally {
+
+			try {
+				if (conn != null)
+					conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }

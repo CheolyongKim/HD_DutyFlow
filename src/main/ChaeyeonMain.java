@@ -1,6 +1,7 @@
 package main;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import category.Category;
@@ -175,58 +176,178 @@ public class ChaeyeonMain {
 //            e.printStackTrace();
 //        }
     	
+//    	//==================================================
+//    	// 5. 주문 생성 + 결제 테스트
+//    	System.out.println("\n===== [USER] 주문 생성 및 결제 테스트 =====");
+//    	OrderService orderService = new OrderService();
+//    	
+//    	try {
+//
+//    	    // 주문할 상품 리스트 생성
+//    	    OrderDTO item1 = new OrderDTO();
+//    	    item1.setProductId(1);
+//    	    item1.setProductName("조니워커 블루라벨");
+//    	    item1.setCategoryId(1);
+//    	    item1.setCategoryName("위스키");
+//    	    item1.setCapacity(750);
+//    	    item1.setQuantity(1);
+//    	    item1.setDollarPrice(new BigDecimal("220"));
+//
+//    	    OrderDTO item2 = new OrderDTO();
+//    	    item2.setProductId(2);
+//    	    item2.setProductName("샤넬 향수");
+//    	    item2.setCategoryId(2);
+//    	    item2.setCategoryName("향수");
+//    	    item2.setCapacity(50);
+//    	    item2.setQuantity(1);
+//    	    item2.setDollarPrice(new BigDecimal("120"));
+//
+//    	    List<OrderDTO> cartItems = List.of(item1, item2);
+//
+//    	    int memberId = 1;
+//    	    int reservationId = 1;
+//    	    
+//			// 주문 요청
+//    	    orderService.placeOrder(memberId, reservationId, cartItems);
+//
+//    	    System.out.println("✅ 주문 및 결제 성공");
+//
+//    	} catch (BusinessException e) {
+//
+//    	    System.out.println("❌ 비즈니스 예외 발생");
+//    	    System.out.println("에러 코드: " + e.getErrorCode());
+//    	    System.out.println("메시지: " + e.getMessage());
+//
+//    	} catch (Exception e) {
+//
+//    	    System.out.println("❌ 시스템 오류 발생");
+//    	    e.printStackTrace();
+//    	}
+    	//=====================================================
     	
-    	// 5. 주문 생성 + 결제 테스트
-    	System.out.println("\n===== [USER] 주문 생성 및 결제 테스트 =====");
-    	OrderService orderService = new OrderService();
-    	
-    	try {
+    	 
 
-    	    // 주문할 상품 리스트 생성
-    	    OrderDTO item1 = new OrderDTO();
-    	    item1.setProductId(1);
-    	    item1.setProductName("조니워커 블루라벨");
-    	    item1.setCategoryId(1);
-    	    item1.setCategoryName("위스키");
-    	    item1.setCapacity(750);
-    	    item1.setQuantity(1);
-    	    item1.setDollarPrice(new BigDecimal("220"));
+        OrderService orderService = new OrderService();
 
-    	    OrderDTO item2 = new OrderDTO();
-    	    item2.setProductId(2);
-    	    item2.setProductName("샤넬 향수");
-    	    item2.setCategoryId(2);
-    	    item2.setCategoryName("향수");
-    	    item2.setCapacity(50);
-    	    item2.setQuantity(1);
-    	    item2.setDollarPrice(new BigDecimal("120"));
+        try {
 
-    	    List<OrderDTO> cartItems = List.of(item1, item2);
+            // ==============================
+            // 테스트 주문 상품 생성
+            // ==============================
 
-    	    int memberId = 1;
-    	    int reservationId = 1;
-    	    
-			// 주문 요청
-    	    orderService.placeOrder(memberId, reservationId, cartItems);
+            List<OrderDTO> cartItems = new ArrayList<>();
 
-    	    System.out.println("✅ 주문 및 결제 성공");
+            // 상품 1
+            OrderDTO whisky = OrderDTO.builder()
+                    .productId(1)
+                    .productName("조니워커 블루라벨")
+                    .categoryId(1)
+                    .categoryName("주류")
+                    .capacity(750)
+                    .quantity(2)
+                    .dollarPrice(new BigDecimal("220"))
+                    .discountPrice(BigDecimal.ZERO)
+                    .build();
 
-    	} catch (BusinessException e) {
+            // 상품 2
+            OrderDTO perfume = OrderDTO.builder()
+                    .productId(3)
+                    .productName("샤넬 향수")
+                    .categoryId(4)
+                    .categoryName("화장품")
+                    .capacity(50)
+                    .quantity(1)
+                    .dollarPrice(new BigDecimal("120"))
+                    .discountPrice(BigDecimal.ZERO)
+                    .build();
+            
+            cartItems.add(whisky);
+            cartItems.add(perfume);
 
-    	    System.out.println("❌ 비즈니스 예외 발생");
-    	    System.out.println("에러 코드: " + e.getErrorCode());
-    	    System.out.println("메시지: " + e.getMessage());
+            // ==============================
+            // 주문 요청
+            // ==============================
 
-    	} catch (Exception e) {
+            int memberId = 1;
+            int reservationId = 1;
 
-    	    System.out.println("❌ 시스템 오류 발생");
-    	    e.printStackTrace();
-    	}
-    	
-    	
-    
-	     
-    	
-    	
+            orderService.placeOrder(
+                    memberId,
+                    reservationId,
+                    cartItems
+            );
+
+            System.out.println();
+            System.out.println("===== 주문 완료 =====");
+
+            // ==============================
+            // 전체 주문 조회
+            // ==============================
+
+            System.out.println();
+            System.out.println("===== 전체 주문 조회 =====");
+
+            List<OrderDTO> allOrders =
+                    orderService.getAllOrders();
+
+            for (OrderDTO order : allOrders) {
+                System.out.println(order);
+            }
+
+            // ==============================
+            // 회원 주문 조회
+            // ==============================
+
+            System.out.println();
+            System.out.println("===== 회원 주문 조회 =====");
+
+            List<OrderDTO> memberOrders =
+                    orderService.getOrdersByMemberId(1);
+
+            for (OrderDTO order : memberOrders) {
+                System.out.println(order);
+            }
+
+            // ==============================
+            // 특정 주문 상품 조회
+            // ==============================
+
+            System.out.println();
+            System.out.println("===== 주문 상세 조회 =====");
+
+            OrderDTO detail =
+                    orderService.getOrder(1, 1);
+
+            System.out.println(detail);
+
+            // ==============================
+            // 주문번호 기준 조회
+            // ==============================
+
+            System.out.println();
+            System.out.println("===== 주문번호 기준 조회 =====");
+
+            List<OrderDTO> orderItems =
+                    orderService.getOrdersByOrderId(1);
+
+            for (OrderDTO item : orderItems) {
+                System.out.println(item);
+            }
+
+        } catch (BusinessException e) {
+
+            System.out.println();
+            System.out.println("❌ 비즈니스 예외 발생");
+            System.out.println("code = " + e.getErrorCode());
+            System.out.println("message = " + e.getMessage());
+
+        } catch (Exception e) {
+
+            System.out.println();
+            System.out.println("❌ 시스템 오류 발생");
+
+            e.printStackTrace();
+        }
     }
+    
 }

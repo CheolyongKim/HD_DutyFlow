@@ -81,4 +81,7 @@ public class Order {
     public String getStateName() {
         return state.name();
     }
+    public void verify() {
+        state.verify(this);
+    }
 }
