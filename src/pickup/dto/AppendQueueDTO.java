@@ -2,10 +2,10 @@ package pickup.dto;
 
 import java.time.LocalDateTime;
 
+import common.Grade;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import member.Grade;
 
 @Getter
 @Setter

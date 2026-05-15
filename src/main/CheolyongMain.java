@@ -8,7 +8,7 @@ import java.util.List;
 
 import airplane.Airplane;
 import common.CurrentTime;
-import member.Grade;
+import common.Grade;
 import member.Member;
 import pickup.PickUpSystem;
 import pickup.PickUpTicket;

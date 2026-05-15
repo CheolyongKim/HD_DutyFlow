@@ -3,9 +3,9 @@ package membership;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import common.Grade;
 import exception.ErrorCode;
 import exception.ValidationException;
-import member.Grade;
 
 public class MembershipService {
 	private final MembershipDAO membershipDAO = new MembershipDAO();
