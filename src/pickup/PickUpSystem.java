@@ -5,118 +5,72 @@ import java.util.List;
 
 import airplane.Airplane;
 import common.CurrentTime;
-import exception.DataNotFoundException;
+import exception.BusinessException;
 import exception.ErrorCode;
-import exception.QueueException;
-import exception.SystemException;
 import exception.ValidationException;
 import member.Member;
-import order.Order;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 
 public class PickUpSystem {
 	public MLPQ pq; 
-	//private List<Member> members;	// 시뮬레이션용 (인도장에 찾아온) 고객들 리스트
-	private List<Order> orders;		// (DB에서 받아온) 픽업 가능 시간이 현재시간-3시간 ~ 현재시간+3시간 이내인, 수령완료하지 않은 주문들의 리스트
-	
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	
 	public PickUpSystem() {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
-		//this.members = members;
 	}
 	
 	public void appendQueue(String passportNum, int flightResNum) {
-		List<PickUpDTO> pickUpList;
-		AppendQueueDTO aqdto;
-		// 신원검증
-		try {
-			pickUpList = this.validateInfo(passportNum, flightResNum);
-			
-			// enqueue 위해 Airplane, Member 넣어야 함
-			// Airplane: flightResNum 으로 찾아온다 
-			// 필요한거- flightCode, departureAt, isDelayed
-			// Member: passportNum 으로 찾아온다 
-			// 필요한거- memberId, grade
-			// -> 한꺼번에 DTO로 찾아온다 (나머지는 불필요)
-			aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
-					
-			this.pq.enqueue(
-				    new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
-				    new Member(
-				        aqdto.getMemberId(), 
-				        null, 
-				        null, 
-				        aqdto.getName(), // <-- 4번째 자리에 null 대신 이름 넣기!
-				        null, 
-				        null,
-				        passportNum, 
-				        null, 
-				        false, 
-				        aqdto.getGrade(), 
-				        null
-				    )
-				);
-		} catch (ValidationException e) {
-			// TODO: 신원검증에서 걸림
-			e.printStackTrace();
-		} catch (SystemException e) {
-			e.printStackTrace();
-		} catch (DataNotFoundException e) {
-			e.printStackTrace();
-		} 
+		// 1. 신원 검증 (실패 시 여기서 Validation, System, DataNotFound 예외가 자동으로 날아감)
+		this.validateInfo(passportNum, flightResNum);
+		
+		// 2. 큐 삽입용 정보 수령
+		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+				
+		// 3. 큐에 삽입
+		this.pq.enqueue(
+				new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt(), aqdto.getIsDelayed() == 1),
+				new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null,
+						passportNum, null, false, aqdto.getGrade(), null));
 	}
 	
 	public void realPickUp(String passportNum, int flightResNum) {
-		List<PickUpDTO> pickUpList;
-		// 신원검증
-		try {
-			pickUpList = this.validateInfo(passportNum, flightResNum);
-			// updateOrderState()의 대상 = popQueue()
-		} catch (ValidationException e) {
-			// TODO: 신원검증에서 걸림
-			e.printStackTrace();
-		} catch (SystemException e) {
-			e.printStackTrace();
-		} catch (DataNotFoundException e) {
-			e.printStackTrace();
-		} catch (QueueException e) {
-			// pop 시도하기 때문에 비어있었다면 QueueException 발생 가능
-			e.printStackTrace();
+		// 1. 픽업 시 최종 신원 검증
+		this.validateInfo(passportNum, flightResNum);
+		
+		// 2. 큐에서 대상자 pop (비어있으면 여기서 QueueException 날아감)
+		PickUpTicket ticket = this.popQueue();
+		
+		// 3. 픽업한 사람과 검증된 정보가 일치하는지 확인하는 로직 (선택사항)
+		if(!ticket.getMember().getPassportNum().equals(passportNum)) {
+			throw new ValidationException(ErrorCode.INVALID_INPUT, new Exception("호출된 순번의 고객 정보와 일치하지 않습니다."));
 		}
+		
+		// TODO: DB updateOrderState() 로직 등 수행
 	}
 	
-	public void loadOrders() {
-		
-	}
-	
-	// 신원검증 메서드: 문제가 없다면 해당하는 PickUpDTO 리스트 리턴, 문제가 있으면 예외 throw
-	private List<PickUpDTO> validateInfo(String passportNum, int flightResNum) throws ValidationException, SystemException, DataNotFoundException{
-		/*
-		 * 여권 실물 검증과 같은 작업은 현실에서 이루어진다고 가정
-		 * 파라미터 passportNum, flightResNum: 자신의 순번이 호출되어 인도받으러 온
-		 * 고객이 현실에서 인도장관리자에게 (최종 신원 검증용으로) 제시한 여권번호와 탑승번호
-		 */
-		
-		// 파라미터로 제시된 고객의 정보가 DB에 존재하는지 확인
-			// PickUp 테이블 -> PickUpDAO -> RealPickUpDTO 데이터 수령
+	private List<PickUpDTO> validateInfo(String passportNum, int flightResNum) {
+		// DB 조회
 		List<PickUpDTO> realPickUpList = this.pickUpDAO.getAllPickUp(passportNum, flightResNum);
 		
-		// 픽업가능시간 <= (Real)PickUp하러 온 현재 시간 <= 출국시간 이어야 함
 		LocalDateTime pickUpAvailableAt = realPickUpList.get(0).getPickupAvailableAt();
 		LocalDateTime departureAt = realPickUpList.get(0).getDepartureAt();
+		
+		// 검증 1: 아직 픽업 가능 시간이 안 된 경우
 		if (CurrentTime.curTime.isBefore(pickUpAvailableAt)) {
-			throw new ValidationException(ErrorCode.ILLEGAL_STATE);
+			throw new ValidationException(ErrorCode.ILLEGAL_STATE, new Exception("아직 픽업 가능 시간이 아닙니다."));
 		}
+		// 검증 2: 이미 비행기가 떠난 경우 (No-Show)
 		if (CurrentTime.curTime.isAfter(departureAt)) {
-			// TODO: 노쇼처리 -> 자동환불로 넘어가야 함 (결제내역 테이블의 결제상태 변경)
+			// TODO: 노쇼처리 -> 자동환불
+			throw new BusinessException(ErrorCode.NO_SHOW, new Exception("출국 시간이 경과하여 인도받을 수 없습니다."));
 		}
+		
 		return realPickUpList;
 	}
 	
-	public PickUpTicket popQueue() throws QueueException{
-		return this.pq.pop();
+	public PickUpTicket popQueue() {
+		return this.pq.pop(); // 내부에서 QueueException 발생 가능
 	}
 }

@@ -61,11 +61,19 @@ public class MLPQ {
 		}
 	}
 	
-	public PickUpTicket pop() throws QueueException{
-		if (this.aq.size()>0) return this.aq.poll();
-		else if (this.bq.size()>0) return this.bq.poll();
-		else throw new QueueException(ErrorCode.DATA_NOT_FOUND);
-	}
+	// MLPQ.java 내부의 pop과 peek 메서드 수정
+	
+		public PickUpTicket pop() {
+			if (this.aq.size() > 0) return this.aq.poll();
+			else if (this.bq.size() > 0) return this.bq.poll();
+			else throw new QueueException(ErrorCode.QUEUE_EMPTY, new Exception("호출할 대기열이 비어있습니다."));
+		}
+		
+		public PickUpTicket peek() {
+			if (this.aq.size() > 0) return this.aq.peek();
+			else if (this.bq.size() > 0) return this.bq.peek();
+			else throw new QueueException(ErrorCode.QUEUE_EMPTY, new Exception("조회할 대기열이 비어있습니다."));
+		}
 	
 	private void moveToA(PickUpTicket p) {
 		this.aq.add(this.bq.poll());
@@ -105,9 +113,6 @@ public class MLPQ {
 		this.bq = new PriorityQueue<PickUpTicket>(bqStrategy.getComparator());
 	}
 	
-	public PickUpTicket peek() throws QueueException{
-		return aq.peek();
-	}
 	
 	public int size() {
 		return this.aq.size() + this.bq.size();

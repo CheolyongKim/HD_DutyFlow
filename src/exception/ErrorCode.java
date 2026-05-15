@@ -25,6 +25,10 @@ public enum ErrorCode {
 	// DB연결
 	DB_CONNECTION("CONNECTION_ERROR","DB 연결 실패"),
     DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
+    
+ 	// 인도장
+ 	QUEUE_EMPTY("QUEUE_EMPTY", "대기 중인 고객이 없습니다."),
+ 	NO_SHOW("NO_SHOW", "출국 시간이 경과하여 노쇼(No-Show) 처리된 예약입니다."),
     ;
 	
     private final String code;
