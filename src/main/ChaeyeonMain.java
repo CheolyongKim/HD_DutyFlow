@@ -403,10 +403,9 @@ public class ChaeyeonMain {
     	    // 새 주문 생성
     	    List<OrderDTO> cartItems = new ArrayList<>();
     	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);  // ORDERED → PAID
-
+    	    int orderId = orderService.placeOrder(1, 1, cartItems);
+    	    
     	    // 방금 생성된 주문 번호 확인 후 아래 orderId에 입력
-    	    int orderId = 23; // 실행 후 로그에서 확인한 orderId로 변경
 
     	    orderService.reservePickup(orderId);  // PAID → PICKUP_RESERVED
     	    orderService.completePickup(orderId); // PICKUP_RESERVED → PICKED_UP
@@ -423,8 +422,8 @@ public class ChaeyeonMain {
     	    cartItems.add(whisky(750, 1, "220"));
     	    orderService.placeOrder(1, 1, cartItems);
 
-    	    int orderId = 24; // 로그에서 확인 후 변경
-
+    	    int orderId = orderService.placeOrder(1, 1, cartItems);
+    	    
     	    orderService.cancelOrder(orderId); // PAID → CANCELED
     	    System.out.println("✅ 취소 완료");
 
@@ -437,10 +436,7 @@ public class ChaeyeonMain {
     	try {
     	    List<OrderDTO> cartItems = new ArrayList<>();
     	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);
-
-    	    int orderId = 25; // 로그에서 확인 후 변경
-
+    	    int orderId = orderService.placeOrder(1, 1, cartItems);
     	    orderService.reservePickup(orderId);
     	    orderService.markNoShow(orderId); // PICKUP_RESERVED → NO_SHOW
     	    System.out.println("✅ 미수령 처리 완료");
@@ -456,10 +452,9 @@ public class ChaeyeonMain {
     	try {
     	    List<OrderDTO> cartItems = new ArrayList<>();
     	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);
-
-    	    case1OrderId = 23; // 로그 확인 후 변경
-
+    	    int generatedId = orderService.placeOrder(1, 1, cartItems);
+    	    orderService.reservePickup(generatedId); // 방금 만든 ID로 진행
+    	    
     	    orderService.reservePickup(case1OrderId);
     	    orderService.completePickup(case1OrderId);
     	    System.out.println("✅ 정상 흐름 완료");

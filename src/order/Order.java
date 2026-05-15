@@ -55,16 +55,6 @@ public class Order {
         this.orderId = orderId;
         this.state = state;
     }
-	
-//	public void changeState(OrderState newState) {
-//        this.state = newState;
-////        this.orderState = newState.getClass().getSimpleName().replace("State", "").toUpperCase();
-//    }
-//
-//    public void setOrderState(OrderState state) {
-//        this.changeState(state);
-//    }
-
 
     // 결제 실패 시 호출할 직렬화 메서드 
     public void saveFailedOrder() {
