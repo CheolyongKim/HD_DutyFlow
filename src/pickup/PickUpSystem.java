@@ -129,7 +129,8 @@ public class PickUpSystem implements FlightObserver {
 	public void passTime() {
 		this.pq.passTime();
 		System.out.println("   (⏳ " + CurrentTime.curTime.toLocalTime() + " 경과...)");
-
+		// 🛫 출국 시간 경과 티켓 → NO_SHOW 자동 전이
+		updateNoShowState();
 		// 🚨 실시간 호출 타임아웃 & 골든타임 감시
 		checkCallingTimeout();
 
