@@ -2,6 +2,7 @@ package pickup;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -26,6 +27,9 @@ public class MLPQ {
 		this.lastNum = 1;
 		this.promotionThresholdMinutes = 30;
 		this.maxWaitTimeMinutes = 40;
+		//enqueue에서 NPE 터짐 방
+		this.aq = new PriorityQueue<>(); 
+	    this.bq = new PriorityQueue<>(); 
 	}
 
 	// 1. 시간 경과 및 승격(Promote)만 처리하는 메서드
@@ -51,8 +55,7 @@ public class MLPQ {
 	}
 
 	public void enqueue(Airplane airplane, Member member) {
-		if (this.size() == 0 || Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()
-				/ 60 < this.promotionThresholdMinutes) {
+		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
 			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		} else {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
@@ -111,5 +114,20 @@ public class MLPQ {
 
 	public int size() {
 		return this.aq.size() + this.bq.size();
+	}
+	
+	// aq 복사본
+	public List<PickUpTicket> getAllFromAq() {
+	    return new ArrayList<>(this.aq);
+	}
+
+	// bq 복사본
+	public List<PickUpTicket> getAllFromBq() {
+	    return new ArrayList<>(this.bq);
+	}
+
+	public void clearAll() {
+	    this.aq.clear();
+	    this.bq.clear();
 	}
 }

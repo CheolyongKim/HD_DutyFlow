@@ -1,6 +1,7 @@
 package pickup;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import airplane.Airplane;
@@ -8,6 +9,7 @@ import common.CurrentTime;
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.ValidationException;
+import flight.FlightObserver;
 import member.Member;
 import order.Order;
 import order.OrderDAO;
@@ -15,8 +17,10 @@ import order.dto.OrderUpdateDTO;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 
-public class PickUpSystem {
-	public MLPQ pq;
+
+public class PickUpSystem implements FlightObserver{
+	
+	public MLPQ pq; 
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
@@ -27,11 +31,11 @@ public class PickUpSystem {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 	}
-
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
 		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState(), pickedUpAt);
 	}
+	
 
 	// ---------------------------------------------------------
 	// [호출] 다음 대기자를 부르고 시스템에 기억시킴
@@ -84,8 +88,10 @@ public class PickUpSystem {
 				+ CurrentTime.curTime.toLocalTime() + ")");
 		System.out.println("-------------------------------------------------");
 
-		// 🚨 업무 종료 -> 창구 비움 -> 다음 사람 자동 호출!
+		// 🚨 업무 종료 -> 옵저버 해제 -> 창구 비움 -> 다음 사람 자동 호출!
+		this.currentTicket.getAirplane().removeObserver(this);
 		this.currentTicket = null;
+		
 		this.tryCallNextCustomer();
 	}
 
@@ -100,7 +106,9 @@ public class PickUpSystem {
 	public void appendQueue(String passportNum, int flightResNum) {
 		this.validateInfo(passportNum, flightResNum);
 		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
-		this.pq.enqueue(new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()), new Member(aqdto.getMemberId(),
+		Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
+		airplane.registerObserver(this);
+		this.pq.enqueue(airplane , new Member(aqdto.getMemberId(),
 				null, null, aqdto.getName(), null, null, passportNum, null, false, aqdto.getGrade(), null));
 		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
 	}
@@ -134,5 +142,100 @@ public class PickUpSystem {
 
 	public PickUpTicket popQueue() {
 		return this.pq.pop(); // 내부에서 QueueException 발생 가능
+	}
+	
+	//Observer 콜백 (이미 갱신된 departureAt Airplane 이 들어옴)
+	@Override
+	public void onFlightDelayReceived(Airplane airplane) {
+		System.out.println("[PickUpSystem] 지연 이벤트 수신" 
+							+ " | flightCode " + airplane.getFlightCode() 
+							+ " | 지연 : " +  airplane.getDepartureAt());
+		
+		rescheduledPq();
+	}
+	
+	// PQ 재정렬 (전부 꺼내서 다시 enqueue 바뀐 값 기준으로 재정렬) 
+	public void rescheduledPq() {
+		
+		if (pq.size() == 0) {
+	        System.out.println("[PickUpSystem] 재정렬할 대기열 없음");
+	        return;
+	    }
+
+	    List<PickUpTicket> allTickets = new ArrayList<>();
+	    allTickets.addAll(pq.getAllFromAq());
+	    allTickets.addAll(pq.getAllFromBq());
+
+	    pq.clearAll();
+
+	    // enqueue 내부에서 출국 임박 여부 재판단
+	    for (PickUpTicket ticket : allTickets) {
+	        pq.enqueue(ticket.getAirplane(), ticket.getMember());
+	    }
+
+	    System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
+	    
+	    printCurrentQueue();
+	}
+
+	public void printCurrentQueue() {
+
+	    if (pq.size() == 0) {
+	        System.out.println("[PickUpSystem] 대기열 없음");
+	        return;
+	    }
+
+	    System.out.println("===== aq (긴급 큐) =====");
+
+	    int rank = 1;
+	    for (PickUpTicket ticket : pq.getAllFromAq()) {
+
+	        System.out.println(
+	            "[" + rank++ + "] "
+	            + ticket.getMember()
+	            + " | "
+	            + ticket.getAirplane().getFlightCode()
+	            + " | 출국: "
+	            + ticket.getAirplane().getDepartureAt()
+	        );
+	    }
+
+	    System.out.println("===== bq (일반 큐) =====");
+
+	    rank = 1;
+
+	    for (PickUpTicket ticket : pq.getAllFromBq()) {
+
+	        System.out.println(
+	            "[" + rank++ + "] "
+	            + ticket.getMember()
+	            + " | "
+	            + ticket.getAirplane().getFlightCode()
+	            + " | 출국: "
+	            + ticket.getAirplane().getDepartureAt()
+	        );
+	    }
+	}
+	
+	// flightCode로 PQ안 Airplane 찾아서 지연 처리하기 위함
+	public void delayFlight(String flightCode, LocalDateTime newDepartureAt) {
+		
+		// aq
+		for (PickUpTicket ticket : pq.getAllFromAq()) {
+	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+	            ticket.getAirplane().setDepartureAt(newDepartureAt);
+	            return;
+	        }
+	    }
+		
+		// bq
+		for (PickUpTicket ticket : pq.getAllFromBq()) {
+	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+	            ticket.getAirplane().setDepartureAt(newDepartureAt);
+	            return;
+	        }
+	    }
+		
+		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
 }
