@@ -376,7 +376,8 @@ CREATE TABLE Payment (
             'PENDING',
             'PROCESSING',
             'SUCCESS',
-            'FAILED'
+            'FAILED',
+             'CANCELED'
         ))
 );
 
