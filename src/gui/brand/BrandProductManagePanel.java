@@ -14,8 +14,9 @@ import javax.swing.SwingConstants;
 
 import brandSystem.BrandSystem;
 import gui.ScreenManager;
+import gui.common.Refreshable;
 
-public class BrandProductManagePanel extends JPanel {
+public class BrandProductManagePanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
     private final BrandSystem brandSystem;
@@ -83,7 +84,11 @@ public class BrandProductManagePanel extends JPanel {
         registerButton.addActionListener(e -> registerNewProduct());
         registerAndPurchaseButton.addActionListener(e -> registerNewProductAndPurchase());
         deleteButton.addActionListener(e -> deleteProduct());
-        backButton.addActionListener(e -> screenManager.show("BRAND_MAIN"));
+
+        backButton.addActionListener(e -> {
+            resetForm();
+            screenManager.show("BRAND_MAIN");
+        });
 
         buttonPanel.add(registerButton);
         buttonPanel.add(registerAndPurchaseButton);
@@ -93,6 +98,22 @@ public class BrandProductManagePanel extends JPanel {
         add(titleLabel, BorderLayout.NORTH);
         add(formPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    @Override
+    public void refresh() {
+        resetForm();
+    }
+
+    private void resetForm() {
+        categoryNameField.setText("위스키");
+        productNameField.setText("");
+        capacityField.setText("700");
+        priceUsdField.setText("80");
+        priceKrwField.setText("108000");
+        thresholdField.setText("10");
+        purchaseAmountField.setText("20");
+        deleteProductNameField.setText("");
     }
 
     private void registerNewProduct() {
@@ -114,6 +135,7 @@ public class BrandProductManagePanel extends JPanel {
             );
 
             JOptionPane.showMessageDialog(this, "신규 상품 등록 요청 완료");
+            resetForm();
 
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "용량, 가격, 임계값은 숫자로 입력해야 합니다.");
@@ -145,6 +167,7 @@ public class BrandProductManagePanel extends JPanel {
             );
 
             JOptionPane.showMessageDialog(this, "신규 상품 등록 및 발주 요청 완료");
+            resetForm();
 
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "용량, 가격, 임계값, 발주 수량은 숫자로 입력해야 합니다.");
@@ -167,6 +190,7 @@ public class BrandProductManagePanel extends JPanel {
             brandSystem.deleteProduct(productName);
 
             JOptionPane.showMessageDialog(this, "상품 삭제 요청 완료");
+            resetForm();
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "상품 삭제 중 오류가 발생했습니다.");
