@@ -1,6 +1,7 @@
 package main;
-
+import regulation.RegulationDTO;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,151 +21,108 @@ public class ChaeyeonMain {
 
 	public static void main(String[] args) {
 
-    	ProductService service = new ProductService();
-    	OrderService orderService = new OrderService();
-    	
-    	/*
-    	// product ---------------------------------------------------------------------------------------------------------
-        
+		ProductService service = new ProductService();
+		OrderService orderService = new OrderService();
 
-        // =========================
-        // 1. 전체 조회 테스트
-        // =========================
-        System.out.println("===== 전체 상품 조회 =====");
+		/*
+		 * // product
+		 * -----------------------------------------------------------------------------
+		 * ----------------------------
+		 * 
+		 * 
+		 * // ========================= // 1. 전체 조회 테스트 // =========================
+		 * System.out.println("===== 전체 상품 조회 =====");
+		 * 
+		 * List<ProductDTO> all = service.printAllProducts();
+		 * 
+		 * for (ProductDTO p : all) { System.out.println(p); }
+		 * 
+		 * // ========================= // 2. 카테고리 조회 테스트 // =========================
+		 * System.out.println("===== 카테고리별 상품 조회 =====");
+		 * 
+		 * Category category = Category.builder() .categoryName("전자제품") // DB에 있는 값으로
+		 * 맞춰야 함 .build();
+		 * 
+		 * List<ProductDTO> byCategory = service.printAllProducts(category);
+		 * 
+		 * for (ProductDTO p : byCategory) { System.out.println(p); }
+		 * 
+		 * // ========================= // 3. 상품명으로 단건 조회 테스트 //
+		 * ========================= System.out.println("===== 상품명으로 상품 1개 조회 =====");
+		 * ProductDTO product = service.printProduct("조니워커 블루라벨");
+		 * System.out.println(product);
+		 * 
+		 * // ========================= //특정 금액 범위 테스트 // =========================
+		 * 
+		 * BigDecimal min = new BigDecimal("100"); BigDecimal max = new
+		 * BigDecimal("50000");
+		 * 
+		 * try { List<ProductDTO> list = service.printProduct(min, max, Currency.KRW);
+		 * 
+		 * System.out.println("===== 결과 ====="); for (ProductDTO p : list) {
+		 * System.out.println(p); }
+		 * 
+		 * } catch (Exception e) { e.printStackTrace(); }
+		 * 
+		 * 
+		 */
 
-        List<ProductDTO> all = service.printAllProducts();
+		// order
+		// ---------------------------------------------------------------------------------------------------------
 
-        for (ProductDTO p : all) {
-            System.out.println(p);
-        }
-
-        // =========================
-        // 2. 카테고리 조회 테스트
-        // =========================
-        System.out.println("===== 카테고리별 상품 조회 =====");
-
-        Category category = Category.builder()
-                .categoryName("전자제품") // DB에 있는 값으로 맞춰야 함
-                .build();
-
-        List<ProductDTO> byCategory = service.printAllProducts(category);
-
-        for (ProductDTO p : byCategory) { 
-            System.out.println(p);
-        }
-        
-	     // =========================
-	     // 3. 상품명으로  단건 조회 테스트
-	     // =========================
-	     System.out.println("===== 상품명으로 상품 1개 조회 =====");
-	     ProductDTO product = service.printProduct("조니워커 블루라벨");
-	     System.out.println(product);
-	     
-	     // =========================
-	     //특정 금액 범위 테스트
-	     // =========================
-
-	        BigDecimal min = new BigDecimal("100");
-	        BigDecimal max = new BigDecimal("50000");
-	
-	        try {
-	            List<ProductDTO> list =
-	                service.printProduct(min, max, Currency.KRW);
-	
-	            System.out.println("===== 결과 =====");
-	            for (ProductDTO p : list) {
-	                System.out.println(p);
-	            }
-	
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
-	        
-        
-    	 */
-    	
-    	
-    	
-        // order ---------------------------------------------------------------------------------------------------------
-    	
-    	/*
-        System.out.println("\n\n===== [Order Service Test] =====");
-        
-        
-        //1. 전체 주문 내역 확인
-        System.out.println("===== [ADMIN] 전체 주문 내역 조회 =====");
-        try {
-            List<OrderDTO> allOrders = orderService.getAllOrders(); // DTO가 아닌 Order 도메인 사용 권장
-            if (allOrders.isEmpty()) {
-                System.out.println("등록된 주문 내역이 없습니다.");
-            } else {
-            	for (OrderDTO order : allOrders) {
-                    System.out.print("예약번호: " + order.getReservationId());
-                    System.out.print(" | 고객ID: " + order.getMemberId());
-                    System.out.print(" | 총액: " + order.getDollarPrice());
-                    System.out.print(" | 상품명: " + order.getProductName());
-                    System.out.print(" | 수량: " + order.getQuantity());
-                    // 상태 패턴의 현재 클래스명을 출력하여 상태 확인
-                    System.out.print(" | 현재상태: " + order.getOrderState().getClass().getSimpleName());
-                    System.out.println(" | 주문일: " + order.getOrderedAt());
-                    System.out.println("---------------------------------------------------------");
-                }            }
-        } catch (Exception e) {
-            throw new SystemException(ErrorCode.DATA_NOT_FOUND, e);
-        }
-        
-        // 2. 특정 사용자 주문 내역 확인
-        int memberId = 1;
-        System.out.println("\n===== [USER] 회원 번호(" + memberId + ") 주문 내역 조회 =====");
-        try {
-            List<OrderDTO> myOrders = orderService.getOrdersByMemberId(memberId);
-            
-            if (myOrders.isEmpty()) {
-                System.out.println("해당 회원의 주문 내역이 없습니다.");
-            } else {
-                for (OrderDTO order : myOrders) {
-                    System.out.println(String.format("[주문번호: %d] 상태: %s | 결제금액(USD): %s", 
-                        order.getOrderId(), 
-                        order.getOrderState().getClass().getSimpleName(),
-                        order.getDollarPrice()));
-                }
-            }
-        } catch (Exception e) {
-            throw new SystemException(ErrorCode.DATA_NOT_FOUND, e);
-        }
-        
-        // 3. 특정 주문 상품의 상세 내역 확인
-        int orderId = 1; // 예시용 예약번호
-        int productId = 1;
-        
-        System.out.println("\n===== [USER] 내 주문 내역 조회 (예약번호: " + orderId + " 상품 번호" + productId + ") =====");
-        try {
-        	OrderDTO myOrder = orderService.getOrder(orderId, productId);
-            System.out.println("주문 상태: " + myOrder.getOrderState().getClass().getSimpleName());
-            System.out.println("주문 일자: " + myOrder.getOrderedAt());
-            
-        } catch (Exception e) {
-            System.out.println("해당 주문을 찾을 수 없습니다: " + e.getMessage());
-        }
-        
-        // 4. 한 번의 주문의 상품 리스트 보기
-        System.out.println("\n===== [USER] 주문 번호 " + orderId + ") =====");
-        try {
-        	List<OrderDTO> myOrders = orderService.getOrdersByOrderId(orderId);
-        	
-        	 for (OrderDTO order : myOrders) {
-                 System.out.println(String.format("[주문번호: %d] 상태: %s | 결제금액(USD): %s", 
-                     order.getOrderId(), 
-                     order.getOrderState().getClass().getSimpleName(),
-                     order.getDollarPrice()));
-             }
-
-        } catch (Exception e) {
-            System.out.println("해당 주문을 찾을 수 없습니다: " + e.getMessage());
-        }
-        
-        */
-    	
+		/*
+		 * System.out.println("\n\n===== [Order Service Test] =====");
+		 * 
+		 * 
+		 * //1. 전체 주문 내역 확인 System.out.println("===== [ADMIN] 전체 주문 내역 조회 ====="); try {
+		 * List<OrderDTO> allOrders = orderService.getAllOrders(); // DTO가 아닌 Order 도메인
+		 * 사용 권장 if (allOrders.isEmpty()) { System.out.println("등록된 주문 내역이 없습니다."); }
+		 * else { for (OrderDTO order : allOrders) { System.out.print("예약번호: " +
+		 * order.getReservationId()); System.out.print(" | 고객ID: " +
+		 * order.getMemberId()); System.out.print(" | 총액: " + order.getDollarPrice());
+		 * System.out.print(" | 상품명: " + order.getProductName());
+		 * System.out.print(" | 수량: " + order.getQuantity()); // 상태 패턴의 현재 클래스명을 출력하여 상태
+		 * 확인 System.out.print(" | 현재상태: " +
+		 * order.getOrderState().getClass().getSimpleName());
+		 * System.out.println(" | 주문일: " + order.getOrderedAt()); System.out.println(
+		 * "---------------------------------------------------------"); } } } catch
+		 * (Exception e) { throw new SystemException(ErrorCode.DATA_NOT_FOUND, e); }
+		 * 
+		 * // 2. 특정 사용자 주문 내역 확인 int memberId = 1;
+		 * System.out.println("\n===== [USER] 회원 번호(" + memberId + ") 주문 내역 조회 =====");
+		 * try { List<OrderDTO> myOrders = orderService.getOrdersByMemberId(memberId);
+		 * 
+		 * if (myOrders.isEmpty()) { System.out.println("해당 회원의 주문 내역이 없습니다."); } else {
+		 * for (OrderDTO order : myOrders) {
+		 * System.out.println(String.format("[주문번호: %d] 상태: %s | 결제금액(USD): %s",
+		 * order.getOrderId(), order.getOrderState().getClass().getSimpleName(),
+		 * order.getDollarPrice())); } } } catch (Exception e) { throw new
+		 * SystemException(ErrorCode.DATA_NOT_FOUND, e); }
+		 * 
+		 * // 3. 특정 주문 상품의 상세 내역 확인 int orderId = 1; // 예시용 예약번호 int productId = 1;
+		 * 
+		 * System.out.println("\n===== [USER] 내 주문 내역 조회 (예약번호: " + orderId + " 상품 번호" +
+		 * productId + ") ====="); try { OrderDTO myOrder =
+		 * orderService.getOrder(orderId, productId); System.out.println("주문 상태: " +
+		 * myOrder.getOrderState().getClass().getSimpleName());
+		 * System.out.println("주문 일자: " + myOrder.getOrderedAt());
+		 * 
+		 * } catch (Exception e) { System.out.println("해당 주문을 찾을 수 없습니다: " +
+		 * e.getMessage()); }
+		 * 
+		 * // 4. 한 번의 주문의 상품 리스트 보기 System.out.println("\n===== [USER] 주문 번호 " + orderId
+		 * + ") ====="); try { List<OrderDTO> myOrders =
+		 * orderService.getOrdersByOrderId(orderId);
+		 * 
+		 * for (OrderDTO order : myOrders) {
+		 * System.out.println(String.format("[주문번호: %d] 상태: %s | 결제금액(USD): %s",
+		 * order.getOrderId(), order.getOrderState().getClass().getSimpleName(),
+		 * order.getDollarPrice())); }
+		 * 
+		 * } catch (Exception e) { System.out.println("해당 주문을 찾을 수 없습니다: " +
+		 * e.getMessage()); }
+		 * 
+		 */
 
 //    	OrderService orderService = new OrderService();
 //        int testOrderId = 1; // DB에 존재하는 주문 번호
@@ -178,7 +136,7 @@ public class ChaeyeonMain {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-    	
+
 //    	//==================================================
 //    	// 5. 주문 생성 + 결제 테스트
 //    	System.out.println("\n===== [USER] 주문 생성 및 결제 테스트 =====");
@@ -226,7 +184,7 @@ public class ChaeyeonMain {
 //    	    System.out.println("❌ 시스템 오류 발생");
 //    	    e.printStackTrace();
 //    	}
-    	//=====================================================
+		// =====================================================
 
 //    	 OrderService orderService = new OrderService();
 //    	 
@@ -388,100 +346,200 @@ public class ChaeyeonMain {
 //                 .build();
 //     }
 // }
-    	
-    	// ==============================
-    	// 상태 패턴 테스트
-    	// ==============================
 
-    	System.out.println("\n===== 상태 패턴 테스트 =====");
-    	
-    	
+//    	// ==============================
+//    	// 상태 패턴 테스트
+//    	// ==============================
+//
+//    	System.out.println("\n===== 상태 패턴 테스트 =====");
+//    	
+//    	
+//
+//    	// 케이스 1. 정상 흐름 — ORDERED → PAID → PICKUP_RESERVED → PICKED_UP
+//    	System.out.println("\n--- 케이스 1: 정상 흐름 ---");
+//    	try {
+//    	    // 새 주문 생성
+//    	    List<OrderDTO> cartItems = new ArrayList<>();
+//    	    cartItems.add(whisky(750, 1, "220"));
+//    	    int orderId = orderService.placeOrder(1, 1, cartItems);
+//    	    
+//    	    // 방금 생성된 주문 번호 확인 후 아래 orderId에 입력
+//
+//    	    orderService.reservePickup(orderId);  // PAID → PICKUP_RESERVED
+//    	    orderService.completePickup(orderId); // PICKUP_RESERVED → PICKED_UP
+//    	    System.out.println("✅ 정상 흐름 완료");
+//
+//    	} catch (BusinessException e) {
+//    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
+//    	}
+//
+//    	// 케이스 2. ORDERED → 취소
+//    	System.out.println("\n--- 케이스 2: 주문 취소 ---");
+//    	try {
+//    	    List<OrderDTO> cartItems = new ArrayList<>();
+//    	    cartItems.add(whisky(750, 1, "220"));
+//    	    orderService.placeOrder(1, 1, cartItems);
+//
+//    	    int orderId = orderService.placeOrder(1, 1, cartItems);
+//    	    
+//    	    orderService.cancelOrder(orderId); // PAID → CANCELED
+//    	    System.out.println("✅ 취소 완료");
+//
+//    	} catch (BusinessException e) {
+//    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
+//    	}
+//
+//    	// 케이스 3. PICKUP_RESERVED → 미수령
+//    	System.out.println("\n--- 케이스 3: 미수령 처리 ---");
+//    	try {
+//    	    List<OrderDTO> cartItems = new ArrayList<>();
+//    	    cartItems.add(whisky(750, 1, "220"));
+//    	    int orderId = orderService.placeOrder(1, 1, cartItems);
+//    	    orderService.reservePickup(orderId);
+//    	    orderService.markNoShow(orderId); // PICKUP_RESERVED → NO_SHOW
+//    	    System.out.println("✅ 미수령 처리 완료");
+//
+//    	} catch (BusinessException e) {
+//    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
+//    	}
+//
+//    	// 케이스 1 바깥에 선언
+//    	int case1OrderId = -1;
+//
+//    	System.out.println("\n--- 케이스 1: 정상 흐름 ---");
+//    	try {
+//    	    List<OrderDTO> cartItems = new ArrayList<>();
+//    	    cartItems.add(whisky(750, 1, "220"));
+//    	    int generatedId = orderService.placeOrder(1, 1, cartItems);
+//    	    orderService.reservePickup(generatedId); // 방금 만든 ID로 진행
+//    	    
+//    	    orderService.reservePickup(case1OrderId);
+//    	    orderService.completePickup(case1OrderId);
+//    	    System.out.println("✅ 정상 흐름 완료");
+//    	} catch (BusinessException e) {
+//    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
+//    	}
+//
+//    	// 케이스 4
+//    	System.out.println("\n--- 케이스 4: 불가능한 전이 (예외 기대) ---");
+//    	try {
+//    	    orderService.cancelOrder(case1OrderId); // PICKED_UP → CANCELED 불가
+//    	} catch (BusinessException e) {
+//    	    System.out.println("✅ 예외 발생: " + e.getErrorCode() + " / " + e.getMessage());
+//    	}
+//    	
+//    	
+//    }
+//
+//	private static OrderDTO whisky(int capacity, int quantity, String price) {
+//		return OrderDTO.builder().productId(1).productName("조니워커 블루라벨").categoryId(2).categoryName("위스키")
+//				.capacity(capacity).quantity(quantity).dollarPrice(new BigDecimal(price)).discountPrice(BigDecimal.ZERO)
+//				.build();
+//	}
 
-    	// 케이스 1. 정상 흐름 — ORDERED → PAID → PICKUP_RESERVED → PICKED_UP
-    	System.out.println("\n--- 케이스 1: 정상 흐름 ---");
-    	try {
-    	    // 새 주문 생성
-    	    List<OrderDTO> cartItems = new ArrayList<>();
-    	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);  // ORDERED → PAID
+/*
+		// =============================
+		// 비행기 예약 코드 검증
+		// =============================
+		// 3. 테스트용 규정 데이터 생성 (컴파일 에러 방지)
+		// ChaeyeonMain.java의 테스트 데이터 생성 부분 수정
+		RegulationDTO generalReg = RegulationDTO.builder()
+		        .regulationId(1)
+		        .categoryId(1) // "일반" 대신 ID 값 입력
+		        .limitCapacity(0)
+		        .overageRate(10)
+		        .establishedDate(LocalDate.now())
+		        .build();
 
-    	    // 방금 생성된 주문 번호 확인 후 아래 orderId에 입력
-    	    int orderId = 23; // 실행 후 로그에서 확인한 orderId로 변경
+		RegulationDTO alcoholReg = RegulationDTO.builder()
+		        .regulationId(2)
+		        .categoryId(2)
+		        .limitCapacity(2000)
+		        .overageRate(20)
+		        .establishedDate(LocalDate.now())
+		        .build();
+		RegulationDTO perfumeReg = RegulationDTO.builder()
+		        .regulationId(3)
+		        .categoryId(4)
+		        .limitCapacity(60)
+		        .overageRate(20)
+		        .establishedDate(LocalDate.now())
+		        .build();
 
-    	    orderService.reservePickup(orderId);  // PAID → PICKUP_RESERVED
-    	    orderService.completePickup(orderId); // PICKUP_RESERVED → PICKED_UP
-    	    System.out.println("✅ 정상 흐름 완료");
 
-    	} catch (BusinessException e) {
-    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
-    	}
+        System.out.println("=== 항공편 예약 코드 검증 및 결제 테스트 ===\n");
 
-    	// 케이스 2. ORDERED → 취소
-    	System.out.println("\n--- 케이스 2: 주문 취소 ---");
-    	try {
-    	    List<OrderDTO> cartItems = new ArrayList<>();
-    	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);
+        try {
+            // 시나리오: DB에 있는 orderId 1번을 대상으로 결제(order) 시도
+            // 이 과정에서 내부적으로 flightService.validateReservationCode()가 실행됨
+            System.out.println("[테스트 시작] 주문번호 1번에 대한 결제 승인 시도...");
+            
+            orderService.order(1, generalReg, alcoholReg, perfumeReg);
+            
+            System.out.println("\n✅ 테스트 결과: 성공 (결제 및 항공권 검증 완료)");
 
-    	    int orderId = 24; // 로그에서 확인 후 변경
+        } catch (BusinessException e) {
+            System.err.println("\n❌ 테스트 결과: 실패 (비즈니스 로직 오류)");
+            System.err.println("에러 코드: " + e.getErrorCode());
+            System.err.println("메시지: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("\n❌ 테스트 결과: 시스템 오류 발생");
+            e.printStackTrace();
+        }
+    
+	*/
+		
+		// 1. 테스트용 면세 규정 설정 (DB 조회 대신 직접 생성)
+        RegulationDTO generalReg = new RegulationDTO(1, 1, 0, LocalDate.now(), 10);    // 일반 10%
+        RegulationDTO alcoholReg = new RegulationDTO(2, 2, 2000, LocalDate.now(), 20); // 주류 2000ml 한도
+        RegulationDTO perfumeReg = new RegulationDTO(3, 4, 100, LocalDate.now(), 15);  // 향수 100ml 한도
 
-    	    orderService.cancelOrder(orderId); // PAID → CANCELED
-    	    System.out.println("✅ 취소 완료");
+        System.out.println("========= [면세점 주문 시스템 종합 테스트] =========\n");
 
-    	} catch (BusinessException e) {
-    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
-    	}
+        // [시나리오 1] 정상 결제 (이미 DB에 있는 OrderId 1번 사용)
+        // 전제조건: DB orders 테이블 1번의 reservationId가 유효한 코드를 가져와야 함
+        try {
+            System.out.println("--- [CASE 1] 정상 항공권 & 한도 내 구매 ---");
+            orderService.order(1, generalReg, alcoholReg, perfumeReg);
+            System.out.println("=> 결과: 성공 (PAID 업데이트 완료)");
+        } catch (BusinessException e) {
+            System.out.println("=> 결과: 실패 (" + e.getMessage() + ")");
+        }
 
-    	// 케이스 3. PICKUP_RESERVED → 미수령
-    	System.out.println("\n--- 케이스 3: 미수령 처리 ---");
-    	try {
-    	    List<OrderDTO> cartItems = new ArrayList<>();
-    	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);
+        System.out.println("\n-------------------------------------------");
 
-    	    int orderId = 25; // 로그에서 확인 후 변경
+        // [시나리오 2] 항공권 예약 번호가 잘못된 경우 (정규식 위반 등)
+        // 테스트 방법: DB에서 특정 주문의 reservationId를 정규식에 안 맞는 값으로 바꾸고 실행
+        try {
+            System.out.println("--- [CASE 2] 유효하지 않은 예약 코드 (형식 오류) ---");
+            // 만약 999번 주문이 있고 코드가 'INVALID-123' 이라면
+            orderService.order(999, generalReg, alcoholReg, perfumeReg);
+        } catch (BusinessException e) {
+            System.out.println("=> 결과: 예상된 실패 (" + e.getErrorCode().getMessage() + ")");
+        }
 
-    	    orderService.reservePickup(orderId);
-    	    orderService.markNoShow(orderId); // PICKUP_RESERVED → NO_SHOW
-    	    System.out.println("✅ 미수령 처리 완료");
+        System.out.println("\n-------------------------------------------");
 
-    	} catch (BusinessException e) {
-    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
-    	}
+        // [시나리오 3] 새 주문 생성부터 결제까지 전체 프로세스 (placeOrder 테스트)
+        try {
+            System.out.println("--- [CASE 3] 장바구니 생성 -> 주문 -> 결제 통합 ---");
+            
+            List<OrderDTO> cart = new ArrayList<>();
+            // 주류 한도 초과 시뮬레이션 (750ml * 3병 = 2250ml > 2000ml)
+            cart.add(OrderDTO.builder()
+                    .productId(1).productName("조니워커 블루")
+                    .categoryId(2).capacity(750).quantity(3)
+                    .dollarPrice(new BigDecimal("200"))
+                    .discountPrice(new BigDecimal("0")) // 기본 상품 할인율 0%
+                    .build());
 
-    	// 케이스 1 바깥에 선언
-    	int case1OrderId = -1;
-
-    	System.out.println("\n--- 케이스 1: 정상 흐름 ---");
-    	try {
-    	    List<OrderDTO> cartItems = new ArrayList<>();
-    	    cartItems.add(whisky(750, 1, "220"));
-    	    orderService.placeOrder(1, 1, cartItems);
-
-    	    case1OrderId = 23; // 로그 확인 후 변경
-
-    	    orderService.reservePickup(case1OrderId);
-    	    orderService.completePickup(case1OrderId);
-    	    System.out.println("✅ 정상 흐름 완료");
-    	} catch (BusinessException e) {
-    	    System.out.println("❌ " + e.getErrorCode() + " / " + e.getMessage());
-    	}
-
-    	// 케이스 4
-    	System.out.println("\n--- 케이스 4: 불가능한 전이 (예외 기대) ---");
-    	try {
-    	    orderService.cancelOrder(case1OrderId); // PICKED_UP → CANCELED 불가
-    	} catch (BusinessException e) {
-    	    System.out.println("✅ 예외 발생: " + e.getErrorCode() + " / " + e.getMessage());
-    	}
-    	
-    	
+            // memberId: 1, reservationId: 1로 새 주문 생성
+            int newOrderId = orderService.placeOrder(1, 1, cart);
+            System.out.println("=> 결과: 새 주문 생성 및 결제 완료 (ID: " + newOrderId + ")");
+            
+        } catch (BusinessException e) {
+            System.out.println("=> 결과: 중단 (" + e.getMessage() + ")");
+        }
     }
-
-	private static OrderDTO whisky(int capacity, int quantity, String price) {
-		return OrderDTO.builder().productId(1).productName("조니워커 블루라벨").categoryId(2).categoryName("위스키")
-				.capacity(capacity).quantity(quantity).dollarPrice(new BigDecimal(price)).discountPrice(BigDecimal.ZERO)
-				.build();
-	}
-
-}
+		
+		}

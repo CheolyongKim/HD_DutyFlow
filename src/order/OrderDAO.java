@@ -33,52 +33,38 @@ public class OrderDAO {
 	 */
 	private OrderDTO mapOrder(ResultSet rs) throws SQLException {
 
-		return OrderDTO.builder()
-		        .orderId(rs.getInt("orderId"))
-		        .memberId(rs.getInt("memberId"))
-		        .reservationId(rs.getInt("reservationId"))
-		        .exchangeDate(
-		                rs.getDate("exchangeDate") != null
-		                        ? rs.getDate("exchangeDate").toLocalDate()
-		                        : null)
-		        .orderedAt(
-		                rs.getTimestamp("orderedAt") != null
-		                        ? rs.getTimestamp("orderedAt").toLocalDateTime()
-		                        : null)
-		        .orderState(rs.getString("orderState"))
-		        .totalAmount(rs.getBigDecimal("totalAmount"))
-		        .productId(rs.getInt("productId"))
-		        .quantity(rs.getInt("quantity"))
-		        .discountPrice(rs.getBigDecimal("discountPrice"))
-		        .dollarPrice(rs.getBigDecimal("dollarPrice"))
-		        .productName(rs.getString("productName"))
-		        .categoryId(rs.getInt("categoryId"))
-		        .categoryName(rs.getString("categoryName"))
-		        .capacity(rs.getInt("capacity"))
-		        .build();
+		return OrderDTO.builder().orderId(rs.getInt("orderId")).memberId(rs.getInt("memberId"))
+				.reservationId(rs.getInt("reservationId"))
+				.exchangeDate(rs.getDate("exchangeDate") != null ? rs.getDate("exchangeDate").toLocalDate() : null)
+				.orderedAt(rs.getTimestamp("orderedAt") != null ? rs.getTimestamp("orderedAt").toLocalDateTime() : null)
+				.orderState(rs.getString("orderState")).totalAmount(rs.getBigDecimal("totalAmount"))
+				.productId(rs.getInt("productId")).quantity(rs.getInt("quantity"))
+				.discountPrice(rs.getBigDecimal("discountPrice")).dollarPrice(rs.getBigDecimal("dollarPrice"))
+				.productName(rs.getString("productName")).categoryId(rs.getInt("categoryId"))
+				.categoryName(rs.getString("categoryName")).capacity(rs.getInt("capacity")).build();
 	}
 
 	/**
 	 * 주문 상태 및 최종 결제 금액 업데이트
 	 */
 	public void update(Order order) {
-
 	    String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
+	    String stateName = order.getState().name();
+	    
+	    System.out.println("[Debug] DB Update 시도 - OrderId: " + order.getOrderId() 
+	                       + ", StateName: " + stateName);
 
 	    try (Connection conn = OracleConnection.getConnection();
 	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-	        pstmt.setString(1, order.getState().name()); // "PAID", "CANCELED" 등 직접 반환
+	        pstmt.setString(1, stateName);
 	        pstmt.setBigDecimal(2, order.getTotalPrice());
 	        pstmt.setInt(3, order.getOrderId());
-
 	        pstmt.executeUpdate();
-
 	    } catch (SQLException e) {
 	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
 	    }
 	}
-	
+
 	/**
 	 * 주문번호 + 상품 ID로 단건 조회
 	 */
@@ -138,18 +124,18 @@ public class OrderDAO {
 	 */
 	public Order findOneOrderByOrderId(int orderId) {
 
-		String sql = "SELECT orderId, orderState, totalAmount " + "FROM orders " + "WHERE orderId = ?";
+		String sql = "SELECT orderId, memberId, orderState, totalAmount FROM orders WHERE orderId = ?";
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setInt(1, orderId);
-			
+
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if (rs.next()) {
-					int id = rs.getInt("orderId");
 					BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
 					String stateStr = rs.getString("orderState");
 					OrderState currentState = convertStringToState(stateStr);
-					Order order = new Order(id, currentState);
+					Order order = new Order(rs.getInt("orderId"), currentState);
 					order.setTotalPrice(totalAmount);
+					order.setMemberId(rs.getInt("memberId"));
 					return order;
 				}
 			}
@@ -208,37 +194,38 @@ public class OrderDAO {
 	 */
 	private OrderState convertStringToState(String stateStr) {
 
-	    if (stateStr == null) return new PendingState();
+		if (stateStr == null)
+			return new PendingState();
 
-	    OrderStatus status = OrderStatus.valueOf(stateStr.toUpperCase());
-	    
-	    switch (status) {
-	        case ORDERED:
-	            return new PendingState();
+		OrderStatus status = OrderStatus.valueOf(stateStr.toUpperCase());
 
-	        case VERIFIED:
-	            return new VerifiedState();
+		switch (status) {
+		case ORDERED:
+			return new PendingState();
 
-	        case PAID:
-	            return new PaidState();
+		case VERIFIED:
+			return new VerifiedState();
 
-	        case PICKUP_RESERVED:
-	            return new PickupReservedState();
+		case PAID:
+			return new PaidState();
 
-	        case PICKED_UP:
-	            return new PickedUpState();
+		case PICKUP_RESERVED:
+			return new PickupReservedState();
 
-	        case CANCELED:
-	            return new CanceledState();
+		case PICKED_UP:
+			return new PickedUpState();
 
-	        case NO_SHOW:
-	            return new NoShowState();
+		case CANCELED:
+			return new CanceledState();
 
-	        default:
-	            return new PendingState();
-	    }
+		case NO_SHOW:
+			return new NoShowState();
+
+		default:
+			return new PendingState();
+		}
 	}
-	
+
 	public int insertOrder(Order order, List<OrderDTO> items) {
 
 		String orderSql = "INSERT INTO Orders "
@@ -319,5 +306,37 @@ public class OrderDAO {
 			}
 		}
 	}
+
+	/**
+	 * 주문 번호(orderId)를 통해 해당 주문의 항공 예약 코드(reservationCode)를 조회합니다.
+	 * @param orderId 주문 ID
+	 * @return 항공 예약 코드 (없을 경우 null)
+	 */
+	public String findReservationCodeByOrderId(int orderId) {
+	    // orders 테이블의 reservationId를 사용하여 flightbook 테이블과 JOIN
+	    String sql = "SELECT fb.reservationCode " +
+	                 "FROM orders o " +
+	                 "JOIN flightbook fb ON o.reservationId = fb.reservationId " +
+	                 "WHERE o.orderId = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        
+	        pstmt.setInt(1, orderId);
+	        
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String resCode = rs.getString("reservationCode");
+	                System.out.println("[OrderDAO] 조회된 예약 코드: " + resCode + " (OrderId: " + orderId + ")");
+	                return resCode;
+	            }
+	        }
+	    } catch (SQLException e) {
+	        // 기존 ErrorCode 및 SystemException 구조 활용
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+
+	    System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
+	    return null;
+	}
 }
-	
