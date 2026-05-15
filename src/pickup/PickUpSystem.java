@@ -20,16 +20,12 @@ public class PickUpSystem {
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
+	private PickUpTicket currentTicket;
+	private boolean isCounterOpen = false; // 창구 오픈 상태
 
 	public PickUpSystem() {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
-	}
-
-	// [PickUpSystem.java 에 추가할 메서드]
-	public void passTime() {
-		this.pq.passTime();
-		System.out.println("SYSTEM: ⏳ 1분이 경과하였습니다. (가상 현재시간: " + CurrentTime.curTime.toLocalTime() + ")");
 	}
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
@@ -37,34 +33,79 @@ public class PickUpSystem {
 		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState(), pickedUpAt);
 	}
 
-	public void realPickUp(String passportNum, int flightResNum) {
-		// (1~3번 과정 동일...)
-
-		// 4. 대상 주문 ID 찾기
-		int targetOrderId = this.pickUpDAO.getOrderIdForPickup(passportNum, flightResNum);
-
-		// 5. DB 상태 변경 (현재 가상 시각 CurrentTime.curTime을 명시적으로 전달!)
-		OrderUpdateDTO oud = new OrderUpdateDTO(targetOrderId, "PICKED_UP");
-		this.updateOrderState(oud, CurrentTime.curTime);
-
-		System.out.println("✔️ 5. 정상 인도 및 DB 업데이트 완료!");
-		System.out.println("   [기록된 가상 수령시간: " + CurrentTime.curTime + "]");
-		System.out.println("-------------------------------------------------");
+	// ---------------------------------------------------------
+	// [호출] 다음 대기자를 부르고 시스템에 기억시킴
+	// ---------------------------------------------------------
+	// 💡 1. 창구 오픈 메서드 (업무 시작)
+	public void openCounter() {
+		this.isCounterOpen = true;
+		System.out.println("\n🏢 [시스템] " + CurrentTime.curTime.toLocalTime() + ", 인도장 창구 업무가 시작되었습니다.");
+		this.tryCallNextCustomer();
 	}
 
-	public void appendQueue(String passportNum, int flightResNum) {
-		// 1. 신원 검증 (실패 시 여기서 Validation, System, DataNotFound 예외가 자동으로 날아감)
+	// 💡 2. 밖에서 현재 호출된 사람을 확인할 수 있게 getter 추가
+	public PickUpTicket getCurrentTicket() {
+		return this.currentTicket;
+	}
+
+	// 💡 3. 자동 호출 감지기 (오픈되어 있을 때만 부름!)
+	private void tryCallNextCustomer() {
+		if (this.isCounterOpen && this.currentTicket == null && this.pq.size() > 0) {
+			this.currentTicket = this.pq.pop();
+			System.out
+					.println("\n📢 [시스템 자동 호출] 띵동~ [" + this.currentTicket.getMember().getName() + "] 고객님, 창구로 와주세요!");
+		}
+	}
+
+	// 실제 물품 인도 프로세스
+	public void processPickUp(String passportNum, int flightResNum, int processingTime) {
+		if (this.currentTicket == null) {
+			throw new BusinessException(ErrorCode.ILLEGAL_STATE, new Exception("현재 호출된 고객이 없습니다."));
+		}
+
+		System.out.println("▶ 1. 창구 방문 고객 확인: 여권[" + passportNum + "]");
+		if (!this.currentTicket.getMember().getPassportNum().equals(passportNum)) {
+			throw new ValidationException(ErrorCode.INVALID_INPUT,
+					new Exception("호출된 대상[" + currentTicket.getMember().getName() + "]과 방문 고객 정보가 일치하지 않습니다."));
+		}
+		System.out.println("▶ 2. 본인 확인 완료! [" + currentTicket.getMember().getName() + "] 고객님 물품 인도를 시작합니다.");
+
 		this.validateInfo(passportNum, flightResNum);
 
-		// 2. 큐 삽입용 정보 수령
-		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+		System.out.println("▶ 3. 물품 확인 및 인도 중... (소요 예정: " + processingTime + "분)");
+		for (int i = 0; i < processingTime; i++) {
+			this.passTime(); // 처리 시간 흐름 (여기서 다른 고객들 승격 여부 판별)
+		}
 
-		// 3. 큐에 삽입
-		this.pq.enqueue(new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()), new Member(aqdto.getMemberId(),
-				null, null, aqdto.getName(), null, null, passportNum, null, false, aqdto.getGrade(), null));
+		int targetOrderId = this.pickUpDAO.getOrderIdForPickup(passportNum, flightResNum);
+		this.pickUpDAO.updateOrderAndPickupStatus(targetOrderId, "PICKED_UP", CurrentTime.curTime);
+
+		System.out.println("✔️ 4. [" + currentTicket.getMember().getName() + "]님 인도 완료. (시각: "
+				+ CurrentTime.curTime.toLocalTime() + ")");
+		System.out.println("-------------------------------------------------");
+
+		// 🚨 업무 종료 -> 창구 비움 -> 다음 사람 자동 호출!
+		this.currentTicket = null;
+		this.tryCallNextCustomer();
 	}
 
-	// [체크리스트 2] DB에서 조건에 맞는 주문들을 메모리로 로드
+	// 시간 흐름 (시간이 흘러서 대기자가 생겼는데 창구가 비어있으면 호출됨!)
+	public void passTime() {
+		this.pq.passTime();
+		System.out.println("   (⏳ " + CurrentTime.curTime.toLocalTime() + " 경과...)");
+		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
+	}
+
+	// 큐에 번호표 뽑기 (뽑았는데 창구가 비어있으면 즉시 호출됨!)
+	public void appendQueue(String passportNum, int flightResNum) {
+		this.validateInfo(passportNum, flightResNum);
+		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+		this.pq.enqueue(new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()), new Member(aqdto.getMemberId(),
+				null, null, aqdto.getName(), null, null, passportNum, null, false, aqdto.getGrade(), null));
+		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
+	}
+
+	// DB에서 조건에 맞는 주문들을 메모리로 로드
 	public void loadOrders() {
 		System.out.println("SYSTEM: 인도장 시스템에 픽업 대기 중인 주문 목록을 로드합니다...");
 		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
