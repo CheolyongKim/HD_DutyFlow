@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import common.OracleConnection;
+import common.OrderStatus;
 import exception.ErrorCode;
 import exception.SystemException;
 import order.dto.OrderDTO;
@@ -209,15 +210,32 @@ public class OrderDAO {
 
 	    if (stateStr == null) return new PendingState();
 
-	    switch (stateStr.toUpperCase()) {
-	        case "ORDERED":         return new PendingState();
-	        case "VERIFIED":        return new VerifiedState();
-	        case "PAID":            return new PaidState();
-	        case "PICKUP_RESERVED": return new PickupReservedState();
-	        case "PICKED_UP":       return new PickedUpState();
-	        case "CANCELED":        return new CanceledState();
-	        case "NO_SHOW":         return new NoShowState();
-	        default:                return new PendingState();
+	    OrderStatus status = OrderStatus.valueOf(stateStr.toUpperCase());
+	    
+	    switch (status) {
+	        case ORDERED:
+	            return new PendingState();
+
+	        case VERIFIED:
+	            return new VerifiedState();
+
+	        case PAID:
+	            return new PaidState();
+
+	        case PICKUP_RESERVED:
+	            return new PickupReservedState();
+
+	        case PICKED_UP:
+	            return new PickedUpState();
+
+	        case CANCELED:
+	            return new CanceledState();
+
+	        case NO_SHOW:
+	            return new NoShowState();
+
+	        default:
+	            return new PendingState();
 	    }
 	}
 	

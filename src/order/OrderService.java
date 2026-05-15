@@ -24,8 +24,8 @@ public class OrderService {
 
     // CategoryId 상수 (DB 기준)
     private static final int CATEGORY_GENERAL  = 1;
-    private static final int CATEGORY_ALCOHOL  = 2;
-    private static final int CATEGORY_PERFUME  = 4;
+    private static final int CATEGORY_ALCOHOL  = 22;
+    private static final int CATEGORY_PERFUME  = 24;
 
     // -------------------------------------------------------
     // 조회
@@ -142,7 +142,7 @@ public class OrderService {
 
         // 2. 상태 검증
         if (!(order.getState() instanceof PendingState)) {
-            throw new BusinessException(ErrorCode.INVALID_ORDER_STATE);
+            throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
         }
 
         // 3. 세금 계산 (전략 패턴)
@@ -233,7 +233,7 @@ public class OrderService {
     }
 
     /**
-     * 전략 구성 및 세금 계산 (HeejinMain.calculate()와 동일)
+     * 전략 구성 및 세금 계산
      */
     private BigDecimal calculate(Order order,
                                   RegulationDTO generalReg,
