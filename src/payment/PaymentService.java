@@ -2,13 +2,32 @@ package payment;
 
 import java.math.BigDecimal;
 
+import exception.DutyFreeException;
 import exception.ErrorCode;
+import exception.SystemException;
 import exception.ValidationException;
 
 public class PaymentService {
 
     private final PaymentDAO paymentDAO = new PaymentDAO();
     private final PaymentQueue paymentQueue = PaymentQueue.getInstance();
+    
+    // 주문 결제 처리 
+    public boolean payment(int orderId, BigDecimal totalAmount, String cardNumber) {
+        PaymentService paymentService = new PaymentService();
+
+        try {
+            PaymentDTO paymentDTO = new PaymentDTO(orderId, totalAmount, cardNumber);
+            paymentService.requestPayment(paymentDTO);
+        } catch (DutyFreeException e) {
+            throw e;
+
+        } catch (Exception e) {
+            throw new SystemException(ErrorCode.PAYMENT_REQUEST_FAILED, e);
+        }
+        
+        return true;
+    }
 
     // 결제 요청 접수
     public int requestPayment(PaymentDTO paymentDTO) {

@@ -27,7 +27,7 @@ public enum ErrorCode {
 
 	// DB연결
 	DB_CONNECTION("CONNECTION_ERROR", "DB 연결 실패"), 
-  DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
+	DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
 
 	// 규정
 	DUTY_FREE_LIQUOR_EXCEEDED("DUTY_FREE_LIQUOR_EXCEEDED", "주류 면세 한도(용량/금액) 초과"),
@@ -45,7 +45,7 @@ public enum ErrorCode {
 	INVALID_PAYMENT_AMOUNT("INVALID_PAYMENT_AMOUNT", "결제 금액이 올바르지 않습니다."),
 	INVALID_CARD_NUMBER("INVALID_CARD_NUMBER", "카드번호 형식이 올바르지 않습니다."),
 	EMPTY_PAYMENT_QUEUE("EMPTY_PAYMENT_QUEUE", "결제 대기열이 비어 있습니다."),
-
+	PAYMENT_REQUEST_FAILED("PAYMENT_REQUEST_FAILED", "결제 요청 처리 중 오류가 발생했습니다."),
   
 	// 멤버십
 	MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
