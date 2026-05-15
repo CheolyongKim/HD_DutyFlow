@@ -79,7 +79,7 @@ public class AirportManagerDao {
              ResultSet rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
-                list.add(mapRow(rs)); // 공통 매핑 메서드
+                list.add(mapRow(rs));
             }
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
