@@ -32,7 +32,7 @@ public class PickUpSystem {
 		this.pq.enqueue(
 				new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
 				new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null,
-						passportNum, null, false, aqdto.getGrade(), null));
+						passportNum, null, false, aqdto.getGrade(), null, null));
 	}
 	
 	public void realPickUp(String passportNum, int flightResNum) {
