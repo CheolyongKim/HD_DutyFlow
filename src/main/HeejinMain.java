@@ -2,6 +2,7 @@ package main;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
+import member.Member;
 import order.Order;
 import pickup.PickUpSystem;
 import regulation.RegulationDAO;
@@ -197,21 +199,69 @@ public class HeejinMain {
         // 인도장 관리자 로그인 
         // =========================
         
-        System.out.println("\\n=== 로그인 실패 테스트 ===");
+        System.out.println("\n===== 로그인 실패 테스트 ===");
         try {
         	pickUpSystem.login(100, "wrongPW");
         } catch (BusinessException e) {
             System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
         }
         
-        System.out.println("\\\\n=== 로그인 성공 테스트 ===");
+        System.out.println("\n===== 로그인 성공 테스트 ===");
         pickUpSystem.login(100, "airport1234");
+       
+        
+        // =========================
+        // 인도장 관리자 전체픽업목록 조회 
+        // =========================
+        System.out.println("\n===== 전체 픽업 목록 =====");
+        pickUpSystem.printAllPickUpList();
+        
+        
+        // =========================
+        // 인도장 관리자 특정회원 픽업 목록 
+        // =========================
+        System.out.println("\n=== 특정 회원 픽업 목록 ===");
+        Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null);
+        pickUpSystem.printAllPickUpList(targetMember);
+        
+        
+        // =========================
+        // 인도장 관리자 기간별 픽업 목록 
+        // =========================
+        System.out.println("\n=== 기간별 픽업 목록 ===");
+        pickUpSystem.printAllPickUpList(
+            LocalDate.of(2025, 1, 1),
+            LocalDate.of(2025, 12, 31)
+        );
+        
+        // =========================
+        // 인도장 관리자 중복 로그인 시도
+        // =========================
+        System.out.println("\n=== 중복 로그인 시도 ===");
+        try {
+        	pickUpSystem.login(100, "airport1234");
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
         
         // =========================
         // 인도장 관리자 로그아웃  
         // =========================
         System.out.println("\n=== 로그아웃 ===");
         pickUpSystem.logout();
+        
+        // =========================
+        // 로그아웃 후 재조회 시도
+        // =========================
+      
+        System.out.println("\n=== 로그아웃 후 조회 시도 ===");
+        try {
+        	pickUpSystem.printAllPickUpList();
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
         
         
     }

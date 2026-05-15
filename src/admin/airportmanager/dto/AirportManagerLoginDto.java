@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AirportManagerLoginDto {
 	private int managerId;
-	private String password;
 	
 	private String managerName; 
     private String managerType;  

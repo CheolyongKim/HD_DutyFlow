@@ -1,5 +1,6 @@
 package pickup;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -195,6 +196,20 @@ public class PickUpSystem implements FlightObserver{
         airportManagerService.logout(); 
     }
 	
+	// 전체 픽업 목록
+	public void printAllPickUpList() {
+        airportManagerService.printAllPickUpList(); 
+    }
+	
+	// 특정 회원 픽업 목록
+	public void printAllPickUpList(Member member) {
+		airportManagerService.printAllPickUpList(member);
+	}
+	
+	// 기간별 픽업 목록 
+	public void printAllPickUpList(LocalDate start, LocalDate end) {
+        airportManagerService.printAllPickUpList(start, end);
+    }
 	
 	
 }
