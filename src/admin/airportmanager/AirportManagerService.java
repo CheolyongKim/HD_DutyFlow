@@ -41,7 +41,7 @@ public class AirportManagerService {
 	
 	// 로그아웃 
 	public void logout() {
-	    checkLoggedIn(); // 미로그인 시 NOT_LOGGED_IN 예외
+	    checkLoggedIn(); 
 
 	    System.out.println("[로그아웃] "
 	        + airportManagerLoginDto.getManagerName() + " 관리자님 로그아웃되었습니다.");
