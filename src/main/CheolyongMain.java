@@ -1,5 +1,6 @@
 package main;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -121,6 +122,30 @@ public class CheolyongMain {
 					System.out.println("📢 창구 호출: [" + t3.getMember().getName() + "] 고객님!");
 					System.out.println("💡 실제 발동 확인: 번호표가 늦은 강부자가 평시 룰(프레스티지)로 1순위로 나왔는가? 👉 " + t3.getMember().getName().equals("강부자"));
 				}
+				
+				// ==========================================================
+				// [시나리오 4] 비행기 지연 → PQ 자동 재정렬
+				// ==========================================================
+				System.out.println("\n--- 🎬 [시나리오 4] KE1090 지연 발생 ---");
+				
+				// 시나리오 4 직전에 추가
+				System.out.println("현재 시뮬레이션 시각: " + CurrentTime.curTime);
+				System.out.println("KE1090 출발까지 남은 분: " +
+				    Duration.between(CurrentTime.curTime,
+				        LocalDateTime.of(2026, 5, 1, 14, 0, 0)).toMinutes() + "분");
+
+				// 현재 PQ 상태 출력
+				System.out.println("[ PickUpSystem ]지연 전 현재 대기열 ");
+				ps.printCurrentQueue();
+
+				System.out.println("\n[ PickUpSystem ] KE1090 항공편이 11:00 → 14:00으로 지연되었습니다.");
+				
+				ps.delayFlight("KE1090", LocalDateTime.of(2026, 5, 1, 14, 0, 0));
+
+				System.out.println("[ PickUpSystem ]지연 전 현재 대기열 ");
+				ps.printCurrentQueue();
+				
+				
 	}
 
 }

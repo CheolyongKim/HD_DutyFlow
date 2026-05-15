@@ -158,4 +158,26 @@ public class PickUpSystem implements FlightObserver{
 	        );
 	    }
 	}
+	
+	// flightCode로 PQ안 Airplane 찾아서 지연 처리하기 위함
+	public void delayFlight(String flightCode, LocalDateTime newDepartureAt) {
+		
+		// aq
+		for (PickUpTicket ticket : pq.getAllFromAq()) {
+	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+	            ticket.getAirplane().setDepartureAt(newDepartureAt);
+	            return;
+	        }
+	    }
+		
+		// bq
+		for (PickUpTicket ticket : pq.getAllFromBq()) {
+	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+	            ticket.getAirplane().setDepartureAt(newDepartureAt);
+	            return;
+	        }
+	    }
+		
+		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
+	}
 }

@@ -57,8 +57,7 @@ public class MLPQ {
 	}
 	
 	public void enqueue(Airplane airplane, Member member) {
-		if (this.size()==0 ||
-				Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
+		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
 			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		}else {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
