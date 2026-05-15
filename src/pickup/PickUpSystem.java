@@ -185,4 +185,16 @@ public class PickUpSystem implements FlightObserver{
 		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
 	
+	// 로그인 
+	public void login(int managerId, String password) {
+        airportManagerService.login(managerId, password); 
+    }
+	
+	// 로그아웃 
+	public void logout() {
+        airportManagerService.logout(); 
+    }
+	
+	
+	
 }

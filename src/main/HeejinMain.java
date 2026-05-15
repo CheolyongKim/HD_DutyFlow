@@ -12,6 +12,7 @@ import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
 import order.Order;
+import pickup.PickUpSystem;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
 import tax.AlcoholTaxStrategy;
@@ -26,8 +27,7 @@ public class HeejinMain {
 
         RegulationDAO regulationDAO = new RegulationDAO();
         
-        AirportManagerDao airportManagerDAO = new AirportManagerDao();
-		AirportManagerService airportManagerService = new AirportManagerService(airportManagerDAO);
+        PickUpSystem pickUpSystem = new PickUpSystem();
 
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
@@ -199,19 +199,19 @@ public class HeejinMain {
         
         System.out.println("\\n=== 로그인 실패 테스트 ===");
         try {
-        	airportManagerService.login(100, "wrongPW");
+        	pickUpSystem.login(100, "wrongPW");
         } catch (BusinessException e) {
             System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
         }
         
         System.out.println("\\\\n=== 로그인 성공 테스트 ===");
-        airportManagerService.login(100, "airport1234");
+        pickUpSystem.login(100, "airport1234");
         
         // =========================
         // 인도장 관리자 로그아웃  
         // =========================
         System.out.println("\n=== 로그아웃 ===");
-        airportManagerService.logout();
+        pickUpSystem.logout();
         
         
     }
