@@ -1,6 +1,7 @@
 package order.dto;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -45,7 +46,7 @@ public class OrderDTO {
 	
 	public BigDecimal getDiscountedUnitPrice() {
 	    // discountPrice 필드에 20, 30 같은 할인율이 들어있는 경우
-	    BigDecimal rate = BigDecimal.valueOf(this.discountPrice.doubleValue() / 100.0);
+		BigDecimal rate = discountPrice.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 	    BigDecimal discountAmt = this.dollarPrice.multiply(rate);
 	    return this.dollarPrice.subtract(discountAmt);
 	}

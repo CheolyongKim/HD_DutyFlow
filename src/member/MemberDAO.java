@@ -9,7 +9,6 @@ import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
 
-import common.OracleConnection;
 
 public class MemberDAO {
 
