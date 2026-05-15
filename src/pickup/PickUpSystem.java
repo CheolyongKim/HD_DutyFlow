@@ -30,7 +30,7 @@ public class PickUpSystem {
 				
 		// 3. 큐에 삽입
 		this.pq.enqueue(
-				new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt(), aqdto.getIsDelayed() == 1),
+				new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
 				new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null,
 						passportNum, null, false, aqdto.getGrade(), null));
 	}
