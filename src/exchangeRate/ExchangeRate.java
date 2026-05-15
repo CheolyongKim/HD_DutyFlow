@@ -14,8 +14,12 @@ public class ExchangeRate {
 	private LocalDate exchangeDate;
 	private char isLatest;
 	
-    @Override
-    public String toString() {
-        return " 날짜 : " + exchangeDate + " |  환율 : " + exchangeRate;
-    }
+	@Override
+	public String toString() {
+	    return String.format(
+	            "[%s | %s원]",
+	            exchangeDate,
+	            exchangeRate
+	    );
+	}
 }

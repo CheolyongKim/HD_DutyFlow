@@ -21,21 +21,25 @@ public class ExchangeRateService {
     private final ProductDAO productDAO = new ProductDAO();
     
     private final ExchangeRateApiClient exchangeRateApiClient = new ExchangeRateApiClient();
-
-    // 프로그램 시작 시 DB의 최신 환율을 Provider에 올림
+    
+    // 프로그램 시작 시 최신 환율 정보를 Provider에 초기화
     public void initializeExchangeRate() {
         try (Connection conn = OracleConnection.getConnection()) {
-            BigDecimal latestRate = exchangeRateDAO.findLatestRate(conn); // 최신 환율
 
-            if (latestRate == null) {
-                latestRate = DEFAULT_EXCHANGE_RATE;
+            BigDecimal todayRate = exchangeRateDAO.findTodayRate(conn); // 최신 환율
+
+            // DB에 오늘 환율이 있으면 해당 값을 Provider에 초기화
+            if (todayRate != null) {
+                ExchangeRateProvider.getInstance().update(todayRate, LocalDate.now());
+                return;
             }
-
-            ExchangeRateProvider.getInstance().update(latestRate, LocalDate.now());
 
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
+
+        // DB에 오늘 환율이 없으면 외부 API로 오늘 환율 갱신
+        updateDailyExchangeRate();
     }
 
     // 매일 자정에 환율 업데이트
