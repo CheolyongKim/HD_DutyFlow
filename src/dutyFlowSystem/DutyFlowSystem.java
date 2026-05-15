@@ -9,6 +9,7 @@ import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
 import member.Member;
 import order.Order;
+import payment.PaymentWorker;
 import product.Product;
 import shoppingCart.ShoppingCartService;
 import shoppingCart.dto.TotalCartDTO;
@@ -22,6 +23,30 @@ public class DutyFlowSystem {
 	// private TaxCalculator taxCalculator;
 	
 	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
+	
+	// 백그라운드에서 실행될 결제 Worker
+	private final PaymentWorker paymentWorker = new PaymentWorker();
+
+	// PaymentWorker를 실행할 Thread
+	private Thread paymentWorkerThread;
+
+	// PaymentWorker 실행
+	// DutyFlowSystem 시작 시 백그라운드에서 Queue 감시 시작
+	public void startPaymentWorker() {
+	    paymentWorkerThread = new Thread(paymentWorker);
+	    paymentWorkerThread.start();
+	}
+
+	// PaymentWorker 종료
+	// DutyFlowSystem 종료 시 Worker도 함께 종료
+	public void stopPaymentWorker() {
+	    paymentWorker.stop();
+
+	    // sleep 상태의 Worker를 즉시 깨워 종료 처리
+	    if (paymentWorkerThread != null) {
+	        paymentWorkerThread.interrupt();
+	    }
+	}
 	
 	// 회원 장바구니에 상품 추가
 	public void addToCart(Product p, int wishAmount) {
