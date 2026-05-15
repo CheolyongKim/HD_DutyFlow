@@ -56,4 +56,62 @@ public class PaymentDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
+
+    // 결제 성공 처리
+    // Payment 상태만 SUCCESS로 변경, 주문 상태 변경은 OrderState 패턴에서 처리 예정
+    public void updateStatusToSuccess(int paymentId, int orderId) {
+
+    	// 결제 상태 변경 및 결제 완료 시간 저장
+        String sql = "UPDATE Payment SET paymentStatus = ?, processedAt = ? WHERE paymentId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+               pstmt.setString(1, PaymentStatus.SUCCESS.name());
+               pstmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+               pstmt.setInt(3, paymentId);
+
+               pstmt.executeUpdate();
+
+           } catch (SQLException e) {
+               throw new SystemException(ErrorCode.DB_CONNECTION, e);
+           }
+    }
+
+    // 결제 실패 처리
+    public void updateStatusToFailed(int paymentId, String failReason) {
+    	// 결제 실패 상태와 실패 사유 저장
+        String sql = "UPDATE Payment SET paymentStatus = ?, processedAt = ?, failReason = ? WHERE paymentId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, PaymentStatus.FAILED.name());
+            pstmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            pstmt.setString(3, failReason);
+            pstmt.setInt(4, paymentId);
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+    // PaymentStatus 업데이트
+    private void updateStatus(String sql,PaymentStatus status,int paymentId) {
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, status.name());
+            pstmt.setInt(2, paymentId);
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }
