@@ -62,6 +62,16 @@ public class MLPQ {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		}
 	}
+	
+	// 기존 enqueue 바로 아래에 추가
+	public void requeue(PickUpTicket ticket) {
+	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds() / 60
+	            < this.promotionThresholdMinutes) {
+	        this.aq.add(ticket);
+	    } else {
+	        this.bq.add(ticket);
+	    }
+	}
 
 	public PickUpTicket peek() {
 		if (this.aq.size() > 0)

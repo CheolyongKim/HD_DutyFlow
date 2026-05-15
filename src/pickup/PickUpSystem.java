@@ -202,28 +202,25 @@ public class PickUpSystem implements FlightObserver {
 		rescheduledPq();
 	}
 
-	// PQ 재정렬 (전부 꺼내서 다시 enqueue 바뀐 값 기준으로 재정렬)
 	public void rescheduledPq() {
+	    if (pq.size() == 0) {
+	        System.out.println("[PickUpSystem] 재정렬할 대기열 없음");
+	        return;
+	    }
 
-		if (pq.size() == 0) {
-			System.out.println("[PickUpSystem] 재정렬할 대기열 없음");
-			return;
-		}
+	    List<PickUpTicket> allTickets = new ArrayList<>();
+	    allTickets.addAll(pq.getAllFromAq());
+	    allTickets.addAll(pq.getAllFromBq());
 
-		List<PickUpTicket> allTickets = new ArrayList<>();
-		allTickets.addAll(pq.getAllFromAq());
-		allTickets.addAll(pq.getAllFromBq());
+	    pq.clearAll();
 
-		pq.clearAll();
+	    // 🔧 기존 티켓 객체를 그대로 재삽입 → ticketIssueTime, ticketNum 보존
+	    for (PickUpTicket ticket : allTickets) {
+	        pq.requeue(ticket);
+	    }
 
-		// enqueue 내부에서 출국 임박 여부 재판단
-		for (PickUpTicket ticket : allTickets) {
-			pq.enqueue(ticket.getAirplane(), ticket.getMember());
-		}
-
-		System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
-
-		printCurrentQueue();
+	    System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
+	    printCurrentQueue();
 	}
 
 	public void printCurrentQueue() {

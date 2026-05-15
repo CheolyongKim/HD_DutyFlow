@@ -1,6 +1,5 @@
 package main;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 import common.CurrentTime;
@@ -10,116 +9,70 @@ public class CheolyongMain {
 
 	public static void main(String[] args) {
 		Scanner sc = new Scanner(System.in);
-
 		System.out.println("==========================================");
-		System.out.print("📦 물품 인도에 걸리는 시간을 설정해주세요 (분 단위, 예: 4) : ");
+		System.out.print("📦 물품 인도에 걸리는 시간을 설정해주세요 (분 단위, 예: 3) : ");
 		int procTime = sc.nextInt();
 		System.out.println("==========================================");
 
 		try {
-			// 1. 시뮬레이션 가상 시계 세팅
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
-
 			PickUpSystem ps = new PickUpSystem();
 			ps.loadOrders();
 
-			// 2. 창구 오픈 전 타임워프 큐 삽입 (기계에서 번호표만 뽑음)
 			System.out.println("\nSYSTEM: (창구 오픈 전) 타임워프를 통해 고객들이 순차적으로 번호표를 뽑습니다...");
-			CurrentTime.curTime = baseTime.minusMinutes(39);
-			ps.appendQueue("M33333333", 3); // 김철용
-			CurrentTime.curTime = baseTime.minusMinutes(25);
-			ps.appendQueue("M44444444", 4); // 오블랙 (KE1090)
-			CurrentTime.curTime = baseTime.minusMinutes(22);
-			ps.appendQueue("M55555555", 5); // 최골드
-			CurrentTime.curTime = baseTime.minusMinutes(20);
-			ps.appendQueue("M66666666", 6); // 유실버
-			CurrentTime.curTime = baseTime.minusMinutes(10);
-			ps.appendQueue("M77777777", 7); // 약블랙
-			CurrentTime.curTime = baseTime.minusMinutes(5);
-			ps.appendQueue("M88888888", 8); // 중블랙
-			CurrentTime.curTime = baseTime.minusMinutes(2);
-			ps.appendQueue("M99999999", 9); // 강부자
-
-			// 09:30 기준 도착자
-			CurrentTime.curTime = baseTime;
-			ps.appendQueue("M11111111", 1); // 이급박
-			ps.appendQueue("M22222222", 2); // 박지각 (AQ 1순위)
-
-			System.out.println("SYSTEM: 초기 발권 완료. 현재 큐 사이즈: " + ps.pq.size() + "명");
+			CurrentTime.curTime = baseTime.minusMinutes(39); ps.appendQueue("M33333333", 3); // 김철용
+			CurrentTime.curTime = baseTime.minusMinutes(25); ps.appendQueue("M44444444", 4); // 오블랙
+			CurrentTime.curTime = baseTime.minusMinutes(10); ps.appendQueue("M77777777", 7); // 약블랙
+			CurrentTime.curTime = baseTime.minusMinutes(5);  ps.appendQueue("M88888888", 8); // 중블랙
+			CurrentTime.curTime = baseTime.minusMinutes(2);  ps.appendQueue("M99999999", 9); // 강부자
+			CurrentTime.curTime = baseTime.minusMinutes(1);  ps.appendQueue("M55555555", 5); // 최골드
+			CurrentTime.curTime = baseTime;                  ps.appendQueue("M66666666", 6); // 유실버
+			ps.appendQueue("M11111111", 1); // 이급박 (AQ, 25분 남음)
+			ps.appendQueue("M22222222", 2); // 박지각 (AQ, 15분 남음, AQ 1순위)
 
 			// ==========================================================
-			// 🚀 본격적인 시뮬레이션 시작!
+			// 🎬 [시나리오] 항공편 지연 — AQ에 있는 박지각이 BQ로 강등
 			// ==========================================================
-
-			// 1. 창구 오픈 (박지각 자동 호출)
-			ps.openCounter();
-
-			// 2. 박지각 처리 (그 사이 김철용 40분 대기 달성)
-			ps.processPickUp("M22222222", 2, procTime);
-
-			// ==========================================================
-			// 🎬 [시나리오 1] Starvation 구제 시스템 가동
-			// ==========================================================
-			System.out.println("\n--- 🎬 [시나리오 1] Starvation 구제 시스템 가동 ---");
-			// 박지각 업무 종료 후 시스템이 0순위(Starvation)인 '김철용'을 자동 호출
-			ps.processPickUp("M33333333", 3, procTime);
-
-			// ==========================================================
-			// [막간 타임] 남은 초임박자 이급박 처리
-			// ==========================================================
-			System.out.println("\n--- 🎬 남은 초임박자 처리 ---");
-			ps.processPickUp("M11111111", 1, procTime);
-
-			// ==========================================================
-			// 🎬 [시나리오 3] 자본주의의 맛, VIP 평시 룰 자동 발동
-			// ==========================================================
-			System.out.println("\n--- 🎬 [시나리오 3] 자본주의의 맛, VIP 평시 룰 자동 발동 ---");
-
-			// 강부자(PRESTIGE)가 호출된 사이, 구민 고객 도착
-			System.out.println("\n--- 🎬 [시나리오 2] 출국 임박자 AQ 하이패스 가동 ---");
-			System.out.println("SYSTEM: 구민 고객이 도착하여 조용히 번호표를 뽑습니다.");
-			ps.appendQueue("M00000000", 10);
-
-			// 호출된 강부자 처리
-			ps.processPickUp("M99999999", 9, procTime);
-
-			// ==========================================================
-			// 🎬 [시나리오 2 결과] AQ 하이패스의 위력
-			// ==========================================================
-			// 강부자 처리 중 구민의 출국 시간이 30분 미만이 되어 AQ로 승격, 즉시 호출
-			ps.processPickUp("M00000000", 10, procTime);
-			
-			// ==========================================================
-			// 🎬 [시나리오 4] 비행기 지연 → AQ 퇴출 시나리오
-			// ==========================================================
-			System.out.println("\n--- 🎬 [시나리오 4] 출국 임박자 투입 및 비행기 지연 시뮬레이션 ---");
-
-			// 현재 09:45. 출국 20분, 25분 남은 사람 투입
-			System.out.println("SYSTEM: 창구 대기열에 새로운 임박 고객 2명이 추가됩니다.");
-			ps.appendQueue("M11110001", 11); // 임박1 (출국 10:05 -> 20분 남음) -> AQ [1]위
-			ps.appendQueue("M11110002", 12); // 임박2 (출국 10:10 -> 25분 남음) -> AQ [2]위
-
-			// 현재 최골드는 09:08에 뽑아 09:45 기준 37분 대기 중.
-			// 아직 40분이 안 되었으므로 시스템은 AQ의 1순위 '임박1'을 호출합니다.
-
-			System.out.println("\n[ PickUpSystem ] 지연 발생 전 현재 대기열 상태:");
+			System.out.println("\n--- 🎬 [시나리오] AQ 사람의 항공편 지연 ---");
+			System.out.println("[ PickUpSystem ] 지연 전 대기열 상태 (박지각이 AQ 1순위):");
 			ps.printCurrentQueue();
 
-			// 🚨 지연 발생: AQ의 2순위인 '임박2'의 비행기가 14:00으로 지연!
-			System.out.println("\n[ PickUpSystem ] 알림: [임박2] 고객의 KE_SOON2 항공편이 10:10 → 14:00으로 지연되었습니다.");
-			ps.delayFlight("KE_SOON2", LocalDateTime.of(2026, 5, 1, 14, 0, 0));
+			System.out.println("\n[ PickUpSystem ] 알림: 박지각의 OZ1015 항공편이 14:00으로 지연되었습니다.");
+			ps.delayFlight("OZ1015", LocalDateTime.of(2026, 5, 1, 14, 0, 0));
 
-			System.out.println("\n[ PickUpSystem ] 지연 처리 후 현재 대기열 상태:");
+			System.out.println("\n[ PickUpSystem ] 지연 후 대기열 상태 (박지각이 AQ → BQ 맨 뒤로 강등!):");
 			ps.printCurrentQueue();
-			System.out.println("💡 확인: [임박2]가 긴급 큐(aq)에서 사라져 일반 큐(bq) 맨 뒤로 이동했는가? 👉 true");
-			
-			// 3. 이제 '임박1'을 처리합니다. (3분 소요)
-			ps.processPickUp("M11110001", 11, procTime); // 09:48 종료
+			System.out.println("💡 분석: 출국 임박이라 AQ에 있던 박지각이 14:00으로 밀리면서 더 이상 긴급하지 않게 됨. AQ에서 탈출해 BQ의 일반 룰(등급>번호표)을 따라 SILVER 맨 뒤로 재배치.");
 
-			// 4. [중요] 임박1 처리가 끝나는 순간 시각은 09:48!
-			// 최골드는 이제 40분 대기를 달성했으므로, 다음 호출은 최골드여야 합니다.
-			ps.processPickUp("M55555555", 5, procTime);
+			ps.openCounter();  // 박지각 강등됐으니 AQ 1순위 = 이급박 자동호출
+
+			// 🎬 이급박 10분 노쇼 (그 동안 김철용은 49분 대기 → Starvation 임계 돌파)
+			System.out.println("\n--- 🎬 [시나리오] 이급박 10분 노쇼 대기 ---");
+			for (int i = 0; i < 10; i++) {
+				ps.passTime();
+			}
+			// 09:40에 이급박 호출 취소 → 즉시 자동호출 → pop에서 김철용(49분) Starvation 가로채기
+
+			System.out.println("\n--- 🎬 [시나리오] 노쇼 후 김철용 에이징 자동 호출 ---");
+			ps.processPickUp("M33333333", 3, procTime); // 김철용 (~09:43)
+
+			// 강부자(PRESTIGE) 호출 → 처리 중 09:45에 오블랙 40분 도달
+			ps.processPickUp("M99999999", 9, procTime); // 강부자 (~09:46)
+
+			// 강부자 처리 끝나는 09:46 시점에 오블랙 41분 → Starvation 가로채기
+			System.out.println("\n--- 🎬 [시나리오] 오블랙 에이징 가로채기 ---");
+			ps.processPickUp("M44444444", 4, procTime); // 오블랙
+
+			// 이후 BQ 평시 룰: BLACK(약블랙→중블랙) → GOLD(최골드) → SILVER(유실버→박지각)
+			ps.processPickUp("M77777777", 7, procTime); // 약블랙
+			ps.processPickUp("M88888888", 8, procTime); // 중블랙
+			ps.processPickUp("M55555555", 5, procTime); // 최골드
+			ps.processPickUp("M66666666", 6, procTime); // 유실버
+			ps.processPickUp("M22222222", 2, procTime); // 강등된 박지각 (BQ 맨 뒤)
+
+			System.out.println("\n🎉 [테스트 완료] 모든 시나리오가 예외 없이 종료되었습니다.");
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
