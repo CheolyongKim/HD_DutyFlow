@@ -25,6 +25,7 @@ public class PaymentQueue {
     // 결제 요청을 Queue의 맨 뒤에 추가
     public void enqueue(int paymentId) {
         queue.offer(paymentId);
+        System.out.println("[QUEUE] enqueue 완료 | paymentId = " + paymentId + " | queueSize = " + queue.size());
     }
 
     // Queue의 맨 앞에 있는 결제 요청을 제거하면서 paymentId 반환
@@ -33,7 +34,11 @@ public class PaymentQueue {
             throw new QueueException(ErrorCode.EMPTY_PAYMENT_QUEUE);
         }
 
-        return queue.poll();
+        int paymentId = queue.poll();
+
+        System.out.println("[QUEUE] dequeue 완료 | paymentId = " + paymentId + " | remainingQueueSize = " + queue.size());
+        
+        return paymentId;
     }
 
     public boolean isEmpty() {
