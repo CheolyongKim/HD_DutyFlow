@@ -126,9 +126,8 @@ public class CheolyongMain {
 				// ==========================================================
 				// [시나리오 4] 비행기 지연 → PQ 자동 재정렬
 				// ==========================================================
-				System.out.println("\n--- 🎬 [시나리오 4] KE1090 지연 발생 ---");
+				System.out.println("\n--- [시나리오 4] KE1090 지연 발생 ---");
 				
-				// 시나리오 4 직전에 추가
 				System.out.println("현재 시뮬레이션 시각: " + CurrentTime.curTime);
 				System.out.println("KE1090 출발까지 남은 분: " +
 				    Duration.between(CurrentTime.curTime,
