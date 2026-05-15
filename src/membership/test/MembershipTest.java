@@ -3,7 +3,7 @@ package membership.test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import member.Grade;
+import common.Grade;
 import membership.MembershipDAO;
 import membership.MembershipService;
 

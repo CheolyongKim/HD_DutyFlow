@@ -2,6 +2,7 @@ package member;
 
 import java.time.LocalDate;
 
+import common.Grade;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import shoppingCart.ShoppingCart;
