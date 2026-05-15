@@ -30,7 +30,7 @@ public class RegulationDAO {
 			
 			if(rs.next()) {
 			    RegulationDTO dto = new RegulationDTO();
-				
+		
 			    dto.setRegulationId(rs.getInt("regulationId"));
 			    dto.setCategoryId(rs.getInt("categoryId"));
 			    dto.setLimitCapacity(rs.getInt("limitCapacity"));

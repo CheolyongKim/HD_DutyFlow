@@ -2,6 +2,7 @@ package member;
 
 import java.time.LocalDate;
 
+import common.Grade;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import shoppingCart.ShoppingCart;
@@ -19,6 +20,7 @@ public class Member {
 	private LocalDate passportExpiredDate;
 	private boolean isAdult;
 	private Grade grade;
+	private LocalDate gradeSelectionDate;
 	private ShoppingCart cart = new ShoppingCart();
 	
 	public ShoppingCart getCart() {

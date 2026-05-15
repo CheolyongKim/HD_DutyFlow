@@ -1,29 +1,47 @@
 package order.dto;
 
-import java.util.List;
-import java.util.Map;
-
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import product.Product;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import order.OrderState;
+
 
 @Getter
 @Setter
+@ToString
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderDTO {
-	private int flightResNum;
-	// private OrderState orderState;
-	private String loginId;
-	private List<Map<Product, Integer>> products;
-	private BigDecimal totalPrice;
-	private int totalPerfume;
-	private int totalAlcohol;
-	private LocalDateTime orderedAt;
-	private BigDecimal discountPrice;
 
+	//category
+	private int categoryId;
+	private String categoryName;
+	private int capacity;
+    
+	
+    // Orders
+    private int orderId;
+    private int memberId;
+    private int reservationId;
+    private LocalDate exchangeDate;
+    private LocalDateTime orderedAt;
+    private String orderState;
+private BigDecimal totalAmount;
+
+    // OrderDetail
+    private int productId;
+    private int quantity;
+    private BigDecimal discountPrice;
+    private BigDecimal dollarPrice;
+
+    // Product
+    private String productName;
 }

@@ -3,6 +3,8 @@ package main;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 import common.CurrentTime;
+import common.Grade;
+import member.Member;
 import pickup.PickUpSystem;
 
 public class CheolyongMain {

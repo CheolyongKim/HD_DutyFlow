@@ -8,11 +8,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import common.Grade;
 import common.OracleConnection;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
-import member.Grade;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 // DBUtil 등 필요한 임포트 유지
