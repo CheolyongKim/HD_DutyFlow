@@ -40,6 +40,8 @@ public class PaymentWorker {
                 Payment failedPayment = paymentDAO.findById(paymentId);
                 System.out.println("[PAYMENT] 상태 변경 완료 | paymentId = " + paymentId + " | currentStatus = " + failedPayment.getPaymentStatus());
             }
+            
+            System.out.println();
         }
     }
 }
