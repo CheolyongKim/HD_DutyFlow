@@ -306,4 +306,37 @@ public class OrderDAO {
 			}
 		}
 	}
+
+	/**
+	 * 주문 번호(orderId)를 통해 해당 주문의 항공 예약 코드(reservationCode)를 조회합니다.
+	 * @param orderId 주문 ID
+	 * @return 항공 예약 코드 (없을 경우 null)
+	 */
+	public String findReservationCodeByOrderId(int orderId) {
+	    // orders 테이블의 reservationId를 사용하여 flightbook 테이블과 JOIN
+	    String sql = "SELECT fb.reservationCode " +
+	                 "FROM orders o " +
+	                 "JOIN flightbook fb ON o.reservationId = fb.reservationId " +
+	                 "WHERE o.orderId = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        
+	        pstmt.setInt(1, orderId);
+	        
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String resCode = rs.getString("reservationCode");
+	                System.out.println("[OrderDAO] 조회된 예약 코드: " + resCode + " (OrderId: " + orderId + ")");
+	                return resCode;
+	            }
+	        }
+	    } catch (SQLException e) {
+	        // 기존 ErrorCode 및 SystemException 구조 활용
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+
+	    System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
+	    return null;
+	}
 }
