@@ -6,6 +6,7 @@ import java.util.List;
 import exception.SystemException;
 import stock.dao.StockDao;
 import stock.domain.Stock;
+import stock.dto.StockProductDto;
 import stock.observer.StockObserver;
 
 public class StockService {
@@ -21,9 +22,19 @@ public class StockService {
         listObservers.remove(observer);
     }
 
-    private void notifyObservers(String productName, int currentAmount, int thresholdValue) {
+    private void notifyObservers(
+            String brandName,
+            String productName,
+            int currentAmount,
+            int thresholdValue
+    ) {
         for (StockObserver observer : listObservers) {
-            observer.onStockShortageDetected(productName, currentAmount, thresholdValue);
+            observer.onStockShortageDetected(
+                    brandName,
+                    productName,
+                    currentAmount,
+                    thresholdValue
+            );
         }
     }
 
@@ -86,13 +97,27 @@ public class StockService {
 
         int currentAmount = stockDao.getTotalAmountByProductId(productId);
         int thresholdValue = stockDao.getThresholdValueByProductId(productId);
+        String brandName = stockDao.getBrandNameByProductId(productId);
 
-        if (currentAmount < thresholdValue) {
-            notifyObservers(productName, currentAmount, thresholdValue);
+        if (currentAmount <= thresholdValue) {
+            notifyObservers(brandName, productName, currentAmount, thresholdValue);
         }
     }
+    
     public int deleteEmptyStocks() throws SystemException {
         return stockDao.deleteZeroAmountStocks();
     }
     
+    public boolean isBrandProduct(String brandName, String productName) throws SystemException {
+        String actualBrandName = stockDao.getBrandNameByProductName(productName);
+        return brandName.equals(actualBrandName);
+    }
+    
+    public void printAllStockByBrandName(String brandName) throws SystemException {
+        stockDao.getAllStockByBrandName(brandName)
+                .forEach(System.out::println);
+    }
+    public List<StockProductDto> getAllStockByBrandName(String brandName) throws SystemException {
+        return stockDao.getAllStockByBrandName(brandName);
+    }
 }

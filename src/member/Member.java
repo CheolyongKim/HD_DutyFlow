@@ -2,9 +2,11 @@ package member;
 
 import java.time.LocalDate;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import shoppingCart.ShoppingCart;
 
+@AllArgsConstructor
 @Data
 public class Member {
 	private int memberId;
@@ -21,5 +23,9 @@ public class Member {
 	
 	public ShoppingCart getCart() {
 		return cart;
+	}
+
+	public Member() {
+		// TODO Auto-generated constructor stub
 	}
 }

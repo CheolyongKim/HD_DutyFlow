@@ -1,33 +1,33 @@
 package main;
 
+import javax.swing.SwingUtilities;
+
 import brandSystem.BrandSystem;
-import stock.service.StockService;
+import gui.MainFrame;
+import stock.scheduler.StockCleanupScheduler;
+import stock.scheduler.StockPurchaseScheduler;
 
 public class KooMain {
 
     public static void main(String[] args) {
-        StockService stockService = new StockService();
 
-        stockService.registerObserver(new BrandSystem());
+        BrandSystem brandSystem = new BrandSystem("Johnnie Walker");
 
-        String productName = "조니워커 블루라벨";
+        StockPurchaseScheduler purchaseScheduler =
+                new StockPurchaseScheduler(brandSystem.getPurchaseService());
 
-        try {
-            System.out.println("===== Observer 테스트 =====");
+        StockCleanupScheduler cleanupScheduler =
+                new StockCleanupScheduler(brandSystem.getStockService());
 
-            int beforeAmount = stockService.getTotalAmountByProductName(productName);
-            System.out.println("차감 전 총 재고 = " + beforeAmount);
+        purchaseScheduler.start();
+        cleanupScheduler.start();
 
-            int orderAmount = 10;
-            System.out.println(orderAmount + "개 구매 처리");
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            purchaseScheduler.stop();
+            cleanupScheduler.stop();
+            System.out.println("===== 스케줄러 종료 =====");
+        }));
 
-            stockService.deductStockFIFO(productName, orderAmount);
-
-            int afterAmount = stockService.getTotalAmountByProductName(productName);
-            System.out.println("차감 후 총 재고 = " + afterAmount);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SwingUtilities.invokeLater(() -> new MainFrame(brandSystem));
     }
 }

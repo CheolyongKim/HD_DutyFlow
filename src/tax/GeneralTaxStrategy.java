@@ -2,23 +2,52 @@ package tax;
 
 import java.math.BigDecimal;
 
+import exception.BusinessException;
+import exception.ErrorCode;
 import order.Order;
+import regulation.RegulationDTO;
 
 public class GeneralTaxStrategy implements TaxStrategy{
 	
-	//  면세 한도 (800달러)
-	private static final BigDecimal DUTY_FREE_LIMIT_USD = new BigDecimal("800");
+	private final RegulationDTO regulationDTO;
 	
-	// 초과분 적용 로직 (일반상품 - 15%)
-	private static final BigDecimal GENERAL_TAX_RATE = new BigDecimal("0.15");
+	 public GeneralTaxStrategy(RegulationDTO regulationDTO) {
+		 
+		 if (regulationDTO == null) {
+			 throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+		 }
+		 
+		 this.regulationDTO = regulationDTO;
+	 }
+	 
 
 	@Override
 	public BigDecimal calculateTax(Order order) {
+		
+		if(order == null) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT);
+		}
+		
+		if (order.getTotalPrice() == null) {
+            throw new BusinessException(ErrorCode.INVALID_PRODUCT_PRICE);
+        }
+		
+		if (regulationDTO.getOverageRate() == 0) {
+            throw new BusinessException(ErrorCode.ILLEGAL_STATE);
+        }
+		 
+		BigDecimal dutyFreeLimit = BigDecimal.valueOf(regulationDTO.getLimitCapacity());
+	     
+		BigDecimal taxRate = BigDecimal.valueOf(regulationDTO.getOverageRate()).divide(BigDecimal.valueOf(100));
+		
 		BigDecimal totalDollarsPrice = order.getTotalPrice();
+		BigDecimal exceededAmount = totalDollarsPrice.subtract(dutyFreeLimit);
 		
-		BigDecimal exceededAmount = totalDollarsPrice.subtract(DUTY_FREE_LIMIT_USD);
+		if (exceededAmount.compareTo(BigDecimal.ZERO) <= 0) {
+			return BigDecimal.ZERO;
+		}
 		
-		return exceededAmount.multiply(GENERAL_TAX_RATE);
+		return exceededAmount.multiply(taxRate);
 	}
 
 }

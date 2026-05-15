@@ -154,4 +154,11 @@ public class StockPurchaseService {
             System.out.println(purchase);
         }
     }
+    public List<StockPurchase> getPurchaseHistoryByBrandName(String brandName) throws SystemException {
+        if (brandName == null || brandName.trim().isEmpty()) {
+            throw new IllegalArgumentException("브랜드명은 비어 있을 수 없습니다.");
+        }
+
+        return stockPurchaseDao.findByBrandName(brandName);
+    }
 }

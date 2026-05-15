@@ -1,24 +1,48 @@
 package tax;
 
 import java.math.BigDecimal;
-
 import order.Order;
+import regulation.RegulationDTO;
+import exception.BusinessException;
+import exception.ErrorCode;
 
 public class PerfumeTaxStrategy implements TaxStrategy{
-	
-	private static final int Perfume_LIMIT_CAPACITY = 100;
-	
-	// 초과분 적용 로직 (15%)
-	private static final BigDecimal Perfume_TAX_RATE = new BigDecimal("0.15");
+
+	private final RegulationDTO regulationDTO;
+
+	public PerfumeTaxStrategy(RegulationDTO regulationDTO) {
+		
+		if (regulationDTO == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+        }
+		
+	    this.regulationDTO = regulationDTO;
+	 }
 
 	@Override
-	public BigDecimal calculateTax(Order order) {
-		int totalPerfumeCapacity = order.getTotalAlcohol();
+    public BigDecimal calculateTax(Order order) {
 		
-		BigDecimal exceededCapacity = BigDecimal.valueOf(totalPerfumeCapacity - Perfume_LIMIT_CAPACITY);
+		if (order == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
 
-		return exceededCapacity.multiply(Perfume_TAX_RATE);
- 
-	}
+        if (regulationDTO.getOverageRate() == 0) {
+            throw new BusinessException(ErrorCode.ILLEGAL_STATE);
+        }
+		
+        int limitCapacity = regulationDTO.getLimitCapacity();
+        
+        BigDecimal taxRate = BigDecimal.valueOf(regulationDTO.getOverageRate())
+                                      .divide(BigDecimal.valueOf(100));
+
+        int totalPerfume = order.getTotalPerfume();
+        int exceeded = totalPerfume - limitCapacity;
+
+        if (exceeded <= 0) {
+        	return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.valueOf(exceeded).multiply(taxRate);
+    }
 
 }
