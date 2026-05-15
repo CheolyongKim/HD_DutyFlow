@@ -1,26 +1,24 @@
 package order.state;
 
-import exception.BusinessException;
-import exception.ErrorCode;
 import order.Order;
 import order.OrderState;
 
 public class VerifiedState implements OrderState {
 
-	@Override
-	public String name() {
-		// TODO Auto-generated method stub
-		return "VERIFIED";
-	}
-
     @Override
-    public void verify(Order order) {
-        throw new BusinessException(ErrorCode.INVALID_ORDER_STATE);
+    public String name() {
+        return "VERIFIED";
     }
 
+    // VERIFIED → PAID
     @Override
     public void pay(Order order) {
         order.setState(new PaidState());
     }
 
+    // VERIFIED → CANCELED (결제 전이므로 취소 가능)
+    @Override
+    public void cancel(Order order) {
+        order.setState(new CanceledState());
+    }
 }

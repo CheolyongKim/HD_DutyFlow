@@ -56,14 +56,14 @@ public class Order {
         this.state = state;
     }
 	
-	public void changeState(OrderState newState) {
-        this.state = newState;
-//        this.orderState = newState.getClass().getSimpleName().replace("State", "").toUpperCase();
-    }
-
-    public void setOrderState(OrderState state) {
-        this.changeState(state);
-    }
+//	public void changeState(OrderState newState) {
+//        this.state = newState;
+////        this.orderState = newState.getClass().getSimpleName().replace("State", "").toUpperCase();
+//    }
+//
+//    public void setOrderState(OrderState state) {
+//        this.changeState(state);
+//    }
 
 
     // 결제 실패 시 호출할 직렬화 메서드 
@@ -81,7 +81,20 @@ public class Order {
     public String getStateName() {
         return state.name();
     }
+    
     public void verify() {
         state.verify(this);
     }
+
+
+    // 아래 3개 추가
+    public void reservePickup() {
+        state.reservePickup(this);
+    }
+
+
+    public void noShow() {
+        state.noShow(this);
+    }
+    
 }

@@ -12,8 +12,13 @@ import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
 import order.dto.OrderDTO;
+import order.state.CanceledState;
+import order.state.NoShowState;
 import order.state.PaidState;
 import order.state.PendingState;
+import order.state.PickedUpState;
+import order.state.PickupReservedState;
+import order.state.VerifiedState;
 
 public class OrderDAO {
 
@@ -57,29 +62,22 @@ public class OrderDAO {
 	 */
 	public void update(Order order) {
 
-		String sql = "UPDATE orders " + "SET orderState = ?, totalAmount = ? " + "WHERE orderId = ?";
+	    String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
 
-		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-			String stateName;
+	        pstmt.setString(1, order.getState().name()); // "PAID", "CANCELED" 등 직접 반환
+	        pstmt.setBigDecimal(2, order.getTotalPrice());
+	        pstmt.setInt(3, order.getOrderId());
 
-			if (order.getState() instanceof PaidState) {
-				stateName = "PAID";
-			} else {
-				stateName = "ORDERED";
-			}
+	        pstmt.executeUpdate();
 
-			pstmt.setString(1, stateName);
-			pstmt.setBigDecimal(2, order.getTotalPrice());
-			pstmt.setInt(3, order.getOrderId());
-
-			pstmt.executeUpdate();
-
-		} catch (SQLException e) {
-			throw new SystemException(ErrorCode.DB_CONNECTION, e);
-		}
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
 	}
-
+	
 	/**
 	 * 주문번호 + 상품 ID로 단건 조회
 	 */
@@ -209,22 +207,20 @@ public class OrderDAO {
 	 */
 	private OrderState convertStringToState(String stateStr) {
 
-	    if (stateStr == null) {
-	        return new PendingState();
-	    }
+	    if (stateStr == null) return new PendingState();
 
 	    switch (stateStr.toUpperCase()) {
-
-	    case "ORDERED":
-	        return new PendingState();
-
-	    case "PAID":
-	        return new PaidState();
-
-	    default:
-	        return new PendingState();
+	        case "ORDERED":         return new PendingState();
+	        case "VERIFIED":        return new VerifiedState();
+	        case "PAID":            return new PaidState();
+	        case "PICKUP_RESERVED": return new PickupReservedState();
+	        case "PICKED_UP":       return new PickedUpState();
+	        case "CANCELED":        return new CanceledState();
+	        case "NO_SHOW":         return new NoShowState();
+	        default:                return new PendingState();
 	    }
 	}
+	
 	public int insertOrder(Order order, List<OrderDTO> items) {
 
 		String orderSql = "INSERT INTO Orders "

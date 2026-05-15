@@ -180,9 +180,6 @@ public class OrderService {
         }
     }
 
-    // -------------------------------------------------------
-    // private 헬퍼
-    // -------------------------------------------------------
 
     /**
      * 면세 한도 초과 여부 확인
@@ -325,13 +322,59 @@ public class OrderService {
     // TODO
     // -------------------------------------------------------
 
-    /** 주문 취소 */
-    public void cancelOrder(int orderId) {
-        // TODO
+    /** 픽업 예약 — PAID 상태에서만 가능 */
+    public void reservePickup(int orderId) {
+
+        Order order = orderDAO.findOneOrderByOrderId(orderId);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+
+        order.reservePickup(); // 불가능한 상태면 자동으로 예외 발생
+        orderDAO.update(order);
+
+        System.out.println("✅ 픽업 예약 완료 orderId = " + orderId);
     }
 
-    /** 픽업 완료 */
+    /** 픽업 완료 — PICKUP_RESERVED 상태에서만 가능 */
     public void completePickup(int orderId) {
-        // TODO
+
+        Order order = orderDAO.findOneOrderByOrderId(orderId);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+
+        order.pickup();
+        orderDAO.update(order);
+
+        System.out.println("✅ 픽업 완료 orderId = " + orderId);
+    }
+
+    /** 주문 취소 — ORDERED, PAID 상태에서만 가능 */
+    public void cancelOrder(int orderId) {
+
+        Order order = orderDAO.findOneOrderByOrderId(orderId);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+
+        order.cancel();
+        orderDAO.update(order);
+
+        System.out.println("✅ 주문 취소 완료 orderId = " + orderId);
+    }
+
+    /** 미수령 처리 — PICKUP_RESERVED 상태에서만 가능 */
+    public void markNoShow(int orderId) {
+
+        Order order = orderDAO.findOneOrderByOrderId(orderId);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+
+        order.noShow();
+        orderDAO.update(order);
+
+        System.out.println("✅ 미수령 처리 완료 orderId = " + orderId);
     }
 }
