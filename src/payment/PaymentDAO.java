@@ -42,7 +42,7 @@ public class PaymentDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-
+	
     // 결제 성공 처리
     // Payment 상태만 SUCCESS로 변경, 주문 상태 변경은 OrderState 패턴에서 처리 예정
     public void updateStatusToSuccess(int paymentId) {
@@ -144,5 +144,25 @@ public class PaymentDAO {
         String sql = "UPDATE Payment SET paymentStatus = ? WHERE paymentId = ?";
 
         updateStatus(sql, PaymentStatus.PROCESSING, paymentId);
+    }
+    
+    // 결제 취소 처리
+    public void updateStatusToCanceled(int paymentId) {
+        String sql = "UPDATE Payment "
+                + "SET paymentStatus = ?, processedAt = ? "
+                + "WHERE paymentId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, PaymentStatus.CANCELED.name());
+            pstmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            pstmt.setInt(3, paymentId);
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
     }
 }
