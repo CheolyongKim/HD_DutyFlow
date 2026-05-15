@@ -51,7 +51,6 @@ public class OrderDAO {
 	    String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
 	    String stateName = order.getState().name();
 	    
-	    // 이 로그를 통해 DB로 전송되는 실제 값을 확인하세요!
 	    System.out.println("[Debug] DB Update 시도 - OrderId: " + order.getOrderId() 
 	                       + ", StateName: " + stateName);
 
