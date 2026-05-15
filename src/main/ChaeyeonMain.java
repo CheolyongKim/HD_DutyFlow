@@ -500,7 +500,7 @@ public class ChaeyeonMain {
         // 전제조건: DB orders 테이블 1번의 reservationId가 유효한 코드를 가져와야 함
         try {
             System.out.println("--- [CASE 1] 정상 항공권 & 한도 내 구매 ---");
-            orderService.order(1, generalReg, alcoholReg, perfumeReg);
+            orderService.order(1, generalReg, alcoholReg, perfumeReg,"4111-1111-1111-1111");
             System.out.println("=> 결과: 성공 (PAID 업데이트 완료)");
         } catch (BusinessException e) {
             System.out.println("=> 결과: 실패 (" + e.getMessage() + ")");
@@ -513,7 +513,7 @@ public class ChaeyeonMain {
         try {
             System.out.println("--- [CASE 2] 유효하지 않은 예약 코드 (형식 오류) ---");
             // 만약 999번 주문이 있고 코드가 'INVALID-123' 이라면
-            orderService.order(999, generalReg, alcoholReg, perfumeReg);
+            orderService.order(999, generalReg, alcoholReg, perfumeReg,"4111-1111-1111-1111");
         } catch (BusinessException e) {
             System.out.println("=> 결과: 예상된 실패 (" + e.getErrorCode().getMessage() + ")");
         }
@@ -534,7 +534,7 @@ public class ChaeyeonMain {
                     .build());
 
             // memberId: 1, reservationId: 1로 새 주문 생성
-            int newOrderId = orderService.placeOrder(1, 1, cart);
+            int newOrderId = orderService.placeOrder(1, 1, cart,"4111-1111-1111-1111");
             System.out.println("=> 결과: 새 주문 생성 및 결제 완료 (ID: " + newOrderId + ")");
             
         } catch (BusinessException e) {

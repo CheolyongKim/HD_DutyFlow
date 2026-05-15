@@ -9,6 +9,8 @@ import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
 import member.Member;
 import order.Order;
+import order.OrderService;
+import order.dto.OrderDTO;
 import payment.PaymentWorker;
 import product.Product;
 import shoppingCart.ShoppingCartService;
@@ -23,7 +25,8 @@ public class DutyFlowSystem {
 	// private TaxCalculator taxCalculator;
 	
 	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
-	
+    private final OrderService orderService = new OrderService();
+    
 	// 백그라운드에서 실행될 결제 Worker
 	private final PaymentWorker paymentWorker = new PaymentWorker();
 
@@ -103,4 +106,75 @@ public class DutyFlowSystem {
 	public List<ExchangeRate> getMonthlyExchangeRates() {
 	    return exchangeRateService.getMonthlyExchangeRates();
 	}
+	
+	// -------------------------------------------------------
+    // 주문(Order) 관련 서비스 위임 메서드
+    // -------------------------------------------------------
+
+    /**
+     * 장바구니 상품들을 실제 주문으로 생성하고 결제 프로세스를 시작합니다.
+     * @param reservationId 항공편 예약 ID
+     * @param cartItems 주문할 상품 리스트
+     * @param cardNumber 결제 카드 번호
+     * @return 생성된 주문 ID (orderId)
+     */
+    public int placeOrder(int reservationId, List<OrderDTO> cartItems, String cardNumber) {
+        // 현재 시스템의 로그인된 회원(member)의 ID를 사용하여 주문 요청
+        return orderService.placeOrder(this.member.getMemberId(), reservationId, cartItems, cardNumber);
+    }
+
+    /**
+     * 나의 전체 주문 내역을 조회합니다.
+     */
+    public List<OrderDTO> getMyOrders() {
+        return orderService.getOrdersByMemberId(this.member.getMemberId());
+    }
+
+    /**
+     * 특정 주문의 상세 상품 정보를 조회합니다.
+     */
+    public List<OrderDTO> getOrderDetails(int orderId) {
+        return orderService.getOrdersByOrderId(orderId);
+    }
+
+    /**
+     * 상품 수령을 위한 픽업 예약을 수행합니다. (PAID 상태여야 함)
+     */
+    public void reservePickup(int orderId) {
+        orderService.reservePickup(orderId);
+    }
+
+    /**
+     * 공항 등에서 상품 인도(수령) 완료 처리를 합니다.
+     */
+    public void completePickup(int orderId) {
+        orderService.completePickup(orderId);
+    }
+
+    /**
+     * 주문을 취소합니다. (결제 완료 전/후 상태에 따라 내부 로직 실행)
+     */
+    public void cancelOrder(int orderId) {
+        orderService.cancelOrder(orderId);
+    }
+
+    /**
+     * 고객이 지정된 시간에 상품을 수령하지 않았을 때 미수령 처리를 합니다.
+     */
+    public void markNoShow(int orderId) {
+        orderService.markNoShow(orderId);
+    }
+
+    // -------------------------------------------------------
+    // 관리자(Admin) 기능을 위한 메서드 (필요 시)
+    // -------------------------------------------------------
+
+    /**
+     * [관리자용] 시스템의 모든 주문 목록을 조회합니다.
+     */
+    public List<OrderDTO> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+	
+	
 }
