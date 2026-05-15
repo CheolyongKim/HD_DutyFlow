@@ -3,6 +3,7 @@ package pickup;
 import java.time.LocalDateTime;
 
 import airplane.Airplane;
+import common.CurrentTime;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,5 +21,6 @@ public class PickUpTicket{
 		this.member=member;
 		this.airplane=airplane;
 		this.ticketNum=ticketNum;
+		this.ticketIssueTime = CurrentTime.curTime;
 	}
 }

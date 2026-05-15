@@ -7,6 +7,7 @@ import lombok.Getter;
 import product.ProductService;
 import stock.domain.StockPurchase;
 import stock.domain.StockPurchaseStatus;
+import stock.dto.StockProductDto;
 import stock.observer.StockObserver;
 import stock.service.StockPurchaseService;
 import stock.service.StockService;
@@ -163,6 +164,15 @@ public class BrandSystem implements StockObserver {
         } catch (Exception e) {
             System.out.println("[상품 삭제 실패]");
             System.out.println(e.getMessage());
+        }
+    }
+    public List<StockProductDto> getMyBrandStocks() {
+        try {
+            return stockService.getAllStockByBrandName(brandName);
+        } catch (Exception e) {
+            System.out.println("[브랜드 전체 재고 조회 실패]");
+            e.printStackTrace();
+            return List.of();
         }
     }
     

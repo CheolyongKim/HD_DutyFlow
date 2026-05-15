@@ -1,9 +1,14 @@
 package main;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import exception.BusinessException;
+import exception.ErrorCode;
+import exception.SystemException;
+import exception.ValidationException;
 import order.Order;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
@@ -89,13 +94,110 @@ public class HeejinMain {
 
         BigDecimal tax5 = calculate(order5, generalRegulationDTO, alcoholRegulationDTO, perfumeRegulationDTO);
         System.out.println("총 세금: " + tax5);
+        
+        // =========================
+        // 예외 케이스
+        // =========================
+
+        System.out.println("\n===== 예외 케이스 1: 존재하지 않는 categoryId =====");
+        try {
+            RegulationDTO nullRegulationDTO = regulationDAO.getRegulationByCategoryId(99); 
+            new GeneralTaxStrategy(nullRegulationDTO);
+        } catch (BusinessException e) {
+            System.out.println("예외 발생: " + e.getErrorCode().getCode()
+                             + " / " + e.getErrorCode().getMessage());
+        }
+       
+        System.out.println("\n===== 예외 케이스 2: order null");
+        try {
+            calculate(null, generalRegulationDTO, alcoholRegulationDTO, perfumeRegulationDTO);
+        } catch (BusinessException e) {
+            System.out.println("예외 발생: " + e.getErrorCode().getCode()
+                             + " / " + e.getErrorCode().getMessage());
+        }
+
+        System.out.println("\n===== 예외 케이스 3: totalPrice null");
+        try {
+            Order badOrder = new Order();
+            // setTotalPrice 누락
+            badOrder.setTotalAlcohol(0);
+            badOrder.setTotalPerfume(0);
+            calculate(badOrder, generalRegulationDTO, alcoholRegulationDTO, perfumeRegulationDTO);
+        } catch (BusinessException e) {
+            System.out.println("예외 발생: " + e.getErrorCode().getCode()
+                             + " / " + e.getErrorCode().getMessage());
+        }
+       
+        System.out.println("\n===== 예외 케이스 4: 빈 strategies");
+        try {
+            new TaxCalculator(new ArrayList<>());
+        } catch (BusinessException e) {
+            System.out.println("예외 발생: " + e.getErrorCode().getCode()
+                             + " / " + e.getErrorCode().getMessage());
+        }
+
+        System.out.println("\n===== 예외 케이스 5: overageRate 0 =====");
+        try {
+            RegulationDTO badReg = new RegulationDTO();
+            badReg.setLimitCapacity(800);
+            badReg.setOverageRate(0);
+            Order badOrder = new Order();
+            badOrder.setTotalPrice(new BigDecimal("1000"));
+            badOrder.setTotalAlcohol(0);
+            badOrder.setTotalPerfume(0);
+            new GeneralTaxStrategy(badReg).calculateTax(badOrder);
+        } catch (BusinessException e) {
+            System.out.println("예외 발생: " + e.getErrorCode().getCode()
+                             + " / " + e.getErrorCode().getMessage());
+        }
+
+      //-------------------------SystemLog--------------------------
+        System.out.println("\n===== SystemLog =====");
+        // =========================
+        // 케이스 1. errorCode만 던지는 경우
+        // =========================
+        try {
+            throw new SystemException(ErrorCode.DB_CONNECTION);
+        } catch (SystemException e1) {
+            System.out.println("catch됨: " + e1.getMessage());
+        }
+        
+        
+        // =========================
+        // 케이스 2. 원인 예외까지 넘기는 경우
+        // =========================
+        try {
+            SQLException message = new SQLException("ORA-00001 실제 DB 오류");
+            throw new SystemException(ErrorCode.DB_CONNECTION, message);
+        } catch (SystemException e2) {
+            System.out.println("catch됨: " + e2.getMessage());
+        }
+
+        
+        
+        // =========================
+        // 케이스 3. 다른 예외 타입
+        // =========================
+        try {
+            throw new ValidationException(ErrorCode.ILLEGAL_STATE);
+        } catch (ValidationException e3) {
+            System.out.println("catch됨: " + e3.getMessage());
+        }
+
+        System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
     }
+    
+    
 
     // 어떤 전략 넣을지 전략 리스트 구성 
     private static BigDecimal calculate(Order order,
                                         RegulationDTO generalRegulationDTO,
                                         RegulationDTO alcoholRegulationDTO,
                                         RegulationDTO perfumeRegulationDTO) {
+    	
+    	if (order == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
 
         List<TaxStrategy> strategies = new ArrayList<>();
 
@@ -115,4 +217,6 @@ public class HeejinMain {
         TaxCalculator calculator = new TaxCalculator(strategies);
         return calculator.calculateTax(order);
     }
+    
+    
 }

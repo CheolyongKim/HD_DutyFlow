@@ -6,6 +6,7 @@ import java.util.List;
 import exception.SystemException;
 import stock.dao.StockDao;
 import stock.domain.Stock;
+import stock.dto.StockProductDto;
 import stock.observer.StockObserver;
 
 public class StockService {
@@ -116,5 +117,7 @@ public class StockService {
         stockDao.getAllStockByBrandName(brandName)
                 .forEach(System.out::println);
     }
-    
+    public List<StockProductDto> getAllStockByBrandName(String brandName) throws SystemException {
+        return stockDao.getAllStockByBrandName(brandName);
+    }
 }
