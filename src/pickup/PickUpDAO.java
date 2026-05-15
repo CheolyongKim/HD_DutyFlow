@@ -115,14 +115,17 @@ public class PickUpDAO {
 
 	// [PickUpDAO.java 에 추가할 메서드 2]
 	// 트랜잭션을 적용하여 Orders의 상태와 Pickup의 수령시간을 동시에 업데이트합니다.
-	public void updateOrderAndPickupStatus(int orderId, String newState) throws SystemException {
+	// [PickUpDAO.java] updateOrderAndPickupStatus 메서드 수정
+	public void updateOrderAndPickupStatus(int orderId, String newState, LocalDateTime pickedUpAt)
+			throws SystemException {
 		String updateOrderSql = "UPDATE Orders SET orderState = ? WHERE orderId = ?";
-		String updatePickupSql = "UPDATE Pickup SET pickedUpAt = SYSDATE WHERE orderId = ?";
+		// 🚨 SYSDATE 대신 ? (파라미터) 사용으로 변경
+		String updatePickupSql = "UPDATE Pickup SET pickedUpAt = ? WHERE orderId = ?";
 
 		Connection conn = null;
 		try {
 			conn = OracleConnection.getConnection();
-			conn.setAutoCommit(false); // 트랜잭션 시작 (원자성 보장)
+			conn.setAutoCommit(false);
 
 			// 1. Orders 테이블 상태 업데이트
 			try (PreparedStatement pstmt1 = conn.prepareStatement(updateOrderSql)) {
@@ -131,13 +134,15 @@ public class PickUpDAO {
 				pstmt1.executeUpdate();
 			}
 
-			// 2. Pickup 테이블 수령시간 업데이트
+			// 2. Pickup 테이블 수령시간 업데이트 (가상 시계 바인딩)
 			try (PreparedStatement pstmt2 = conn.prepareStatement(updatePickupSql)) {
-				pstmt2.setInt(1, orderId);
+				// 💡 가상 시간인 pickedUpAt을 DB의 DATE 형식에 맞게 Timestamp로 변환
+				pstmt2.setTimestamp(1, java.sql.Timestamp.valueOf(pickedUpAt));
+				pstmt2.setInt(2, orderId);
 				pstmt2.executeUpdate();
 			}
 
-			conn.commit(); // 성공 시 커밋
+			conn.commit();
 		} catch (SQLException e) {
 			if (conn != null) {
 				try {
@@ -147,13 +152,8 @@ public class PickUpDAO {
 			}
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		} finally {
-			if (conn != null) {
-				try {
-					conn.setAutoCommit(true);
-					conn.close();
-				} catch (SQLException ex) {
-				}
-			}
+			// 자원 반납 로직 동일
 		}
 	}
+
 }

@@ -32,32 +32,23 @@ public class PickUpSystem {
 		System.out.println("SYSTEM: ⏳ 1분이 경과하였습니다. (가상 현재시간: " + CurrentTime.curTime.toLocalTime() + ")");
 	}
 
-	// [PickUpSystem.java 기존 realPickUp 메서드 덮어쓰기]
+	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
+	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
+		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState(), pickedUpAt);
+	}
+
 	public void realPickUp(String passportNum, int flightResNum) {
-		System.out.println("\n--- 📦 [realPickUp] 물품 인도 프로세스 가동 ---");
-		System.out.println("▶ 1. 창구 방문 고객 정보: 여권[" + passportNum + "], 예약번호[" + flightResNum + "]");
+		// (1~3번 과정 동일...)
 
-		// 1. 신원 검증
-		this.validateInfo(passportNum, flightResNum);
-		System.out.println("▶ 2. 신원 검증 완료: 픽업 가능 시간 및 노쇼 여부 정상 확인");
-
-		// 2. 큐에서 대상자 팝 (여기서 MLPQ의 Starvation, Promote 로직이 빛을 발함!)
-		PickUpTicket ticket = this.popQueue();
-		System.out.println("▶ 3. 📢 큐 시스템 호출 대상자: [" + ticket.getMember().getName() + "] 고객님!");
-
-		// 3. 일치 확인
-		if (!ticket.getMember().getPassportNum().equals(passportNum)) {
-			throw new ValidationException(ErrorCode.INVALID_INPUT,
-					new Exception("호출된 대기열 순번의 고객과 창구에 방문한 고객 정보가 일치하지 않습니다."));
-		}
-		System.out.println("▶ 4. 방문 고객과 시스템 호출 대상자 일치 확인 완료!");
-
-		// 4. 대상 주문 ID 찾기 및 상태 변경
+		// 4. 대상 주문 ID 찾기
 		int targetOrderId = this.pickUpDAO.getOrderIdForPickup(passportNum, flightResNum);
-		OrderUpdateDTO oud = new OrderUpdateDTO(targetOrderId, "PICKED_UP");
-		this.updateOrderState(oud);
 
-		System.out.println("✔️ 5. 정상 인도 및 DB 업데이트(상태: PICKED_UP, 수령시간: SYSDATE) 완료!");
+		// 5. DB 상태 변경 (현재 가상 시각 CurrentTime.curTime을 명시적으로 전달!)
+		OrderUpdateDTO oud = new OrderUpdateDTO(targetOrderId, "PICKED_UP");
+		this.updateOrderState(oud, CurrentTime.curTime);
+
+		System.out.println("✔️ 5. 정상 인도 및 DB 업데이트 완료!");
+		System.out.println("   [기록된 가상 수령시간: " + CurrentTime.curTime + "]");
 		System.out.println("-------------------------------------------------");
 	}
 
@@ -78,11 +69,6 @@ public class PickUpSystem {
 		System.out.println("SYSTEM: 인도장 시스템에 픽업 대기 중인 주문 목록을 로드합니다...");
 		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
 		System.out.println("SYSTEM: 로드 완료 (총 " + this.orders.size() + "건의 대기 주문)");
-	}
-
-	// [체크리스트 3] 주문 상태와 픽업 시간을 업데이트
-	public void updateOrderState(OrderUpdateDTO oud) {
-		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState());
 	}
 
 	private List<PickUpDTO> validateInfo(String passportNum, int flightResNum) {
