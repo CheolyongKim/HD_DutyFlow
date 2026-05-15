@@ -17,25 +17,26 @@ import order.dto.OrderUpdateDTO;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 
+public class PickUpSystem implements FlightObserver {
 
-public class PickUpSystem implements FlightObserver{
-	
-	public MLPQ pq; 
+	public MLPQ pq;
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
 	private PickUpTicket currentTicket;
+	private LocalDateTime callTime; // 💡 고객을 호출한 시각 기록
+	private static final int CALL_TIMEOUT_LIMIT = 10; // 기본 타임아웃 (10분)
 	private boolean isCounterOpen = false; // 창구 오픈 상태
 
 	public PickUpSystem() {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 	}
+
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
 		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState(), pickedUpAt);
 	}
-	
 
 	// ---------------------------------------------------------
 	// [호출] 다음 대기자를 부르고 시스템에 기억시킴
@@ -54,12 +55,13 @@ public class PickUpSystem implements FlightObserver{
 
 	// 💡 3. 자동 호출 감지기 (오픈되어 있을 때만 부름!)
 	private void tryCallNextCustomer() {
-		if (this.isCounterOpen && this.currentTicket == null && this.pq.size() > 0) {
-			this.currentTicket = this.pq.pop();
-			System.out
-					.println("\n📢 [시스템 자동 호출] 띵동~ [" + this.currentTicket.getMember().getName() + "] 고객님, 창구로 와주세요!");
-		}
-	}
+        if (this.isCounterOpen && this.currentTicket == null && this.pq.size() > 0) {
+            // 큐에서 꺼내어 현재 호출자로 설정
+            this.currentTicket = this.pq.pop();
+            this.callTime = CurrentTime.curTime; // 💡 호출 시점 시각 저장
+            System.out.println("\n📢 [시스템 자동 호출] 띵동~ [" + this.currentTicket.getMember().getName() + "] 고객님, 창구로 와주세요!");
+        }
+    }
 
 	// 실제 물품 인도 프로세스
 	public void processPickUp(String passportNum, int flightResNum, int processingTime) {
@@ -72,6 +74,7 @@ public class PickUpSystem implements FlightObserver{
 			throw new ValidationException(ErrorCode.INVALID_INPUT,
 					new Exception("호출된 대상[" + currentTicket.getMember().getName() + "]과 방문 고객 정보가 일치하지 않습니다."));
 		}
+		this.callTime = null;
 		System.out.println("▶ 2. 본인 확인 완료! [" + currentTicket.getMember().getName() + "] 고객님 물품 인도를 시작합니다.");
 
 		this.validateInfo(passportNum, flightResNum);
@@ -91,15 +94,60 @@ public class PickUpSystem implements FlightObserver{
 		// 🚨 업무 종료 -> 옵저버 해제 -> 창구 비움 -> 다음 사람 자동 호출!
 		this.currentTicket.getAirplane().removeObserver(this);
 		this.currentTicket = null;
-		
+
 		this.tryCallNextCustomer();
 	}
 
-	// 시간 흐름 (시간이 흘러서 대기자가 생겼는데 창구가 비어있으면 호출됨!)
 	public void passTime() {
 		this.pq.passTime();
 		System.out.println("   (⏳ " + CurrentTime.curTime.toLocalTime() + " 경과...)");
-		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
+
+		// 🚨 실시간 호출 타임아웃 & 골든타임 감시
+		checkCallingTimeout();
+
+		this.tryCallNextCustomer();
+	}
+
+	// 💡 [핵심] 호출 타임아웃 검사 및 동적 조절
+	private void checkCallingTimeout() {
+		if (this.currentTicket != null && this.callTime != null) {
+			long waitedMinutes = java.time.Duration.between(this.callTime, CurrentTime.curTime).toMinutes();
+
+			// 기본 타임아웃 10분 설정
+			int dynamicTimeout = CALL_TIMEOUT_LIMIT;
+
+			// 💡 1. 큐의 다음 대기자를 peek() 하여 출국 임박 여부 검사
+			if (this.pq.size() > 0) {
+				PickUpTicket nextTicket = this.pq.peek();
+				long minsLeft = java.time.Duration
+						.between(CurrentTime.curTime, nextTicket.getAirplane().getDepartureAt()).toMinutes();
+
+				// 💡 2. 다음 대기자의 출국 시간이 15분(10 * 1.5) 미만으로 남았다면!
+				if (minsLeft < (CALL_TIMEOUT_LIMIT * 1.5)) {
+					// 타임아웃을 5분(10 * 0.5)으로 반토막 냅니다.
+					dynamicTimeout = (int) (CALL_TIMEOUT_LIMIT * 0.5);
+				}
+			}
+
+			// 💡 3. 계산된 타임아웃과 현재 대기 시간 비교
+			if (waitedMinutes >= dynamicTimeout) {
+				System.out.println("\n⏰ [호출 타임아웃] " + currentTicket.getMember().getName() + " 고객님 미방문으로 호출을 취소합니다.");
+
+				if (dynamicTimeout < CALL_TIMEOUT_LIMIT) {
+					System.out.println("   (🚨 사유: 다음 대기자의 출국 임박으로 인한 골든타임 보호 조치 발동!)");
+				}
+
+				// 관찰자 해제 및 큐에서 완전 삭제
+				this.currentTicket.getAirplane().removeObserver(this);
+				this.pq.removeTicket(this.currentTicket);
+
+				// 현재 호출 상태 비움 -> 즉시 다음 사람 자동 호출됨
+				this.currentTicket = null;
+				this.callTime = null;
+
+				System.out.println("   (💡 환불되지 않으며, 해당 고객은 나중에 다시 번호표를 뽑아야 합니다.)");
+			}
+		}
 	}
 
 	// 큐에 번호표 뽑기 (뽑았는데 창구가 비어있으면 즉시 호출됨!)
@@ -108,8 +156,9 @@ public class PickUpSystem implements FlightObserver{
 		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
 		Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
 		airplane.registerObserver(this);
-		this.pq.enqueue(airplane , new Member(aqdto.getMemberId(),
-				null, null, aqdto.getName(), null, null, passportNum, null, false, aqdto.getGrade(), null));
+		// TODO: 피드백: DTO로 하세요
+		this.pq.enqueue(airplane, new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null, passportNum,
+				null, false, aqdto.getGrade(), null));
 		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
 	}
 
@@ -143,99 +192,86 @@ public class PickUpSystem implements FlightObserver{
 	public PickUpTicket popQueue() {
 		return this.pq.pop(); // 내부에서 QueueException 발생 가능
 	}
-	
-	//Observer 콜백 (이미 갱신된 departureAt Airplane 이 들어옴)
+
+	// Observer 콜백 (이미 갱신된 departureAt Airplane 이 들어옴)
 	@Override
 	public void onFlightDelayReceived(Airplane airplane) {
-		System.out.println("[PickUpSystem] 지연 이벤트 수신" 
-							+ " | flightCode " + airplane.getFlightCode() 
-							+ " | 지연 : " +  airplane.getDepartureAt());
-		
+		System.out.println("[PickUpSystem] 지연 이벤트 수신" + " | flightCode " + airplane.getFlightCode() + " | 지연 : "
+				+ airplane.getDepartureAt());
+
 		rescheduledPq();
 	}
-	
-	// PQ 재정렬 (전부 꺼내서 다시 enqueue 바뀐 값 기준으로 재정렬) 
+
+	// PQ 재정렬 (전부 꺼내서 다시 enqueue 바뀐 값 기준으로 재정렬)
 	public void rescheduledPq() {
-		
+
 		if (pq.size() == 0) {
-	        System.out.println("[PickUpSystem] 재정렬할 대기열 없음");
-	        return;
-	    }
+			System.out.println("[PickUpSystem] 재정렬할 대기열 없음");
+			return;
+		}
 
-	    List<PickUpTicket> allTickets = new ArrayList<>();
-	    allTickets.addAll(pq.getAllFromAq());
-	    allTickets.addAll(pq.getAllFromBq());
+		List<PickUpTicket> allTickets = new ArrayList<>();
+		allTickets.addAll(pq.getAllFromAq());
+		allTickets.addAll(pq.getAllFromBq());
 
-	    pq.clearAll();
+		pq.clearAll();
 
-	    // enqueue 내부에서 출국 임박 여부 재판단
-	    for (PickUpTicket ticket : allTickets) {
-	        pq.enqueue(ticket.getAirplane(), ticket.getMember());
-	    }
+		// enqueue 내부에서 출국 임박 여부 재판단
+		for (PickUpTicket ticket : allTickets) {
+			pq.enqueue(ticket.getAirplane(), ticket.getMember());
+		}
 
-	    System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
-	    
-	    printCurrentQueue();
+		System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
+
+		printCurrentQueue();
 	}
 
 	public void printCurrentQueue() {
 
-	    if (pq.size() == 0) {
-	        System.out.println("[PickUpSystem] 대기열 없음");
-	        return;
-	    }
+		if (pq.size() == 0) {
+			System.out.println("[PickUpSystem] 대기열 없음");
+			return;
+		}
 
-	    System.out.println("===== aq (긴급 큐) =====");
+		System.out.println("===== aq (긴급 큐) =====");
 
-	    int rank = 1;
-	    for (PickUpTicket ticket : pq.getAllFromAq()) {
+		int rank = 1;
+		for (PickUpTicket ticket : pq.getAllFromAq()) {
 
-	        System.out.println(
-	            "[" + rank++ + "] "
-	            + ticket.getMember()
-	            + " | "
-	            + ticket.getAirplane().getFlightCode()
-	            + " | 출국: "
-	            + ticket.getAirplane().getDepartureAt()
-	        );
-	    }
+			System.out.println("[" + rank++ + "] " + ticket.getMember() + " | " + ticket.getAirplane().getFlightCode()
+					+ " | 출국: " + ticket.getAirplane().getDepartureAt());
+		}
 
-	    System.out.println("===== bq (일반 큐) =====");
+		System.out.println("===== bq (일반 큐) =====");
 
-	    rank = 1;
+		rank = 1;
 
-	    for (PickUpTicket ticket : pq.getAllFromBq()) {
+		for (PickUpTicket ticket : pq.getAllFromBq()) {
 
-	        System.out.println(
-	            "[" + rank++ + "] "
-	            + ticket.getMember()
-	            + " | "
-	            + ticket.getAirplane().getFlightCode()
-	            + " | 출국: "
-	            + ticket.getAirplane().getDepartureAt()
-	        );
-	    }
+			System.out.println("[" + rank++ + "] " + ticket.getMember() + " | " + ticket.getAirplane().getFlightCode()
+					+ " | 출국: " + ticket.getAirplane().getDepartureAt());
+		}
 	}
-	
+
 	// flightCode로 PQ안 Airplane 찾아서 지연 처리하기 위함
 	public void delayFlight(String flightCode, LocalDateTime newDepartureAt) {
-		
+
 		// aq
 		for (PickUpTicket ticket : pq.getAllFromAq()) {
-	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
-	            ticket.getAirplane().setDepartureAt(newDepartureAt);
-	            return;
-	        }
-	    }
-		
+			if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+				ticket.getAirplane().setDepartureAt(newDepartureAt);
+				return;
+			}
+		}
+
 		// bq
 		for (PickUpTicket ticket : pq.getAllFromBq()) {
-	        if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
-	            ticket.getAirplane().setDepartureAt(newDepartureAt);
-	            return;
-	        }
-	    }
-		
+			if (ticket.getAirplane().getFlightCode().equals(flightCode)) {
+				ticket.getAirplane().setDepartureAt(newDepartureAt);
+				return;
+			}
+		}
+
 		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
 }

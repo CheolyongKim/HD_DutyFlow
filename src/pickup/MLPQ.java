@@ -27,9 +27,9 @@ public class MLPQ {
 		this.lastNum = 1;
 		this.promotionThresholdMinutes = 30;
 		this.maxWaitTimeMinutes = 40;
-		//enqueue에서 NPE 터짐 방
-		this.aq = new PriorityQueue<>(); 
-	    this.bq = new PriorityQueue<>(); 
+		// enqueue에서 NPE 터짐 방
+		this.aq = new PriorityQueue<>();
+		this.bq = new PriorityQueue<>();
 	}
 
 	// 1. 시간 경과 및 승격(Promote)만 처리하는 메서드
@@ -55,7 +55,8 @@ public class MLPQ {
 	}
 
 	public void enqueue(Airplane airplane, Member member) {
-		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()/60 < this.promotionThresholdMinutes) {
+		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()
+				/ 60 < this.promotionThresholdMinutes) {
 			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
 		} else {
 			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
@@ -107,6 +108,28 @@ public class MLPQ {
 		return null;
 	}
 
+	/**
+	 * 대기열에서 특정 티켓을 찾아 삭제합니다. (호출 후 미방문 고객 처리나 강제 제외 시 사용)
+	 */
+	public boolean removeTicket(PickUpTicket ticket) {
+		if (ticket == null)
+			return false;
+
+		boolean removed = false;
+		// 긴급 큐에서 찾아 삭제
+		removed = this.aq.remove(ticket);
+
+		// 긴급 큐에 없었다면 일반 큐에서 찾아 삭제
+		if (!removed) {
+			removed = this.bq.remove(ticket);
+		}
+
+		if (removed) {
+			System.out.println("[MLPQ] 대기열에서 티켓 삭제 완료: " + ticket.getMember().getName());
+		}
+		return removed;
+	}
+
 	public void makeMLPQ(SortStrategy aqStrategy, SortStrategy bqStrategy) {
 		this.aq = new PriorityQueue<PickUpTicket>(aqStrategy.getComparator());
 		this.bq = new PriorityQueue<PickUpTicket>(bqStrategy.getComparator());
@@ -115,19 +138,19 @@ public class MLPQ {
 	public int size() {
 		return this.aq.size() + this.bq.size();
 	}
-	
+
 	// aq 복사본
 	public List<PickUpTicket> getAllFromAq() {
-	    return new ArrayList<>(this.aq);
+		return new ArrayList<>(this.aq);
 	}
 
 	// bq 복사본
 	public List<PickUpTicket> getAllFromBq() {
-	    return new ArrayList<>(this.bq);
+		return new ArrayList<>(this.bq);
 	}
 
 	public void clearAll() {
-	    this.aq.clear();
-	    this.bq.clear();
+		this.aq.clear();
+		this.bq.clear();
 	}
 }
