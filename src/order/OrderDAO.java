@@ -33,52 +33,39 @@ public class OrderDAO {
 	 */
 	private OrderDTO mapOrder(ResultSet rs) throws SQLException {
 
-		return OrderDTO.builder()
-		        .orderId(rs.getInt("orderId"))
-		        .memberId(rs.getInt("memberId"))
-		        .reservationId(rs.getInt("reservationId"))
-		        .exchangeDate(
-		                rs.getDate("exchangeDate") != null
-		                        ? rs.getDate("exchangeDate").toLocalDate()
-		                        : null)
-		        .orderedAt(
-		                rs.getTimestamp("orderedAt") != null
-		                        ? rs.getTimestamp("orderedAt").toLocalDateTime()
-		                        : null)
-		        .orderState(rs.getString("orderState"))
-		        .totalAmount(rs.getBigDecimal("totalAmount"))
-		        .productId(rs.getInt("productId"))
-		        .quantity(rs.getInt("quantity"))
-		        .discountPrice(rs.getBigDecimal("discountPrice"))
-		        .dollarPrice(rs.getBigDecimal("dollarPrice"))
-		        .productName(rs.getString("productName"))
-		        .categoryId(rs.getInt("categoryId"))
-		        .categoryName(rs.getString("categoryName"))
-		        .capacity(rs.getInt("capacity"))
-		        .build();
+		return OrderDTO.builder().orderId(rs.getInt("orderId")).memberId(rs.getInt("memberId"))
+				.reservationId(rs.getInt("reservationId"))
+				.exchangeDate(rs.getDate("exchangeDate") != null ? rs.getDate("exchangeDate").toLocalDate() : null)
+				.orderedAt(rs.getTimestamp("orderedAt") != null ? rs.getTimestamp("orderedAt").toLocalDateTime() : null)
+				.orderState(rs.getString("orderState")).totalAmount(rs.getBigDecimal("totalAmount"))
+				.productId(rs.getInt("productId")).quantity(rs.getInt("quantity"))
+				.discountPrice(rs.getBigDecimal("discountPrice")).dollarPrice(rs.getBigDecimal("dollarPrice"))
+				.productName(rs.getString("productName")).categoryId(rs.getInt("categoryId"))
+				.categoryName(rs.getString("categoryName")).capacity(rs.getInt("capacity")).build();
 	}
 
 	/**
 	 * 주문 상태 및 최종 결제 금액 업데이트
 	 */
 	public void update(Order order) {
-
 	    String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
+	    String stateName = order.getState().name();
+	    
+	    // 이 로그를 통해 DB로 전송되는 실제 값을 확인하세요!
+	    System.out.println("[Debug] DB Update 시도 - OrderId: " + order.getOrderId() 
+	                       + ", StateName: " + stateName);
 
 	    try (Connection conn = OracleConnection.getConnection();
 	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-	        pstmt.setString(1, order.getState().name()); // "PAID", "CANCELED" 등 직접 반환
+	        pstmt.setString(1, stateName);
 	        pstmt.setBigDecimal(2, order.getTotalPrice());
 	        pstmt.setInt(3, order.getOrderId());
-
 	        pstmt.executeUpdate();
-
 	    } catch (SQLException e) {
 	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
 	    }
 	}
-	
+
 	/**
 	 * 주문번호 + 상품 ID로 단건 조회
 	 */
@@ -138,18 +125,18 @@ public class OrderDAO {
 	 */
 	public Order findOneOrderByOrderId(int orderId) {
 
-		String sql = "SELECT orderId, orderState, totalAmount " + "FROM orders " + "WHERE orderId = ?";
+		String sql = "SELECT orderId, memberId, orderState, totalAmount FROM orders WHERE orderId = ?";
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 			pstmt.setInt(1, orderId);
-			
+
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if (rs.next()) {
-					int id = rs.getInt("orderId");
 					BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
 					String stateStr = rs.getString("orderState");
 					OrderState currentState = convertStringToState(stateStr);
-					Order order = new Order(id, currentState);
+					Order order = new Order(rs.getInt("orderId"), currentState);
 					order.setTotalPrice(totalAmount);
+					order.setMemberId(rs.getInt("memberId"));
 					return order;
 				}
 			}
@@ -208,37 +195,38 @@ public class OrderDAO {
 	 */
 	private OrderState convertStringToState(String stateStr) {
 
-	    if (stateStr == null) return new PendingState();
+		if (stateStr == null)
+			return new PendingState();
 
-	    OrderStatus status = OrderStatus.valueOf(stateStr.toUpperCase());
-	    
-	    switch (status) {
-	        case ORDERED:
-	            return new PendingState();
+		OrderStatus status = OrderStatus.valueOf(stateStr.toUpperCase());
 
-	        case VERIFIED:
-	            return new VerifiedState();
+		switch (status) {
+		case ORDERED:
+			return new PendingState();
 
-	        case PAID:
-	            return new PaidState();
+		case VERIFIED:
+			return new VerifiedState();
 
-	        case PICKUP_RESERVED:
-	            return new PickupReservedState();
+		case PAID:
+			return new PaidState();
 
-	        case PICKED_UP:
-	            return new PickedUpState();
+		case PICKUP_RESERVED:
+			return new PickupReservedState();
 
-	        case CANCELED:
-	            return new CanceledState();
+		case PICKED_UP:
+			return new PickedUpState();
 
-	        case NO_SHOW:
-	            return new NoShowState();
+		case CANCELED:
+			return new CanceledState();
 
-	        default:
-	            return new PendingState();
-	    }
+		case NO_SHOW:
+			return new NoShowState();
+
+		default:
+			return new PendingState();
+		}
 	}
-	
+
 	public int insertOrder(Order order, List<OrderDTO> items) {
 
 		String orderSql = "INSERT INTO Orders "
@@ -320,4 +308,3 @@ public class OrderDAO {
 		}
 	}
 }
-	

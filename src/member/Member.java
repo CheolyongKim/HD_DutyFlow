@@ -5,9 +5,11 @@ import java.time.LocalDate;
 import common.Grade;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import shoppingCart.ShoppingCart;
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class Member {
 	private int memberId;
@@ -27,7 +29,4 @@ public class Member {
 		return cart;
 	}
 
-	public Member() {
-		// TODO Auto-generated constructor stub
-	}
 }

@@ -1,12 +1,15 @@
 package order;
 
+import member.Member;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import common.Grade;
 import exception.BusinessException;
 import exception.ErrorCode;
+import member.MemberDAO;
 import order.dto.OrderDTO;
 import order.state.PendingState;
 import regulation.RegulationDAO;
@@ -24,8 +27,8 @@ public class OrderService {
 
 	// CategoryId 상수 (DB 기준)
 	private static final int CATEGORY_GENERAL = 1;
-	private static final int CATEGORY_ALCOHOL = 22;
-	private static final int CATEGORY_PERFUME = 24;
+	private static final int CATEGORY_ALCOHOL = 2;
+	private static final int CATEGORY_PERFUME = 4;
 
 	// -------------------------------------------------------
 	// 조회
@@ -66,7 +69,7 @@ public class OrderService {
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
-	public void placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems) {
+	public int placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems) {
 
 		if (cartItems == null || cartItems.isEmpty()) {
 			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
@@ -94,7 +97,7 @@ public class OrderService {
 
 			if (!answer.equalsIgnoreCase("Y")) {
 				System.out.println("주문이 취소되었습니다.");
-				return;
+				return -1;
 			}
 		}
 
@@ -113,10 +116,10 @@ public class OrderService {
 		}).reduce(BigDecimal.ZERO, BigDecimal::add);
 
 		order.setTotalPrice(totalBeforeTax); // 상품 할인 적용된 합계 세팅
-
+		order.setMemberId(memberId);
+		
 		// 5. 주문 저장
 		int orderId = orderDAO.insertOrder(order, cartItems);
-
 
 		// 6. 결제 프로세스 (조회한 규정 재사용)
 		try {
@@ -126,6 +129,8 @@ public class OrderService {
 			System.err.println("주문 생성 후 결제 단계 오류: " + e.getMessage());
 			throw e;
 		}
+		
+		return orderId;
 	}
 
 	/**
@@ -143,6 +148,22 @@ public class OrderService {
 			throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
+		// 멤버십 할인 반영
+		MemberDAO memberDAO = new MemberDAO();
+		Member member = memberDAO.findById(order.getMemberId());
+		if (member == null) {
+		    throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND); // 멤버가 없을 때의 예외 처리
+		}
+		Grade grade = member.getGrade();
+		
+		// 멤버십 할인액 계산: (현재가 * 할인율 / 100)
+		BigDecimal membershipDiscount = order.getTotalPrice().multiply(grade.getDiscountRate())
+				.divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP);
+
+		// 주문 객체에 즉시 반영 (할인액 기록 및 총액 차감)
+		order.setDiscountPrice(membershipDiscount);
+		order.setTotalPrice(order.getTotalPrice().subtract(membershipDiscount));
+
 		// 2. 상태 검증
 		if (!(order.getState() instanceof PendingState)) {
 			throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
@@ -151,7 +172,7 @@ public class OrderService {
 		// 3. 세금 계산 (전략 패턴)
 		BigDecimal totalTax = calculateTax(orderItems, generalReg, alcoholReg, perfumeReg);
 		BigDecimal finalAmount = order.getTotalPrice().add(totalTax);
-		
+
 		// 4. 검증 완료 상태 전환
 		order.verify();
 
@@ -269,6 +290,9 @@ public class OrderService {
 		for (OrderDTO item : items) {
 			int categoryId = item.getCategoryId();
 			int totalCapacity = item.getCapacity() * item.getQuantity();
+			
+			System.out.println("상품명: " + item.getProductName() + ", 용량: " + item.getCapacity());
+			
 			BigDecimal itemPrice = item.getDollarPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
 			totalPrice = totalPrice.add(itemPrice);
