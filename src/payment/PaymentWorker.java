@@ -23,10 +23,12 @@ public class PaymentWorker {
                 // 카드번호 검증은 requestPayment 단계에서 이미 완료됨
                 // Worker에서는 실제 결제 승인 처리만 Mock으로 성공 처리
                 paymentDAO.updateStatusToSuccess(paymentId);
+                System.out.println("결제 성공: paymentId = " + paymentId);
 
                 // 추후 OrderStatus 업데이트 메서드 추가
             } catch (Exception e) {
                 paymentDAO.updateStatusToFailed(paymentId, "PAYMENT_PROCESSING_ERROR");
+                System.out.println("결제 실패: paymentId = " + paymentId);
             }
         }
     }
