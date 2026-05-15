@@ -99,4 +99,25 @@ public class PaymentService {
 
         return sum % 10 == 0;
     }
+    
+ // 결제 취소
+    public void cancelPayment(int paymentId) {
+        Payment payment = paymentDAO.findById(paymentId);
+
+        if (payment == null) {
+            throw new ValidationException(ErrorCode.PAYMENT_NOT_FOUND);
+        }
+
+        if (payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
+            throw new ValidationException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        try {
+            paymentDAO.updateStatusToCanceled(paymentId);
+            // OrderStatus 변경 연동 예정
+
+        } catch (Exception e) {
+            throw new SystemException(ErrorCode.PAYMENT_CANCEL_FAILED, e);
+        }
+    }
 }

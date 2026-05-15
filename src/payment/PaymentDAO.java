@@ -145,4 +145,24 @@ public class PaymentDAO {
 
         updateStatus(sql, PaymentStatus.PROCESSING, paymentId);
     }
+    
+    // 결제 취소 처리
+    public void updateStatusToCanceled(int paymentId) {
+        String sql = "UPDATE Payment "
+                + "SET paymentStatus = ?, processedAt = ? "
+                + "WHERE paymentId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, PaymentStatus.CANCELED.name());
+            pstmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            pstmt.setInt(3, paymentId);
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }

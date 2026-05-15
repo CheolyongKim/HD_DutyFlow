@@ -46,6 +46,9 @@ public enum ErrorCode {
 	INVALID_CARD_NUMBER("INVALID_CARD_NUMBER", "카드번호 형식이 올바르지 않습니다."),
 	EMPTY_PAYMENT_QUEUE("EMPTY_PAYMENT_QUEUE", "결제 대기열이 비어 있습니다."),
 	PAYMENT_REQUEST_FAILED("PAYMENT_REQUEST_FAILED", "결제 요청 처리 중 오류가 발생했습니다."),
+	INVALID_PAYMENT_STATUS("INVALID_PAYMENT_STATUS", "결제 상태가 올바르지 않습니다."),
+	PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", "결제 정보를 찾을 수 없습니다."),
+	PAYMENT_CANCEL_FAILED("PAYMENT_CANCEL_FAILED", "결제 취소 처리 중 오류가 발생했습니다."),
   
 	// 멤버십
 	MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
