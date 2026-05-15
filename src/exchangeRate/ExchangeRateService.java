@@ -1,6 +1,7 @@
 package exchangeRate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -18,6 +19,8 @@ public class ExchangeRateService {
     private final ExchangeRateDAO exchangeRateDAO = new ExchangeRateDAO();
 
     private final ProductDAO productDAO = new ProductDAO();
+    
+    private final ExchangeRateApiClient exchangeRateApiClient = new ExchangeRateApiClient();
 
     // 프로그램 시작 시 DB의 최신 환율을 Provider에 올림
     public void initializeExchangeRate() {
@@ -54,7 +57,8 @@ public class ExchangeRateService {
                 latestRate = DEFAULT_EXCHANGE_RATE;
             }
 
-            BigDecimal newExchangeRate = latestRate.add(BigDecimal.ONE);
+            BigDecimal newExchangeRate = exchangeRateApiClient.fetchUsdKrwRate();
+            newExchangeRate = newExchangeRate.setScale(4,RoundingMode.HALF_UP);
 
             // 기존 최신 환율은 flag값을 N으로 변경
             exchangeRateDAO.updateLatestToN(conn);
@@ -69,6 +73,10 @@ public class ExchangeRateService {
 
             ExchangeRateProvider.getInstance()
                     .update(newExchangeRate, LocalDate.now());
+
+        } catch (SystemException e) {
+            rollback(conn);
+            throw e;
 
         } catch (Exception e) {
             rollback(conn); // 오류 발생 시 롤백
