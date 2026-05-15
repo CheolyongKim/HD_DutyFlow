@@ -42,7 +42,7 @@ public class PaymentDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-
+	
     // 결제 성공 처리
     // Payment 상태만 SUCCESS로 변경, 주문 상태 변경은 OrderState 패턴에서 처리 예정
     public void updateStatusToSuccess(int paymentId) {

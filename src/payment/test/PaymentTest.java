@@ -83,8 +83,12 @@ public class PaymentTest {
         paymentRequests.add(new PaymentDTO(13, new BigDecimal("50000"), " "));
 
         System.out.println("===== 결제 요청 접수 시작 =====");
+        System.out.println("요청 개수 = " + paymentRequests.size());
+        System.out.println();
 
         for (PaymentDTO request : paymentRequests) {
+        	
+        	System.out.println("[TEST] requestPayment 호출 전 | orderId = " + request.getOrderId());
             try {
                 int paymentId = paymentService.requestPayment(request);
 
@@ -93,6 +97,7 @@ public class PaymentTest {
                         + " | paymentId = "
                         + paymentId
                         + " | status = PENDING");
+
             } catch (Exception e) {
                 System.out.println("결제 요청 접수 실패 | orderId = "
                         + request.getOrderId()
@@ -103,10 +108,22 @@ public class PaymentTest {
             System.out.println();
         }
 
-        System.out.println("===== 결제 Queue 처리 시작 =====");
+        System.out.println("===== 결제 Worker 실행 =====");
 
-        paymentWorker.processAll();
+        Thread paymentWorkerThread = new Thread(paymentWorker);
+        paymentWorkerThread.start();
 
-        System.out.println("===== 결제 Queue 처리 종료 =====");
+        // Worker가 Queue를 처리할 시간 확보
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 테스트 종료 시 Worker 종료
+        paymentWorker.stop();
+        paymentWorkerThread.interrupt();
+
+        System.out.println("===== 결제 테스트 종료 =====");
     }
 }
