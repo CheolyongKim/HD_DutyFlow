@@ -177,9 +177,157 @@ public class ProductDAO {
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
+    }    
+    // BrandID 구하기
+    public int findBrandIdByBrandName(String brandName) throws SystemException {
+
+        String sql =
+                "SELECT brandId " +
+                "FROM Brand " +
+                "WHERE brandName = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, brandName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("brandId");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        throw new IllegalArgumentException("존재하지 않는 브랜드입니다. brandName = " + brandName);
     }
-  
-  	// 상품 원화 가격 업데이트 
+    
+    // CategoryID 구하기
+    public int findCategoryIdByCategoryName(String categoryName) throws SystemException {
+
+        String sql =
+                "SELECT categoryId " +
+                "FROM Category " +
+                "WHERE categoryName = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, categoryName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("categoryId");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        throw new IllegalArgumentException("존재하지 않는 카테고리입니다. categoryName = " + categoryName);
+    }
+    
+    // 상품명 중복 확인
+    public boolean existsByBrandNameAndProductName(String brandName, String productName) throws SystemException {
+
+        String sql =
+                "SELECT COUNT(*) AS count " +
+                "FROM Product p " +
+                "JOIN Brand b ON p.brandId = b.brandId " +
+                "WHERE b.brandName = ? " +
+                "  AND p.productName = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, brandName);
+            pstmt.setString(2, productName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count") > 0;
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        return false;
+    }
+    
+    // 상품 등록
+    public int insertProduct(
+            int categoryId,
+            int brandId,
+            String productName,
+            int capacity,
+            BigDecimal priceUsd,
+            BigDecimal priceKrw,
+            int thresholdValue
+    ) throws SystemException {
+
+        String sql =
+                "INSERT INTO Product ( " +
+                "    categoryId, " +
+                "    brandId, " +
+                "    productName, " +
+                "    capacity, " +
+                "    priceUsd, " +
+                "    priceKrw, " +
+                "    thresholdValue " +
+                ") VALUES ( " +
+                "    ?, ?, ?, ?, ?, ?, ? " +
+                ")";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, categoryId);
+            pstmt.setInt(2, brandId);
+            pstmt.setString(3, productName);
+            pstmt.setInt(4, capacity);
+            pstmt.setBigDecimal(5, priceUsd);
+            pstmt.setBigDecimal(6, priceKrw);
+            pstmt.setInt(7, thresholdValue);
+
+            return pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    //상품 삭제
+    public int deleteProductByBrandNameAndProductName(String brandName, String productName) throws SystemException {
+
+        String sql =
+                "DELETE FROM Product " +
+                "WHERE productId = ( " +
+                "    SELECT p.productId " +
+                "    FROM Product p " +
+                "    JOIN Brand b ON p.brandId = b.brandId " +
+                "    WHERE b.brandName = ? " +
+                "      AND p.productName = ? " +
+                ")";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, brandName);
+            pstmt.setString(2, productName);
+
+            return pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+  // 상품 원화 가격 업데이트 
 	public void updateAllPriceKrw(Connection conn, BigDecimal exchangeRate) {
 	    String sql = "UPDATE Product SET priceKrw = ROUND(priceUsd * ?, 0)";
 

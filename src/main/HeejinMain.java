@@ -1,9 +1,13 @@
 package main;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import exception.ErrorCode;
+import exception.SystemException;
+import exception.ValidationException;
 import order.Order;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
@@ -89,7 +93,44 @@ public class HeejinMain {
 
         BigDecimal tax5 = calculate(order5, generalRegulationDTO, alcoholRegulationDTO, perfumeRegulationDTO);
         System.out.println("총 세금: " + tax5);
+        
+      //-------------------------SystemLog--------------------------
+        
+        // =========================
+        // 케이스 1. errorCode만 던지는 경우
+        // =========================
+        try {
+            throw new SystemException(ErrorCode.DB_CONNECTION);
+        } catch (SystemException e1) {
+            System.out.println("catch됨: " + e1.getMessage());
+        }
+        
+        
+        // =========================
+        // 케이스 2. 원인 예외까지 넘기는 경우
+        // =========================
+        try {
+            SQLException message = new SQLException("ORA-00001 실제 DB 오류");
+            throw new SystemException(ErrorCode.DB_CONNECTION, message);
+        } catch (SystemException e2) {
+            System.out.println("catch됨: " + e2.getMessage());
+        }
+
+        
+        
+        // =========================
+        // 케이스 3. 다른 예외 타입
+        // =========================
+        try {
+            throw new ValidationException(ErrorCode.ILLEGAL_STATE);
+        } catch (ValidationException e3) {
+            System.out.println("catch됨: " + e3.getMessage());
+        }
+
+        System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
     }
+    
+    
 
     // 어떤 전략 넣을지 전략 리스트 구성 
     private static BigDecimal calculate(Order order,
@@ -115,4 +156,6 @@ public class HeejinMain {
         TaxCalculator calculator = new TaxCalculator(strategies);
         return calculator.calculateTax(order);
     }
+    
+    
 }
