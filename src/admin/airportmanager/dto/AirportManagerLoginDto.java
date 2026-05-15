@@ -1,4 +1,4 @@
-package admin.manager;
+package admin.airportmanager.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,9 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Manager {
+public class AirportManagerLoginDto {
 	private int managerId;
-	private String managerName;
-	private String managerType; // "AIRPORT" or "SHOP"
 	private String password;
+	
+	private String managerName; 
+    private String managerType;  
 }

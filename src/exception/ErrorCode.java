@@ -35,6 +35,11 @@ public enum ErrorCode {
  	// 인도장
  	QUEUE_EMPTY("QUEUE_EMPTY", "대기 중인 고객이 없습니다."),
  	NO_SHOW("NO_SHOW", "출국 시간이 경과하여 노쇼(No-Show) 처리된 예약입니다."),
+ 	
+ 	// 인도장관리자
+ 	ALREADY_LOGGED_IN("ALREADY_LOGGED_IN", "이미 로그인된 상태입니다."),
+ 	NOT_LOGGED_IN("NOT_LOGGED_IN", "로그인 후 이용 가능합니다."),
+ 	INVALID_CREDENTIAL("INVALID_CREDENTIAL", "아이디 또는 비밀번호가 올바르지 않습니다."),
     ;
 	
     private final String code;

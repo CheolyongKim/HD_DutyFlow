@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
@@ -18,6 +20,8 @@ public class PickUpSystem implements FlightObserver{
 	
 	public MLPQ pq; 
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
+	
+	private final AirportManagerService airportManagerService = new AirportManagerService(new AirportManagerDao());
 	
 	public PickUpSystem() {
 		this.pq = new MLPQ();
@@ -180,4 +184,5 @@ public class PickUpSystem implements FlightObserver{
 		
 		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
+	
 }

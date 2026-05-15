@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
@@ -23,6 +25,9 @@ public class HeejinMain {
     public static void main(String[] args) {
 
         RegulationDAO regulationDAO = new RegulationDAO();
+        
+        AirportManagerDao airportManagerDAO = new AirportManagerDao();
+		AirportManagerService airportManagerService = new AirportManagerService(airportManagerDAO);
 
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
@@ -184,7 +189,31 @@ public class HeejinMain {
             System.out.println("catch됨: " + e3.getMessage());
         }
 
-        System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
+       
+        
+        //--------------------- AirportManager ------------------------
+        
+        // =========================
+        // 인도장 관리자 로그인 
+        // =========================
+        
+        System.out.println("\\n=== 로그인 실패 테스트 ===");
+        try {
+        	airportManagerService.login(100, "wrongPW");
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
+        System.out.println("\\\\n=== 로그인 성공 테스트 ===");
+        airportManagerService.login(100, "airport1234");
+        
+        // =========================
+        // 인도장 관리자 로그아웃  
+        // =========================
+        System.out.println("\n=== 로그아웃 ===");
+        airportManagerService.logout();
+        
+        
     }
     
     
