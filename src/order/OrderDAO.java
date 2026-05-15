@@ -30,8 +30,8 @@ public class OrderDAO {
      */
 	private OrderDTO mapOrder(ResultSet rs) throws SQLException {
 
-        String stateStr = rs.getString("orderState");
-        OrderState currentState = convertStringToState(stateStr);
+//        String stateStr = rs.getString("orderState");
+//        OrderState currentState = convertStringToState(stateStr);
         
 	    return OrderDTO.builder()
 	            .orderId(rs.getInt("orderId"))
@@ -40,7 +40,7 @@ public class OrderDAO {
 	            // 날짜 매핑 시 null 체크 추가가 안전합니다.
 	            .exchangeDate(rs.getDate("exchangeDate") != null ? rs.getDate("exchangeDate").toLocalDate() : null)
 	            .orderedAt(rs.getTimestamp("orderedAt") != null ? rs.getTimestamp("orderedAt").toLocalDateTime() : null)
-	            .orderState(currentState) // DTO에 상태 문자열 저장
+//	            .orderState(currentState) // DTO에 상태 문자열 저장
 	            .totalAmount(rs.getBigDecimal("totalAmount"))
 	            .productId(rs.getInt("productId"))
 	            .quantity(rs.getInt("quantity"))
@@ -56,33 +56,34 @@ public class OrderDAO {
 	/**
      * 주문 상태 및 최종 결제 금액 업데이트
      */
-    public void update(Order order) {
-        // 1. SQL 쿼리 수정: 컬럼명을 orderState로, 조건을 orderId로, 금액(totalAmount) 추가
-        String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
+	public void update(Order order) {
 
-        try (Connection conn = OracleConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            // 2. 상태 객체의 이름을 DB에 저장할 형식으로 변환
-            // 예: PaidState -> PAID
-            String stateName = order.getState().getClass().getSimpleName()
-                                    .replace("State", "").toUpperCase();
-            
-            pstmt.setString(1, stateName);
-            
-            // 3. 세금이 합산되었을 수도 있는 최종 totalPrice(또는 totalAmount) 세팅
-            pstmt.setBigDecimal(2, order.getTotalPrice()); 
-            
-            // 4. PK인 orderId를 조건으로 사용
-            pstmt.setInt(3, order.getOrderId());
-            
-            pstmt.executeUpdate();
-            
-        } catch (SQLException e) {
-            // DB 연결 오류나 SQL 문법 오류 시 예외 처리
-            throw new SystemException(ErrorCode.DB_CONNECTION, e);
-        }
-    }
+	    String sql =
+	        "UPDATE orders " +
+	        "SET orderState = ?, totalAmount = ? " +
+	        "WHERE orderId = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        String stateName;
+
+	        if (order.getState() instanceof PaidState) {
+	            stateName = "PAID";
+	        } else {
+	            stateName = "ORDERED";
+	        }
+
+	        pstmt.setString(1, stateName);
+	        pstmt.setBigDecimal(2, order.getTotalPrice());
+	        pstmt.setInt(3, order.getOrderId());
+
+	        pstmt.executeUpdate();
+
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+	}
 
     /**
      * 주문번호 + 상품 ID로 단건 조회
@@ -135,35 +136,45 @@ public class OrderDAO {
      * 상태 변경을 위해 DB에서 단일 Order 도메인 객체를 조회하여 반환
      */
     public Order findOneOrderByOrderId(int orderId) {
-        // [수정] totalAmount 컬럼을 추가로 조회해야 합니다!
-        String sql = "SELECT orderId, orderState, totalAmount FROM orders WHERE orderId = ?";
-        
+
+        String sql =
+            "SELECT orderId, orderState, totalAmount " +
+            "FROM orders " +
+            "WHERE orderId = ?";
+
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+
             pstmt.setInt(1, orderId);
-            
+
             try (ResultSet rs = pstmt.executeQuery()) {
+
                 if (rs.next()) {
+
                     int id = rs.getInt("orderId");
-                    
-                    // [추가] DB에서 금액을 가져옵니다.
-                    BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
-                    
-                    String stateStr = rs.getString("orderState");
-                    OrderState currentState = convertStringToState(stateStr);
-                    
-                    // [수정] 생성된 객체에 금액 정보까지 담아서 리턴해야 합니다.
-                    Order order = new Order(id, currentState);
+
+                    BigDecimal totalAmount =
+                        rs.getBigDecimal("totalAmount");
+
+                    String stateStr =
+                        rs.getString("orderState");
+
+                    OrderState currentState =
+                        convertStringToState(stateStr);
+
+                    Order order =
+                        new Order(id, currentState);
+
                     order.setTotalPrice(totalAmount);
-                    order.setOrderState(currentState);
-                    
+
                     return order;
                 }
             }
+
         } catch (SQLException e) {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
+
         return null;
     }
     
@@ -235,7 +246,7 @@ public class OrderDAO {
             "(memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " +
             "VALUES (?, ?, " +
             "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " +
-            "SYSDATE, ?, ?)";
+            "SYSDATE, 'ORDERED', ?)";
 
         String detailSql =
             "INSERT INTO OrderDetail " +
@@ -258,8 +269,7 @@ public class OrderDAO {
 
                 pstmt.setInt(1, order.getMemberId());
                 pstmt.setInt(2, order.getReservationId());
-                pstmt.setString(3, "ORDERED");
-                pstmt.setBigDecimal(4, order.getTotalPrice());
+                pstmt.setBigDecimal(3, order.getTotalPrice());
 
                 pstmt.executeUpdate();
 

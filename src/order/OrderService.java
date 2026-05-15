@@ -69,6 +69,10 @@ public class OrderService {
 		    int orderId = orderDAO.insertOrder(order, cartItems);	
 		    order.setOrderId(orderId);
 
+		    // 검증
+		    
+		    
+		    
 		    // 2. 결제
 		    order.pay();
 
