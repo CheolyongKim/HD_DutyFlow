@@ -1,3 +1,4 @@
+DROP TABLE Payment CASCADE CONSTRAINTS;
 DROP TABLE ShoppingCart CASCADE CONSTRAINTS;
 DROP TABLE StockPurchase CASCADE CONSTRAINTS;
 DROP TABLE Pickup CASCADE CONSTRAINTS;
@@ -32,6 +33,7 @@ DROP SEQUENCE order_seq;
 DROP SEQUENCE pickup_seq;
 DROP SEQUENCE stockpurchase_seq;
 DROP SEQUENCE log_seq;
+DROP SEQUENCE payment_seq;
 
 
 CREATE SEQUENCE manager_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
@@ -47,6 +49,7 @@ CREATE SEQUENCE order_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 CREATE SEQUENCE pickup_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 CREATE SEQUENCE stockpurchase_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 CREATE SEQUENCE log_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE payment_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 
 
 CREATE TABLE Membership (
@@ -342,6 +345,39 @@ CREATE TABLE SystemLog (
     logMessage  VARCHAR2(100) NOT NULL,
 
     CONSTRAINT PK_SYSTEMLOG PRIMARY KEY (logId)
+);
+
+CREATE TABLE Payment (
+    paymentId        NUMBER DEFAULT payment_seq.NEXTVAL NOT NULL,
+    orderId          NUMBER NOT NULL,
+
+    paymentMethod    VARCHAR2(20) NOT NULL,
+    paymentStatus    VARCHAR2(30) NOT NULL,
+
+    requestedAmount  NUMBER(12,2) NOT NULL,
+    cardNumberMask   VARCHAR2(30) NOT NULL,
+
+    requestedAt      DATE NOT NULL,
+    processedAt      DATE NULL,
+
+    failReason       VARCHAR2(100) NULL,
+
+    CONSTRAINT PK_PAYMENT PRIMARY KEY (paymentId),
+
+    CONSTRAINT FK_ORDERS_TO_PAYMENT
+        FOREIGN KEY (orderId)
+        REFERENCES Orders(orderId),
+
+    CONSTRAINT CHK_PAYMENT_METHOD
+        CHECK (paymentMethod IN ('CARD')),
+
+    CONSTRAINT CHK_PAYMENT_STATUS
+        CHECK (paymentStatus IN (
+            'PENDING',
+            'PROCESSING',
+            'SUCCESS',
+            'FAILED'
+        ))
 );
 
 COMMIT;
