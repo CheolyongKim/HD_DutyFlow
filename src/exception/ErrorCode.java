@@ -24,14 +24,20 @@ public enum ErrorCode {
 
 	// DB연결
 	DB_CONNECTION("CONNECTION_ERROR","DB 연결 실패"),
-  DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
-    
-  // 결제
-  INVALID_PAYMENT_REQUEST("INVALID_PAYMENT_REQUEST", "결제 요청 정보가 올바르지 않습니다."),
-  INVALID_PAYMENT_AMOUNT("INVALID_PAYMENT_AMOUNT", "결제 금액이 올바르지 않습니다."),
-  INVALID_CARD_NUMBER("INVALID_CARD_NUMBER", "카드번호 형식이 올바르지 않습니다."),
-  EMPTY_PAYMENT_QUEUE("EMPTY_PAYMENT_QUEUE", "결제 대기열이 비어 있습니다."),
+	DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"),
+	    
+	  // 결제
+	INVALID_PAYMENT_REQUEST("INVALID_PAYMENT_REQUEST", "결제 요청 정보가 올바르지 않습니다."),
+	INVALID_PAYMENT_AMOUNT("INVALID_PAYMENT_AMOUNT", "결제 금액이 올바르지 않습니다."),
+	INVALID_CARD_NUMBER("INVALID_CARD_NUMBER", "카드번호 형식이 올바르지 않습니다."),
+	EMPTY_PAYMENT_QUEUE("EMPTY_PAYMENT_QUEUE", "결제 대기열이 비어 있습니다."),
   
+	// 멤버십
+	MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."),
+	INVALID_PURCHASE_AMOUNT("INVALID_PURCHASE_AMOUNT", "구매 금액이 올바르지 않습니다."),
+	INVALID_MEMBERSHIP_GRADE("INVALID_MEMBERSHIP_GRADE", "회원 등급 정보가 올바르지 않습니다."),
+	MEMBERSHIP_NOT_FOUND("MEMBERSHIP_NOT_FOUND", "멤버십 정보를 찾을 수 없습니다."),
+	
  	// 인도장
  	QUEUE_EMPTY("QUEUE_EMPTY", "대기 중인 고객이 없습니다."),
  	NO_SHOW("NO_SHOW", "출국 시간이 경과하여 노쇼(No-Show) 처리된 예약입니다."),

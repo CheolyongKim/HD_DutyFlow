@@ -19,6 +19,7 @@ public class Member {
 	private LocalDate passportExpiredDate;
 	private boolean isAdult;
 	private Grade grade;
+	private LocalDate gradeSelectionDate;
 	private ShoppingCart cart = new ShoppingCart();
 	
 	public ShoppingCart getCart() {
