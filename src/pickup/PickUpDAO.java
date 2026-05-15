@@ -21,10 +21,11 @@ public class PickUpDAO {
 		AppendQueueDTO dto = null;
 		
 		String sql = ""
-				+ "SELECT F.flightCode, F.departureAt, F.isDelayed, M.memberId, M.grade"
-				+ "FROM Flight F JOIN FlightBook B USING(flightId)"
-				+ "				 JOIN Member M USING(memberId)"
-				+ "WHERE M.passportNum=? AND B.flightResNum=?;";
+		        + "SELECT F.flightCode, F.departureAt, F.isDelayed, M.memberId, M.grade, M.name \n" // <-- M.name 추가
+		        + "FROM Flight F \n"
+		        + "JOIN FlightBook B ON F.flightId = B.flightId \n"
+		        + "JOIN Member M ON B.memberId = M.memberId \n"
+		        + "WHERE M.passportNumber = ? AND B.reservationId = ?";	
 		System.out.println("sql = " + sql);
 		
 		Connection conn = null;
@@ -46,12 +47,14 @@ public class PickUpDAO {
 		    if (rs.next()) {
 		        hasData = true;
 
+		     // ResultSet 안에서 값을 꺼낼 때 name 추가
 		        dto = AppendQueueDTO.builder()
 		                .flightCode(rs.getString("flightCode"))
 		                .departureAt(rs.getObject("departureAt", LocalDateTime.class))
 		                .isDelayed(rs.getInt("isDelayed"))
 		                .memberId(rs.getInt("memberId"))
-		                .grade(Grade.fromPriority(rs.getInt("grade")))
+		                .grade(Grade.valueOf(rs.getString("grade").toUpperCase()))
+		                .name(rs.getString("name")) // <-- 추가된 부분!
 		                .build();
 		    }
 		    if (!hasData) {
@@ -74,47 +77,56 @@ public class PickUpDAO {
 		return dto;
 	}
 
-	public List<PickUpDTO> getAllPickUp(String passportNum, int flightResNum) throws SystemException{
+	public List<PickUpDTO> getAllPickUp(String passportNum, int flightResNum) throws SystemException {
 		List<PickUpDTO> pickUpList = new ArrayList<PickUpDTO>();
 		
+		// 1. SQL 끝에 있던 세미콜론(;) 제거 완료
+		// PickUpDAO.java 의 sql 문자열을 아래 코드로 덮어씌워주세요!
+
 		String sql = ""
-				+ "SELECT P.pickUpAvailableAt, M.passportNumber, B.reservationCode, F.departureAt"
-				+ "FROM PickUp P JOIN Orders O USING(orderId)"
-				+ "				 JOIN Member M USING(memberId)"
-				+ "				 JOIN FlightBook B USING(memberId)"
-				+ "				 JOIN Flight F USING(flightId)"
-				+ "WHERE M.passportNumber=? AND B.reservationCode=?;";
+		        + "SELECT P.pickUpAvailableAt, M.passportNumber, B.reservationCode, F.departureAt\n"
+		        + "FROM PickUp P \n"
+		        + "JOIN Orders O ON P.orderId = O.orderId\n"
+		        + "JOIN Member M ON O.memberId = M.memberId\n"
+		        + "JOIN FlightBook B ON O.reservationId = B.reservationId AND M.memberId = B.memberId\n"
+		        + "JOIN Flight F ON B.flightId = F.flightId\n"
+		        + "WHERE M.passportNumber = ? AND B.reservationId = ?";
+				
 		System.out.println("sql = " + sql);
 		
+		// 2. Connection과 PreparedStatement만 먼저 열기
 		try (Connection conn = OracleConnection.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement(sql);
-				ResultSet rs = pstmt.executeQuery()) {
+				PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-			boolean hasData = false;
-			
+			// 3. 쿼리 실행(executeQuery) 전에 파라미터 세팅을 가장 먼저 수행!
 			pstmt.setString(1, passportNum);
 			pstmt.setInt(2, flightResNum);
 
-			while (rs.next()) {
-				hasData = true;
+			// 4. 파라미터가 모두 채워진 pstmt로 ResultSet을 열기 (중첩 try-with-resources)
+			try (ResultSet rs = pstmt.executeQuery()) {
+				boolean hasData = false;
 
-				PickUpDTO dto = PickUpDTO.builder()
-				        .pickupAvailableAt(rs.getObject("pickupAvailableAt", LocalDateTime.class))
-				        .passportNumber(rs.getString("passportNumber"))
-				        .reservationCode(rs.getString("reservationCode"))
-				        .departureAt(rs.getObject("departureAt", LocalDateTime.class))
-				        .build();
+				while (rs.next()) {
+					hasData = true;
 
-				pickUpList.add(dto);
-			}
+					PickUpDTO dto = PickUpDTO.builder()
+					        .pickupAvailableAt(rs.getObject("pickupAvailableAt", LocalDateTime.class))
+					        .passportNumber(rs.getString("passportNumber"))
+					        .reservationCode(rs.getString("reservationCode"))
+					        .departureAt(rs.getObject("departureAt", LocalDateTime.class))
+					        .build();
 
-			if (!hasData) {
-				throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND, new Exception("데이터 조회 결과 없음"));
-			}
+					pickUpList.add(dto);
+				}
+
+				if (!hasData) {
+					throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND, new Exception("데이터 조회 결과 없음"));
+				}
+			} // ResultSet 자동 반납
 
 		} catch (SQLException e) {
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
-		}
+		} // PreparedStatement, Connection 자동 반납
 		
 		return pickUpList;
 	}

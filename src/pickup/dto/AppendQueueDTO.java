@@ -15,7 +15,7 @@ public class AppendQueueDTO {
 	// Airplane: flightResNum 으로 찾아온다 
 	// 필요한거- flightCode, departureAt, isDelayed
 	// Member: passportNum 으로 찾아온다 
-	// 필요한거- memberId, grade
+	// 필요한거- memberId, grade, name
 	// -> 한꺼번에 DTO로 찾아온다
 	private String flightCode;
 	private LocalDateTime departureAt;
@@ -23,4 +23,5 @@ public class AppendQueueDTO {
 	
 	private int memberId;
 	private Grade grade;
+	private String name;
 }

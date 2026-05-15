@@ -44,15 +44,28 @@ public class PickUpSystem {
 			aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
 					
 			this.pq.enqueue(
-					new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
-					new Member(aqdto.getMemberId(), null, null, null, null, null,
-							passportNum, null, false, aqdto.getGrade(), null));
+				    new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt()),
+				    new Member(
+				        aqdto.getMemberId(), 
+				        null, 
+				        null, 
+				        aqdto.getName(), // <-- 4번째 자리에 null 대신 이름 넣기!
+				        null, 
+				        null,
+				        passportNum, 
+				        null, 
+				        false, 
+				        aqdto.getGrade(), 
+				        null
+				    )
+				);
 		} catch (ValidationException e) {
 			// TODO: 신원검증에서 걸림
+			e.printStackTrace();
 		} catch (SystemException e) {
-			
+			e.printStackTrace();
 		} catch (DataNotFoundException e) {
-			
+			e.printStackTrace();
 		} 
 	}
 	
@@ -64,12 +77,14 @@ public class PickUpSystem {
 			// updateOrderState()의 대상 = popQueue()
 		} catch (ValidationException e) {
 			// TODO: 신원검증에서 걸림
+			e.printStackTrace();
 		} catch (SystemException e) {
-			
+			e.printStackTrace();
 		} catch (DataNotFoundException e) {
-			
+			e.printStackTrace();
 		} catch (QueueException e) {
 			// pop 시도하기 때문에 비어있었다면 QueueException 발생 가능
+			e.printStackTrace();
 		}
 	}
 	
