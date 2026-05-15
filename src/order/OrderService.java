@@ -89,7 +89,7 @@ public class OrderService {
             System.out.println();
             System.out.println("그래도 구매하시겠습니까? (Y/N)");
 
-            Scanner sc = new Scanner(System.in);
+            Scanner sc = new Scanner(System.in); // TODO: sc swing 
             String answer = sc.nextLine();
 
             if (!answer.equalsIgnoreCase("Y")) {
