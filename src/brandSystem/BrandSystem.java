@@ -1,5 +1,6 @@
 package brandSystem;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -175,6 +176,11 @@ public class BrandSystem implements StockObserver {
             return List.of();
         }
     }
+    
+    public void exportPurchaseHistoryToFile(File file) {
+        purchaseService.exportPurchaseHistoryByBrandName(brandName, file);
+    }
+    
     
     public void printStockStatus(String productName) {
 	    if (!validateMyBrandProduct(productName)) {

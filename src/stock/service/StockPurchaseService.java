@@ -1,8 +1,13 @@
 package stock.service;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
+import exception.ErrorCode;
 import exception.SystemException;
 import stock.dao.StockDao;
 import stock.dao.StockPurchaseDao;
@@ -160,5 +165,30 @@ public class StockPurchaseService {
         }
 
         return stockPurchaseDao.findByBrandName(brandName);
+    }
+    
+    public void exportPurchaseHistoryByBrandName(String brandName, File file) {
+
+        List<StockPurchase> purchases = getPurchaseHistoryByBrandName(brandName);
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+
+            bw.write("purchaseId,productId,purchaseDate,amount,status");
+            bw.newLine();
+
+            for (StockPurchase purchase : purchases) {
+                bw.write(
+                        purchase.getPurchaseId() + "," +
+                        purchase.getProductId() + "," +
+                        purchase.getPurchaseDate() + "," +
+                        purchase.getAmount() + "," +
+                        purchase.getStatus()
+                );
+                bw.newLine();
+            }
+
+        } catch (IOException e) {
+            throw new SystemException(ErrorCode.FILE_SAVE_FAILED, e);
+        }
     }
 }
