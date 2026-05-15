@@ -5,6 +5,7 @@ import java.util.List;
 
 import category.Category;
 import common.Currency;
+import exception.BusinessException;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
@@ -82,6 +83,7 @@ public class ChaeyeonMain {
     	
         // order ---------------------------------------------------------------------------------------------------------
     	
+    	/*
         System.out.println("\n\n===== [Order Service Test] =====");
         OrderService orderService = new OrderService();
         
@@ -157,7 +159,72 @@ public class ChaeyeonMain {
             System.out.println("해당 주문을 찾을 수 없습니다: " + e.getMessage());
         }
         
-//        */
+        */
+    	
+
+//    	OrderService orderService = new OrderService();
+//        int testOrderId = 1; // DB에 존재하는 주문 번호
+//
+//        try {
+//            System.out.println("=== 결제 및 검증 테스트 시작 ===");
+//            orderService.order(testOrderId);
+//            System.out.println("=== 테스트 종료: 성공 ===");
+//        } catch (BusinessException e) {
+//            System.err.println("❌ 검증 실패: " + e.getErrorCode().getMessage());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+    	
+    	
+    	// 5. 주문 생성 + 결제 테스트
+    	System.out.println("\n===== [USER] 주문 생성 및 결제 테스트 =====");
+    	OrderService orderService = new OrderService();
+    	
+    	try {
+
+    	    // 주문할 상품 리스트 생성
+    	    OrderDTO item1 = new OrderDTO();
+    	    item1.setProductId(1);
+    	    item1.setProductName("조니워커 블루라벨");
+    	    item1.setCategoryId(1);
+    	    item1.setCategoryName("위스키");
+    	    item1.setCapacity(750);
+    	    item1.setQuantity(1);
+    	    item1.setDollarPrice(new BigDecimal("220"));
+
+    	    OrderDTO item2 = new OrderDTO();
+    	    item2.setProductId(2);
+    	    item2.setProductName("샤넬 향수");
+    	    item2.setCategoryId(2);
+    	    item2.setCategoryName("향수");
+    	    item2.setCapacity(50);
+    	    item2.setQuantity(1);
+    	    item2.setDollarPrice(new BigDecimal("120"));
+
+    	    List<OrderDTO> cartItems = List.of(item1, item2);
+
+    	    int memberId = 1;
+    	    int reservationId = 1;
+    	    
+			// 주문 요청
+    	    orderService.placeOrder(memberId, reservationId, cartItems);
+
+    	    System.out.println("✅ 주문 및 결제 성공");
+
+    	} catch (BusinessException e) {
+
+    	    System.out.println("❌ 비즈니스 예외 발생");
+    	    System.out.println("에러 코드: " + e.getErrorCode());
+    	    System.out.println("메시지: " + e.getMessage());
+
+    	} catch (Exception e) {
+
+    	    System.out.println("❌ 시스템 오류 발생");
+    	    e.printStackTrace();
+    	}
+    	
+    	
+    
 	     
     	
     	

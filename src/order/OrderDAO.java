@@ -1,5 +1,6 @@
 package order;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,55 +12,74 @@ import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
 import order.dto.OrderDTO;
+import order.state.PaidState;
+import order.state.PendingState;
 
 public class OrderDAO {
 
-    private final String baseSql = 
-    		"select * from orders join orderdetail on orders.orderid = orderdetail.orderid\r\n"
-    		+ "join product on orderdetail.productid = product.productid ";
-
-    /**
+	private final String baseSql = 
+		    "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, " +
+		    "d.productId, d.quantity, d.discountPrice, d.dollarPrice, " +
+		    "p.productName, p.capacity, p.categoryId, " +
+		    "c.categoryName " + 
+		    "FROM orders o " +
+		    "JOIN orderdetail d ON o.orderId = d.orderId " +
+		    "JOIN product p ON d.productid = p.productid " +
+		    "JOIN category c ON p.categoryid = c.categoryid ";    /**
      * 빌더 패턴을 사용하여 Order 객체 매핑
      */
-    private OrderDTO mapOrder(ResultSet rs) throws SQLException {
-        return OrderDTO.builder()
-                .orderId(rs.getInt("orderId"))
-                .memberId(rs.getInt("memberId"))
-                .reservationId(rs.getInt("reservationId"))
-                .exchangeDate(rs.getDate("exchangeDate").toLocalDate())
-                .orderedAt(rs.getTimestamp("orderedAt").toLocalDateTime())
-                .orderState(convertStringToState(rs.getString("orderState")))
-                .totalAmount(rs.getBigDecimal("totalAmount"))
+	private OrderDTO mapOrder(ResultSet rs) throws SQLException {
 
-                // OrderDetail
-                .productId(rs.getInt("productId"))
-                .quantity(rs.getInt("quantity"))
-                .discountPrice(rs.getBigDecimal("discountPrice"))
-                .dollarPrice(rs.getBigDecimal("dollarPrice"))
+        String stateStr = rs.getString("orderState");
+        OrderState currentState = convertStringToState(stateStr);
+        
+	    return OrderDTO.builder()
+	            .orderId(rs.getInt("orderId"))
+	            .memberId(rs.getInt("memberId"))
+	            .reservationId(rs.getInt("reservationId"))
+	            // 날짜 매핑 시 null 체크 추가가 안전합니다.
+	            .exchangeDate(rs.getDate("exchangeDate") != null ? rs.getDate("exchangeDate").toLocalDate() : null)
+	            .orderedAt(rs.getTimestamp("orderedAt") != null ? rs.getTimestamp("orderedAt").toLocalDateTime() : null)
+	            .orderState(currentState) // DTO에 상태 문자열 저장
+	            .totalAmount(rs.getBigDecimal("totalAmount"))
+	            .productId(rs.getInt("productId"))
+	            .quantity(rs.getInt("quantity"))
+	            .discountPrice(rs.getBigDecimal("discountPrice"))
+	            .dollarPrice(rs.getBigDecimal("dollarPrice"))
+	            .productName(rs.getString("productName"))
+	            .categoryId(rs.getInt("categoryId"))
+	            .categoryName(rs.getString("categoryName")) // 이 부분이 누락되었을 수 있습니다.
+	            .capacity(rs.getInt("capacity")) 
+	            .build();
+	}
 
-                // Product
-                .productName(rs.getString("productName"))
-                .build();
-    }
-
-    /**
-     * 주문 상태 업데이트
+	/**
+     * 주문 상태 및 최종 결제 금액 업데이트
      */
     public void update(Order order) {
-        String sql = "UPDATE orders SET state = ? WHERE flightResNum = ?";
+        // 1. SQL 쿼리 수정: 컬럼명을 orderState로, 조건을 orderId로, 금액(totalAmount) 추가
+        String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            // 상태 클래스 명에서 "State"를 제외하고 대문자로 변환 (ex: PaidState -> PAID)
+            // 2. 상태 객체의 이름을 DB에 저장할 형식으로 변환
+            // 예: PaidState -> PAID
             String stateName = order.getState().getClass().getSimpleName()
                                     .replace("State", "").toUpperCase();
             
             pstmt.setString(1, stateName);
-            pstmt.setInt(2, order.getFlightResNum());
+            
+            // 3. 세금이 합산되었을 수도 있는 최종 totalPrice(또는 totalAmount) 세팅
+            pstmt.setBigDecimal(2, order.getTotalPrice()); 
+            
+            // 4. PK인 orderId를 조건으로 사용
+            pstmt.setInt(3, order.getOrderId());
             
             pstmt.executeUpdate();
+            
         } catch (SQLException e) {
+            // DB 연결 오류나 SQL 문법 오류 시 예외 처리
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
@@ -91,8 +111,8 @@ public class OrderDAO {
      * 주문번호로 여러 상품 출력
      */
     public List<OrderDTO> findByOrderId(int orderId) {
-        String sql = baseSql + "WHERE orderdetail.orderId = ?";
-        try (Connection conn = OracleConnection.getConnection();
+    	String sql = baseSql + " WHERE d.orderId = ?";
+    	try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setInt(1, orderId);
@@ -110,7 +130,42 @@ public class OrderDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-
+    
+    /**
+     * 상태 변경을 위해 DB에서 단일 Order 도메인 객체를 조회하여 반환
+     */
+    public Order findOneOrderByOrderId(int orderId) {
+        // [수정] totalAmount 컬럼을 추가로 조회해야 합니다!
+        String sql = "SELECT orderId, orderState, totalAmount FROM orders WHERE orderId = ?";
+        
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, orderId);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    int id = rs.getInt("orderId");
+                    
+                    // [추가] DB에서 금액을 가져옵니다.
+                    BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
+                    
+                    String stateStr = rs.getString("orderState");
+                    OrderState currentState = convertStringToState(stateStr);
+                    
+                    // [수정] 생성된 객체에 금액 정보까지 담아서 리턴해야 합니다.
+                    Order order = new Order(id, currentState);
+                    order.setTotalPrice(totalAmount);
+                    order.setOrderState(currentState);
+                    
+                    return order;
+                }
+            }
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+        return null;
+    }
     
     /**
      * 전체 주문 목록 조회
@@ -165,16 +220,103 @@ public class OrderDAO {
         }
 
         switch (stateStr.toUpperCase()) {
+        	case "ORDERED":
+        		return new PendingState();
             case "PAID":
-                return new PaidState();
-            case "CANCEL":
-                return new CancelState();
-            case "PICKUPREADY":
-                return new PickupReadyState();
-            case "PICKUPDONE":
-                return new PickupDoneState();
             default:
                 return new PendingState();
+        }
+    }
+    
+    public int insertOrder(Order order, List<OrderDTO> items) {
+
+        String orderSql =
+            "INSERT INTO Orders " +
+            "(memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " +
+            "VALUES (?, ?, " +
+            "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " +
+            "SYSDATE, ?, ?)";
+
+        String detailSql =
+            "INSERT INTO OrderDetail " +
+            "(productId, orderId, quantity, discountPrice, dollarPrice) " +
+            "VALUES (?, ?, ?, ?, ?)";
+
+        Connection conn = null;
+
+        try {
+            conn = OracleConnection.getConnection();
+
+            // 트랜잭션 시작
+            conn.setAutoCommit(false);
+
+            int orderId = 0;
+
+            // 1. Orders insert
+            try (PreparedStatement pstmt =
+                         conn.prepareStatement(orderSql, new String[]{"orderId"})) {
+
+                pstmt.setInt(1, order.getMemberId());
+                pstmt.setInt(2, order.getReservationId());
+                pstmt.setString(3, "ORDERED");
+                pstmt.setBigDecimal(4, order.getTotalPrice());
+
+                pstmt.executeUpdate();
+
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        orderId = rs.getInt(1);
+                    }
+                }
+            }
+
+            // 2. OrderDetail insert
+            try (PreparedStatement pstmt =
+                         conn.prepareStatement(detailSql)) {
+
+                for (OrderDTO item : items) {
+
+                    pstmt.setInt(1, item.getProductId());
+                    pstmt.setInt(2, orderId);
+                    pstmt.setInt(3, item.getQuantity());
+
+                    pstmt.setBigDecimal(
+                        4,
+                        item.getDiscountPrice() != null
+                            ? item.getDiscountPrice()
+                            : BigDecimal.ZERO
+                    );
+
+                    pstmt.setBigDecimal(5, item.getDollarPrice());
+
+                    pstmt.addBatch();
+                }
+
+                pstmt.executeBatch();
+            }
+
+            // 커밋
+            conn.commit();
+
+            return orderId;
+
+        } catch (SQLException e) {
+
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException rollbackEx) {
+                rollbackEx.printStackTrace();
+            }
+
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+
+        } finally {
+
+            try {
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -31,6 +31,17 @@ public enum ErrorCode {
 	DB_CONNECTION("CONNECTION_ERROR","DB 연결 실패"),
     DB_DRIVER_NOT_FOUND("DRIVER_NOT_FOUND", "JDBC 드라이버를 찾을 수 없습니다"), 
     
+    // 규정
+    DUTY_FREE_LIQUOR_EXCEEDED("DUTY_FREE_LIQUOR_EXCEEDED","주류 면세 한도(용량/금액) 초과"),
+    DUTY_FREE_PERFUME_EXCEEDED("DUTY_FREE_PERFUME_EXCEEDED","향수 면세 한도(용량) 초과"),
+    DUTY_FREE_TOTAL_LIMIT_EXCEEDED("DUTY_FREE_TOTAL_LIMIT_EXCEEDED","전체 기본 면세 범위($800) 초과"), 
+    
+    PAYMENT_FAILED("PAYMENT_FAILED","주문 결제 실패"), 
+    INVALID_ORDER_STATE("INVALID_ORDER_STATE","부적절한 단계입니다."),
+    
+    DENIED_PAY("DENIED_PAY","결제 불가 상태"),
+    DENIED_CANCLE("DENIED_CANCLE","취소 불가 상태"),
+    DENIED_PICKUP("DENIED_PICKUP","픽업 불가 상태"),
     ;
 	
     private final String code;
