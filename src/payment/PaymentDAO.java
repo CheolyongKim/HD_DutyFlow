@@ -59,7 +59,7 @@ public class PaymentDAO {
 
     // 결제 성공 처리
     // Payment 상태만 SUCCESS로 변경, 주문 상태 변경은 OrderState 패턴에서 처리 예정
-    public void updateStatusToSuccess(int paymentId, int orderId) {
+    public void updateStatusToSuccess(int paymentId) {
 
     	// 결제 상태 변경 및 결제 완료 시간 저장
         String sql = "UPDATE Payment SET paymentStatus = ?, processedAt = ? WHERE paymentId = ?";
@@ -113,5 +113,50 @@ public class PaymentDAO {
 
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
+    }
+    
+
+    // paymentId로 결제 정보 조회
+    // Queue에 있던 paymentId로 실제 결제 정보를 조회해서 Payment 객체 반환
+    public Payment findById(int paymentId) {
+        String sql = "SELECT paymentId, orderId, paymentMethod, paymentStatus, requestedAmount, cardNumberMask, requestedAt, processedAt, failReason FROM Payment WHERE paymentId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, paymentId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                if (rs.next()) {
+                	return Payment.builder()
+                	        .paymentId(rs.getInt("paymentId"))
+                	        .orderId(rs.getInt("orderId"))
+                	        .paymentMethod(rs.getString("paymentMethod"))
+                	        .paymentStatus(PaymentStatus.valueOf(rs.getString("paymentStatus")))
+                	        .requestedAmount(rs.getBigDecimal("requestedAmount"))
+                	        .cardNumberMask(rs.getString("cardNumberMask"))
+                	        .requestedAt(rs.getTimestamp("requestedAt").toLocalDateTime())
+                	        .processedAt(rs.getTimestamp("processedAt") == null
+                	                ? null
+                	                : rs.getTimestamp("processedAt").toLocalDateTime()) // PENDING 상태인 경우 아직 처리 전이므로 processedAt = null
+                	        .failReason(rs.getString("failReason"))
+                	        .build();
+                }
+            }
+
+            return null;
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+    // 결제 상태 PROCESSING으로 변경
+    // 결제 대기 Queue에서 Worker가 결제 처리를 위해 꺼낼 때
+    public void updateStatusToProcessing(int paymentId) {
+        String sql = "UPDATE Payment SET paymentStatus = ? WHERE paymentId = ?";
+
+        updateStatus(sql, PaymentStatus.PROCESSING, paymentId);
     }
 }
