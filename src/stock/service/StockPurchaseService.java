@@ -2,18 +2,23 @@ package stock.service;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
 import exception.ErrorCode;
 import exception.SystemException;
+import exception.ValidationException;
 import stock.dao.StockDao;
 import stock.dao.StockPurchaseDao;
 import stock.domain.Stock;
 import stock.domain.StockPurchase;
 import stock.domain.StockPurchaseStatus;
+import stock.dto.StockPurchaseHistoryDto;
 
 public class StockPurchaseService {
 
@@ -116,7 +121,7 @@ public class StockPurchaseService {
     }
 
 
-    public List<StockPurchase> getPurchaseHistoryByProductName(String productName) throws SystemException {
+    public List<StockPurchaseHistoryDto> getPurchaseHistoryByProductName(String productName) throws SystemException {
         if (productName == null || productName.trim().isEmpty()) {
             throw new IllegalArgumentException("상품명은 비어 있을 수 없습니다.");
         }
@@ -125,7 +130,7 @@ public class StockPurchaseService {
     }
 
 
-    public List<StockPurchase> getPurchaseHistoryByStatus(StockPurchaseStatus status) throws SystemException {
+    public List<StockPurchaseHistoryDto> getPurchaseHistoryByStatus(StockPurchaseStatus status) throws SystemException {
         if (status == null) {
             throw new IllegalArgumentException("발주 상태는 null일 수 없습니다.");
         }
@@ -139,56 +144,98 @@ public class StockPurchaseService {
     }
 
 
-    public List<StockPurchase> getRequestedPurchases() throws SystemException {
+    public List<StockPurchaseHistoryDto> getRequestedPurchases() throws SystemException {
         return stockPurchaseDao.findRequestedPurchases();
     }
 
 
-    public List<StockPurchase> getReceivedPurchases() throws SystemException {
+    public List<StockPurchaseHistoryDto> getReceivedPurchases() throws SystemException {
         return stockPurchaseDao.findReceivedPurchases();
     }
 
 
-    public void printPurchaseHistory(List<StockPurchase> purchases) {
+    public void printPurchaseHistory(List<StockPurchaseHistoryDto> purchases) {
         if (purchases == null || purchases.isEmpty()) {
             System.out.println("조회된 발주 이력이 없습니다.");
             return;
         }
 
-        for (StockPurchase purchase : purchases) {
+        for (StockPurchaseHistoryDto purchase : purchases) {
             System.out.println(purchase);
         }
     }
-    public List<StockPurchase> getPurchaseHistoryByBrandName(String brandName) throws SystemException {
+    
+    public List<StockPurchaseHistoryDto> getPurchaseHistoryDtoByBrandName(String brandName) {
         if (brandName == null || brandName.trim().isEmpty()) {
-            throw new IllegalArgumentException("브랜드명은 비어 있을 수 없습니다.");
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
         }
 
-        return stockPurchaseDao.findByBrandName(brandName);
+        return stockPurchaseDao.findStockPurchasesHistoryByBrandName(brandName);
     }
     
     public void exportPurchaseHistoryByBrandName(String brandName, File file) {
 
-        List<StockPurchase> purchases = getPurchaseHistoryByBrandName(brandName);
+        List<StockPurchaseHistoryDto> purchases =
+                getPurchaseHistoryDtoByBrandName(brandName);
 
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+        try (
+            BufferedWriter bw = new BufferedWriter(
+                    new OutputStreamWriter(
+                            new FileOutputStream(file),
+                            StandardCharsets.UTF_8
+                    )
+            )
+        ) {
+            // Excel에서 UTF-8 CSV 한글 깨짐 방지용 BOM
+            bw.write('\uFEFF');
 
-            bw.write("purchaseId,productId,purchaseDate,amount,status");
+            bw.write("purchaseId,productId,productName,brandName,categoryName,priceUsd,priceKrw,thresholdValue,purchaseDate,amount,status");
             bw.newLine();
 
-            for (StockPurchase purchase : purchases) {
-                bw.write(
-                        purchase.getPurchaseId() + "," +
-                        purchase.getProductId() + "," +
-                        purchase.getPurchaseDate() + "," +
-                        purchase.getAmount() + "," +
-                        purchase.getStatus()
-                );
+            for (StockPurchaseHistoryDto purchase : purchases) {
+                bw.write(toCsvLine(
+                        String.valueOf(purchase.getPurchaseId()),
+                        String.valueOf(purchase.getProductId()),
+                        purchase.getProductName(),
+                        purchase.getBrandName(),
+                        purchase.getCategoryName(),
+                        String.valueOf(purchase.getPriceUsd()),
+                        String.valueOf(purchase.getPriceKrw()),
+                        String.valueOf(purchase.getThresholdValue()),
+                        String.valueOf(purchase.getPurchaseDate()),
+                        String.valueOf(purchase.getAmount()),
+                        String.valueOf(purchase.getStatus())
+                ));
                 bw.newLine();
             }
 
         } catch (IOException e) {
             throw new SystemException(ErrorCode.FILE_SAVE_FAILED, e);
         }
+    }
+    private String toCsvLine(String... values) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < values.length; i++) {
+            sb.append(escapeCsv(values[i]));
+
+            if (i < values.length - 1) {
+                sb.append(",");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+
+        return value;
     }
 }

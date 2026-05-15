@@ -18,7 +18,7 @@ import javax.swing.table.DefaultTableModel;
 import brandSystem.BrandSystem;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import stock.domain.StockPurchase;
+import stock.dto.StockPurchaseHistoryDto;
 
 public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
 
@@ -38,7 +38,16 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 24));
 
         String[] columns = {
-                "발주ID", "상품ID", "발주일시", "수량", "상태"
+                "발주ID",
+                "상품ID",
+                "상품명",
+                "카테고리",
+                "가격($)",
+                "가격(원)",
+                "임계값",
+                "발주일시",
+                "수량",
+                "상태"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
@@ -76,14 +85,19 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         try {
             tableModel.setRowCount(0);
 
-            List<StockPurchase> purchases =
+            List<StockPurchaseHistoryDto> purchases =
                     brandSystem.getPurchaseService()
-                            .getPurchaseHistoryByBrandName(brandSystem.getBrandName());
+                            .getPurchaseHistoryDtoByBrandName(brandSystem.getBrandName());
 
-            for (StockPurchase purchase : purchases) {
+            for (StockPurchaseHistoryDto purchase : purchases) {
                 tableModel.addRow(new Object[] {
                         purchase.getPurchaseId(),
                         purchase.getProductId(),
+                        purchase.getProductName(),
+                        purchase.getCategoryName(),
+                        purchase.getPriceUsd(),
+                        purchase.getPriceKrw(),
+                        purchase.getThresholdValue(),
                         purchase.getPurchaseDate(),
                         purchase.getAmount(),
                         purchase.getStatus()
@@ -96,13 +110,14 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         }
     }
 
- 
     private void exportPurchaseHistory() {
         JFileChooser fileChooser = new JFileChooser();
 
         fileChooser.setDialogTitle("발주 이력 저장 위치 선택");
         fileChooser.setSelectedFile(
-                new File("purchase_history_" + brandSystem.getBrandName().replaceAll("\\s+", "_") + ".csv")
+                new File("purchase_history_"
+                        + brandSystem.getBrandName().replaceAll("\\s+", "_")
+                        + ".csv")
         );
 
         int result = fileChooser.showSaveDialog(this);

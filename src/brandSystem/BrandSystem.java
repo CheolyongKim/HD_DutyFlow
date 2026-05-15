@@ -9,6 +9,7 @@ import product.ProductService;
 import stock.domain.StockPurchase;
 import stock.domain.StockPurchaseStatus;
 import stock.dto.StockProductDto;
+import stock.dto.StockPurchaseHistoryDto;
 import stock.observer.StockObserver;
 import stock.service.StockPurchaseService;
 import stock.service.StockService;
@@ -215,8 +216,8 @@ public class BrandSystem implements StockObserver {
         try {
             System.out.println("===== [" + brandName + "] 브랜드 발주 이력 =====");
 
-            List<StockPurchase> purchases =
-                    purchaseService.getPurchaseHistoryByBrandName(brandName);
+            List<StockPurchaseHistoryDto> purchases =
+                    purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
 
             purchaseService.printPurchaseHistory(purchases);
 
@@ -232,7 +233,7 @@ public class BrandSystem implements StockObserver {
             System.out.println("===== [" + brandName + "] 상품별 발주 이력 =====");
             System.out.println("상품명: " + productName);
 
-            List<StockPurchase> purchases =
+            List<StockPurchaseHistoryDto> purchases =
                     purchaseService.getPurchaseHistoryByProductName(productName);
 
             purchaseService.printPurchaseHistory(purchases);
@@ -249,7 +250,7 @@ public class BrandSystem implements StockObserver {
             System.out.println("===== [" + brandName + "] 상태별 발주 이력 =====");
             System.out.println("상태: " + status);
 
-            List<StockPurchase> purchases =
+            List<StockPurchaseHistoryDto> purchases =
                     purchaseService.getPurchaseHistoryByStatus(status);
 
             purchaseService.printPurchaseHistory(purchases);

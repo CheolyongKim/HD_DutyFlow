@@ -28,7 +28,6 @@ public class StockDao {
                 "    p.priceUsd, " +
                 "    p.priceKrw, " +
                 "    p.thresholdValue, " +
-                "    b.brandName, " +
                 "    c.categoryId, " +
                 "    c.categoryName, " +
                 "    c.depth, " +
@@ -59,7 +58,6 @@ public class StockDao {
                     StockProductDto dto = StockProductDto.builder()
                             .category(category)
                             .productName(rs.getString("productName"))
-                            .brandName(rs.getString("brandName"))
                             .capacity(rs.getInt("capacity"))
                             .priceUsd(rs.getBigDecimal("priceUsd"))
                             .priceKrw(rs.getBigDecimal("priceKrw"))

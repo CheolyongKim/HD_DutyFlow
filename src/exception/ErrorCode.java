@@ -52,7 +52,6 @@ public enum ErrorCode {
 	
 	// 파일
 	FILE_SAVE_FAILED("FILE_SAVE_FAILED", "파일 저장 중 오류가 발생했습니다."),
-	FILE_READ_FAILED("FILE_READ_FAILED", "파일 읽기 중 오류가 발생했습니다."),
 	;
     private final String code;
     private final String message;

@@ -37,7 +37,6 @@ public class BrandStockPanel extends JPanel implements Refreshable {
 
         String[] columnNames = {
                 "상품명",
-                "브랜드",
                 "카테고리",
                 "용량",
                 "가격($)",
@@ -97,7 +96,6 @@ public class BrandStockPanel extends JPanel implements Refreshable {
 
                 tableModel.addRow(new Object[] {
                         stock.getProductName(),
-                        stock.getBrandName(),
                         stock.getCategory().getCategoryName(),
                         stock.getCapacity(),
                         stock.getPriceUsd(),
