@@ -15,4 +15,14 @@ public enum Grade {
     public int getPriority() {
         return priority;
     }
+
+    public static Grade fromPriority(int priority) {
+
+        for (Grade grade : values()) {
+            if (grade.priority == priority) {
+                return grade;
+            }
+        }
+		return null;
+    }
 }
