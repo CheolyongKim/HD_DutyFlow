@@ -224,130 +224,167 @@ public class ChaeyeonMain {
 //    	    e.printStackTrace();
 //    	}
     	//=====================================================
-    	
+
+    	 OrderService orderService = new OrderService();
     	 
+         // ================================================================
+         // 케이스 1. 한도 이하 — 세금 없음
+         // 위스키 1000ml (한도 2000ml 이하), 화장품 50ml (한도 100ml 이하)
+         // 기대: 세금 $0, totalAmount = $220+$120 = $340
+         // ================================================================
+         System.out.println("===== 케이스 1: 한도 이하 (세금 없음) =====");
+         runOrder(orderService,
+                 whisky(750, 1, "220"),   // 750ml * 1 = 750ml  → 한도 이하 (2000)
+                 perfume(50, 1, "120")    // 50ml  * 1 = 50ml   → 한도 이하 (100)
+         );
+  
+         // ================================================================
+         // 케이스 2. 위스키만 한도 초과
+         // 위스키 3000ml (한도 2000ml 초과), 화장품 없음
+         // 기대: 위스키 세금 부과
+         // ================================================================
+         System.out.println("\n===== 케이스 2: 위스키만 한도 초과 =====");
+         runOrder(orderService,
+                 whisky(750, 4, "220")    // 750ml * 4 = 3000ml → 한도 초과 (2000)
+         );
+  
+         // ================================================================
+         // 케이스 3. 화장품만 한도 초과
+         // 화장품 200ml (한도 100ml 초과), 위스키 없음
+         // 기대: 화장품 세금 부과
+         // ================================================================
+         System.out.println("\n===== 케이스 3: 화장품만 한도 초과 =====");
+         runOrder(orderService,
+                 perfume(100, 2, "120")   // 100ml * 2 = 200ml  → 한도 초과 (100)
+         );
+  
+         // ================================================================
+         // 케이스 4. 둘 다 한도 초과 (복합)
+         // 위스키 3000ml + 화장품 200ml
+         // 기대: 위스키 + 화장품 세금 모두 부과
+         // ================================================================
+         System.out.println("\n===== 케이스 4: 위스키 + 화장품 모두 한도 초과 =====");
+         runOrder(orderService,
+                 whisky(750, 4, "220"),   // 3000ml → 초과
+                 perfume(100, 2, "120")   // 200ml  → 초과
+         );
+  
+         // ================================================================
+         // 케이스 5. 경계값 — 한도와 정확히 같음 (초과 아님)
+         // 위스키 2000ml, 화장품 100ml
+         // 기대: 세금 없음
+         // ================================================================
+	      // 케이스 5 — DB 실제 capacity=750 기준으로 경계값 맞추기
+	      // 750 * 2 = 1500ml (한도 2000 이하) → 세금 없음 ✅
+	      runOrder(orderService,
+	              whisky(750, 2, "220"),   // 1500ml → 한도 이하
+	              perfume(100, 1, "120")   // 100ml  → 경계
+	      );
 
-        OrderService orderService = new OrderService();
-
-        try {
-
-            // ==============================
-            // 테스트 주문 상품 생성
-            // ==============================
-
-            List<OrderDTO> cartItems = new ArrayList<>();
-
-            // 상품 1
-            OrderDTO whisky = OrderDTO.builder()
-                    .productId(1)
-                    .productName("조니워커 블루라벨")
-                    .categoryId(1)
-                    .categoryName("주류")
-                    .capacity(750)
-                    .quantity(2)
-                    .dollarPrice(new BigDecimal("220"))
-                    .discountPrice(BigDecimal.ZERO)
-                    .build();
-
-            // 상품 2
-            OrderDTO perfume = OrderDTO.builder()
-                    .productId(3)
-                    .productName("샤넬 향수")
-                    .categoryId(4)
-                    .categoryName("화장품")
-                    .capacity(50)
-                    .quantity(1)
-                    .dollarPrice(new BigDecimal("120"))
-                    .discountPrice(BigDecimal.ZERO)
-                    .build();
-            
-            cartItems.add(whisky);
-            cartItems.add(perfume);
-
-            // ==============================
-            // 주문 요청
-            // ==============================
-
-            int memberId = 1;
-            int reservationId = 1;
-
-            orderService.placeOrder(
-                    memberId,
-                    reservationId,
-                    cartItems
-            );
-
-            System.out.println();
-            System.out.println("===== 주문 완료 =====");
-
-            // ==============================
-            // 전체 주문 조회
-            // ==============================
-
-            System.out.println();
-            System.out.println("===== 전체 주문 조회 =====");
-
-            List<OrderDTO> allOrders =
-                    orderService.getAllOrders();
-
-            for (OrderDTO order : allOrders) {
-                System.out.println(order);
-            }
-
-            // ==============================
-            // 회원 주문 조회
-            // ==============================
-
-            System.out.println();
-            System.out.println("===== 회원 주문 조회 =====");
-
-            List<OrderDTO> memberOrders =
-                    orderService.getOrdersByMemberId(1);
-
-            for (OrderDTO order : memberOrders) {
-                System.out.println(order);
-            }
-
-            // ==============================
-            // 특정 주문 상품 조회
-            // ==============================
-
-            System.out.println();
-            System.out.println("===== 주문 상세 조회 =====");
-
-            OrderDTO detail =
-                    orderService.getOrder(1, 1);
-
-            System.out.println(detail);
-
-            // ==============================
-            // 주문번호 기준 조회
-            // ==============================
-
-            System.out.println();
-            System.out.println("===== 주문번호 기준 조회 =====");
-
-            List<OrderDTO> orderItems =
-                    orderService.getOrdersByOrderId(1);
-
-            for (OrderDTO item : orderItems) {
-                System.out.println(item);
-            }
-
-        } catch (BusinessException e) {
-
-            System.out.println();
-            System.out.println("❌ 비즈니스 예외 발생");
-            System.out.println("code = " + e.getErrorCode());
-            System.out.println("message = " + e.getMessage());
-
-        } catch (Exception e) {
-
-            System.out.println();
-            System.out.println("❌ 시스템 오류 발생");
-
-            e.printStackTrace();
-        }
-    }
+  
+         // ================================================================
+		   // 케이스 6 — 한도 초과용
+		   // 750 * 3 = 2250ml (한도 2000 초과) → 세금 있음 ✅
+		   runOrder(orderService,
+		           whisky(750, 3, "220"),   // 2250ml → 초과
+		           perfume(100, 2, "120")   // 200ml  → 초과
+		   );
+  
+         // ================================================================
+         // 케이스 7. 장바구니 비어있음 → 예외
+         // ================================================================
+         System.out.println("\n===== 케이스 7: 빈 장바구니 (예외) =====");
+         try {
+             orderService.placeOrder(1, 1, new ArrayList<>());
+         } catch (BusinessException e) {
+             System.out.println("✅ 예외 발생: " + e.getErrorCode() + " / " + e.getMessage());
+         }
+  
+         // ================================================================
+         // 케이스 8. 장바구니 null → 예외
+         // ================================================================
+         System.out.println("\n===== 케이스 8: null 장바구니 (예외) =====");
+         try {
+             orderService.placeOrder(1, 1, null);
+         } catch (BusinessException e) {
+             System.out.println("✅ 예외 발생: " + e.getErrorCode() + " / " + e.getMessage());
+         }
+  
+         // ================================================================
+         // 조회 테스트
+         // ================================================================
+  
+         System.out.println("\n===== 전체 주문 조회 =====");
+         orderService.getAllOrders().forEach(System.out::println);
+  
+         System.out.println("\n===== 회원(memberId=1) 주문 조회 =====");
+         orderService.getOrdersByMemberId(1).forEach(System.out::println);
+  
+         System.out.println("\n===== 주문 상세 조회 (orderId=1, productId=1) =====");
+         System.out.println(orderService.getOrder(1, 1));
+  
+         System.out.println("\n===== 주문번호 기준 조회 (orderId=1) =====");
+         orderService.getOrdersByOrderId(1).forEach(System.out::println);
+  
+         // ================================================================
+         // 케이스 9. 존재하지 않는 주문 조회 → 예외
+         // ================================================================
+         System.out.println("\n===== 케이스 9: 존재하지 않는 주문 조회 (예외) =====");
+         try {
+             orderService.getOrder(9999, 9999);
+         } catch (BusinessException e) {
+             System.out.println("✅ 예외 발생: " + e.getErrorCode() + " / " + e.getMessage());
+         }
+     }
+  
+     // ----------------------------------------------------------------
+     // 헬퍼 메서드
+     // ----------------------------------------------------------------
+  
+     /** 주문 실행 공통 처리 */
+     private static void runOrder(OrderService orderService, OrderDTO... items) {
+         try {
+             List<OrderDTO> cartItems = new ArrayList<>();
+             for (OrderDTO item : items) cartItems.add(item);
+  
+             orderService.placeOrder(1, 1, cartItems);
+             System.out.println("✅ 주문 완료");
+         } catch (BusinessException e) {
+             System.out.println("❌ 비즈니스 예외: " + e.getErrorCode() + " / " + e.getMessage());
+         } catch (Exception e) {
+             System.out.println("❌ 시스템 오류: " + e.getMessage());
+             e.printStackTrace();
+         }
+     }
+  
+     /** 위스키 아이템 생성 (categoryId=2) */
+     private static OrderDTO whisky(int capacity, int quantity, String price) {
+         return OrderDTO.builder()
+                 .productId(1)
+                 .productName("조니워커 블루라벨")
+                 .categoryId(2)               // DB 기준 위스키 = 2
+                 .categoryName("위스키")
+                 .capacity(capacity)
+                 .quantity(quantity)
+                 .dollarPrice(new BigDecimal(price))
+                 .discountPrice(BigDecimal.ZERO)
+                 .build();
+     }
+  
+     /** 화장품/향수 아이템 생성 (categoryId=4) */
+     private static OrderDTO perfume(int capacity, int quantity, String price) {
+         return OrderDTO.builder()
+                 .productId(3)
+                 .productName("샤넬 넘버5")
+                 .categoryId(4)               // DB 기준 화장품 = 4
+                 .categoryName("화장품")
+                 .capacity(capacity)
+                 .quantity(quantity)
+                 .dollarPrice(new BigDecimal(price))
+                 .discountPrice(BigDecimal.ZERO)
+                 .build();
+     }
+    	
+    
     
 }

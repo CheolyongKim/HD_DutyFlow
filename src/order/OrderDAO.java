@@ -140,31 +140,20 @@ public class OrderDAO {
 	public Order findOneOrderByOrderId(int orderId) {
 
 		String sql = "SELECT orderId, orderState, totalAmount " + "FROM orders " + "WHERE orderId = ?";
-
 		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
 			pstmt.setInt(1, orderId);
-
+			
 			try (ResultSet rs = pstmt.executeQuery()) {
-
 				if (rs.next()) {
-
 					int id = rs.getInt("orderId");
-
 					BigDecimal totalAmount = rs.getBigDecimal("totalAmount");
-
 					String stateStr = rs.getString("orderState");
-
 					OrderState currentState = convertStringToState(stateStr);
-
 					Order order = new Order(id, currentState);
-
 					order.setTotalPrice(totalAmount);
-
 					return order;
 				}
 			}
-
 		} catch (SQLException e) {
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		}
