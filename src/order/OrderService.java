@@ -9,6 +9,8 @@ import java.util.Scanner;
 import common.Grade;
 import exception.BusinessException;
 import exception.ErrorCode;
+import flight.FlightDAO;
+import flight.FlightService;
 import member.MemberDAO;
 import order.dto.OrderDTO;
 import order.state.PendingState;
@@ -24,7 +26,11 @@ public class OrderService {
 
 	private final OrderDAO orderDAO = new OrderDAO();
 	private final RegulationDAO regulationDAO = new RegulationDAO();
-
+	
+	private final FlightDAO flightDAO = new FlightDAO();
+	private final FlightService flightService = new FlightService(flightDAO);
+	
+	
 	// CategoryId 상수 (DB 기준)
 	private static final int CATEGORY_GENERAL = 1;
 	private static final int CATEGORY_ALCOHOL = 2;
@@ -136,6 +142,7 @@ public class OrderService {
 	/**
 	 * 최종 결제 승인
 	 */
+	
 	public void order(int orderId, RegulationDTO generalReg, RegulationDTO alcoholReg, RegulationDTO perfumeReg) {
 
 		System.out.println("in Order");
@@ -148,6 +155,18 @@ public class OrderService {
 			throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
+		
+
+		// 2. 상태 검증
+		if (!(order.getState() instanceof PendingState)) {
+			throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
+		}
+
+		// 고객의 항공편 예약 번호 검증
+		String reservationCode = orderDAO.findReservationCodeByOrderId(orderId); 
+	    flightService.validateReservationCode(reservationCode);
+		
+		
 		// 멤버십 할인 반영
 		MemberDAO memberDAO = new MemberDAO();
 		Member member = memberDAO.findById(order.getMemberId());
@@ -164,18 +183,14 @@ public class OrderService {
 		order.setDiscountPrice(membershipDiscount);
 		order.setTotalPrice(order.getTotalPrice().subtract(membershipDiscount));
 
-		// 2. 상태 검증
-		if (!(order.getState() instanceof PendingState)) {
-			throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
-		}
+	    // 검증 완료 상태 전환
+	 		order.verify();
 
 		// 3. 세금 계산 (전략 패턴)
 		BigDecimal totalTax = calculateTax(orderItems, generalReg, alcoholReg, perfumeReg);
 		BigDecimal finalAmount = order.getTotalPrice().add(totalTax);
 
-		// 4. 검증 완료 상태 전환
-		order.verify();
-
+		
 		try {
 			// 5. 외부 결제 요청
 			boolean paySuccess = dummyPaymentGateway(finalAmount);
