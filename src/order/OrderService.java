@@ -14,6 +14,7 @@ import flight.FlightService;
 import member.MemberDAO;
 import order.dto.OrderDTO;
 import order.state.PendingState;
+import payment.PaymentService;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
 import tax.AlcoholTaxStrategy;
@@ -29,7 +30,7 @@ public class OrderService {
 	
 	private final FlightDAO flightDAO = new FlightDAO();
 	private final FlightService flightService = new FlightService(flightDAO);
-	
+	private final PaymentService paymentService = new PaymentService();
 	
 	// CategoryId 상수 (DB 기준)
 	private static final int CATEGORY_GENERAL = 1;
@@ -93,7 +94,7 @@ public class OrderService {
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
-	public int placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems) {
+	public int placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems, String cardNumber) {
 
 		if (cartItems == null || cartItems.isEmpty()) {
 			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
@@ -147,7 +148,7 @@ public class OrderService {
 
 		// 6. 결제 프로세스 (조회한 규정 재사용)
 		try {
-			order(orderId, generalReg, alcoholReg, perfumeReg);
+			order(orderId, generalReg, alcoholReg, perfumeReg,cardNumber);
 			System.out.println("넘어가는 orderId = " + orderId);
 		} catch (BusinessException e) {
 			System.err.println("주문 생성 후 결제 단계 오류: " + e.getMessage());
@@ -161,7 +162,7 @@ public class OrderService {
 	 * 최종 결제 승인
 	 */
 	
-	public void order(int orderId, RegulationDTO generalReg, RegulationDTO alcoholReg, RegulationDTO perfumeReg) {
+	public void order(int orderId, RegulationDTO generalReg, RegulationDTO alcoholReg, RegulationDTO perfumeReg, String cardNumber) {
 
 		System.out.println("in Order");
 
@@ -211,7 +212,7 @@ public class OrderService {
 		
 		try {
 			// 5. 외부 결제 요청
-			boolean paySuccess = dummyPaymentGateway(finalAmount);
+			boolean paySuccess = paymentService.payment(orderId, finalAmount, cardNumber);
 			if (!paySuccess) {
 				throw new BusinessException(ErrorCode.PAYMENT_FAILED);
 			}
