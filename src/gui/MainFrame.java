@@ -7,6 +7,7 @@ import javax.swing.JPanel;
 
 import gui.auth.BrandManagerLoginPanel;
 import gui.auth.LoginSelectPanel;
+import gui.auth.MemberLoginPanel;
 import gui.brand.BrandMainPanel;
 import gui.brand.BrandOrderHistoryPanel;
 import gui.brand.BrandProductListPanel;
@@ -15,6 +16,9 @@ import gui.brand.BrandPurchaseHistoryPanel;
 import gui.brand.BrandPurchasePanel;
 import gui.brand.BrandStockPanel;
 import gui.home.HomePanel;
+import gui.member.MemberMainPanel;
+import gui.member.MemberPassportPanel;
+import gui.member.MemberSignupPanel;
 import gui.auth.AirportManagerLoginPanel;
 import gui.pickup.PickupMainPanel;
 
@@ -56,6 +60,11 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("BRAND_PRODUCT_MANAGE", new BrandProductManagePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE", new BrandPurchasePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE_HISTORY", new BrandPurchaseHistoryPanel(screenManager));
+        
+        screenManager.addScreen("MEMBER_LOGIN", new MemberLoginPanel(screenManager));
+        screenManager.addScreen("MEMBER_SIGNUP", new MemberSignupPanel(screenManager));
+        screenManager.addScreen("MEMBER_MAIN", new MemberMainPanel(screenManager));
+        screenManager.addScreen("MEMBER_PASSPORT", new MemberPassportPanel(screenManager));
         
         // ── 인도장 GUI 패널 등록 ──
         screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
