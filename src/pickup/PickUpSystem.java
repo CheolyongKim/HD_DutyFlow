@@ -158,7 +158,7 @@ public class PickUpSystem implements FlightObserver {
 		airplane.registerObserver(this);
 		// TODO: 피드백: DTO로 하세요
 		this.pq.enqueue(airplane, new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null, passportNum,
-				null, false, aqdto.getGrade(), null));
+				null, false, aqdto.getGrade(), null, null));
 		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
 	}
 
