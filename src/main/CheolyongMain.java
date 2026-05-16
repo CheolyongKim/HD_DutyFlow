@@ -2,8 +2,13 @@ package main;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
+
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import common.CurrentTime;
 import common.Grade;
+import flight.FlightDAO;
+import flight.FlightService;
 import member.Member;
 import pickup.PickUpSystem;
 
@@ -20,11 +25,15 @@ public class CheolyongMain {
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
 			
-			flight.FlightDAO flightDAO = new flight.FlightDAO();
-			flight.FlightService flightService = new flight.FlightService(flightDAO);
-			airport.AirportManagerService airportManagerService = new airport.AirportManagerService();
+			FlightDAO flightDAO = new FlightDAO();
+	        AirportManagerDao airportManagerDao = new AirportManagerDao();
+	        
+	        FlightService flightService = new FlightService(flightDAO);
+	        AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
+	        
+	        PickUpSystem ps = new PickUpSystem(airportManagerService,flightService);
 
-			PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
+			
 			ps.loadOrders();
 
 			System.out.println("\nSYSTEM: (창구 오픈 전) 타임워프를 통해 고객들이 순차적으로 번호표를 뽑습니다...");
