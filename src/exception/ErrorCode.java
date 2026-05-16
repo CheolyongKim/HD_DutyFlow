@@ -107,6 +107,10 @@ public enum ErrorCode {
 	EMPTY_PASSPORT_EXPIRY_DATE("EMPTY_PASSPORT_EXPIRY_DATE", "여권 만료일을 입력해주세요."),
 	EXPIRED_PASSPORT("EXPIRED_PASSPORT", "만료된 여권입니다."),
 	DUPLICATE_PASSPORT("DUPLICATE_PASSPORT", "이미 등록된 여권번호입니다."),
+	
+	// 로그인
+	INVALID_LOGIN_INPUT("INVALID_LOGIN_INPUT", "아이디와 비밀번호를 입력해주세요."),
+	INVALID_LOGIN_CREDENTIAL("INVALID_LOGIN_CREDENTIAL", "아이디 또는 비밀번호가 올바르지 않습니다."),
 	;
 	
     private final String code;

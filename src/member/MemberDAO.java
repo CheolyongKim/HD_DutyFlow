@@ -141,4 +141,36 @@ public class MemberDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
+    
+    // 아이디, 비밀번호로 회원 조회
+    public Member findByLoginIdAndPassword(String loginId, String password) {
+
+        String sql =  "SELECT memberId, loginId, password, name, isAdult, grade FROM Member WHERE loginId = ? AND password = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, loginId);
+            pstmt.setString(2, password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                if (rs.next()) {
+                    return Member.builder()
+                            .memberId(rs.getInt("memberId"))
+                            .loginId(rs.getString("loginId"))
+                            .password(rs.getString("password"))
+                            .name(rs.getString("name"))
+                            .isAdult("Y".equals(rs.getString("isAdult")))
+                            .grade(Grade.valueOf(rs.getString("grade")))
+                            .build();
+                }
+            }
+
+            return null;
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }

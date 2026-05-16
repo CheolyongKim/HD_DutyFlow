@@ -117,4 +117,22 @@ public class MemberService {
             throw new ValidationException(ErrorCode.EXPIRED_PASSPORT);
         }
     }
+    
+    // 로그인
+    public int login(String loginId, String password) {
+
+        // 아이디 또는 비밀번호를 입력하지 않은 경우
+        if (isBlank(loginId) || isBlank(password)) {
+            throw new ValidationException(ErrorCode.INVALID_LOGIN_INPUT);
+        }
+
+        Member member = memberDAO.findByLoginIdAndPassword(loginId, password);
+
+        // 로그인 정보가 일치하지 않는 경우
+        if (member == null) {
+            throw new ValidationException(ErrorCode.INVALID_LOGIN_CREDENTIAL);
+        }
+
+        return member.getMemberId();
+    }
 }
