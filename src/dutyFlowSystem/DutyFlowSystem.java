@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.stream.Collectors;
 
 import brandSystem.BrandSystem;
 import brandSystem.dto.BrandOrderRequestDTO;
@@ -28,10 +29,7 @@ import shoppingCart.ShoppingCartService;
 import shoppingCart.dto.TotalCartDTO;
 
 public class DutyFlowSystem {
-
 	
-	private Member member = new Member();
-	private List<Member> members;
 	private Queue<Order> orderQueue = new LinkedList<>();
 	private List<BrandSystem> brandList;
 	public String cardNumber = "4111-1111-1111-1111"; // 추후 Swing 입력 값
@@ -330,11 +328,94 @@ public class DutyFlowSystem {
 	public List<OrderDTO> getAllOrders() {
 		return orderService.getAllOrders();
 	}
-	public void setMember(Member member) {
-	    this.member = member;
-	}
+	
 	public void setBrandList(List<BrandSystem> brandList) {
 	    this.brandList = brandList;
 	}
+	
+	public void makeOrder() {
+	    int memberId = getLoginMemberId();
+
+	    // 1. 장바구니 조회
+	    TotalCartDTO totalCart = shoppingCartService.getCart(memberId);
+	    if (totalCart == null
+	            || totalCart.getItems() == null
+	            || totalCart.getItems().isEmpty()) {
+	        throw new BusinessException(ErrorCode.INVALID_INPUT);
+	    }
+
+	    // 2. 항공편 예약 정보 조회
+	    FlightBookDTO flightBookDto = flightService.getFlightBookByMemberId(memberId);
+	    int reservationId = flightBookDto.getReservationId();
+
+	    // 3. orders + order_detail DB insert → orderId 발급
+	    int orderId = orderService.createOrder(memberId, reservationId, totalCart.getItems());
+
+	    // 4. 큐에 적재
+	    Order order = new Order();
+	    order.setOrderId(orderId);
+	    order.setMemberId(memberId);
+	    order.setReservationId(reservationId);
+	    addOrderQueue(order);
+
+	    // 5. 장바구니 비우기
+	    deleteFromCart();
+
+	    System.out.println("✅ 주문 생성 완료 orderId = " + orderId);
+	}
+	
+
+//	public void makeOrder() {
+//		// 1. 현재 로그인된 회원 ID 확인
+//		int memberId = getLoginMemberId();
+//
+//		// 2. 회원의 장바구니 데이터 조회
+//		TotalCartDTO totalCart = shoppingCartService.getCart(memberId); 
+//		if (totalCart == null || totalCart.getItems() == null || totalCart.getItems().isEmpty()) {
+//			throw new BusinessException(ErrorCode.INVALID_INPUT); // 장바구니가 비어있을 경우 예외 처리
+//		}
+//
+//		// 3. 새 주문(Order) 객체 생성 및 기본 정보 설정
+//		Order order = new Order();
+//		order.setMemberId(memberId);
+//		order.setOrderedAt(LocalDate.now());
+//
+//		// 4. [중요] OrderService를 통해 DB에 Order를 선행 insert하고 발급된 orderId를 받아옴
+//		// (또는 OrderService 내부에서 order와 orderDetail을 한 번에 트랜잭션으로 처리하는 메서드가 있다면 그것을 호출해야 합니다.)
+//		int generatedOrderId = orderService.createOrder(order); 
+//		order.setOrderId(generatedOrderId);
+//
+//		// 5. 장바구니 아이템들을 OrderDetail 형식으로 변환하여 Order DTO 또는 리스트에 바인딩
+//		// (현재 코드상 processOrder에서 orderDetails = getOrderDetails(order.getOrderId()); 로 
+//		// orderService를 통해 상세 데이터를 다시 조회하므로, DB에 먼저 반영되어 있어야 합니다.)
+//		for (var cartItem : totalCart.getCartItems()) {
+//			OrderDTO orderDetail = new OrderDTO();
+//			orderDetail.setOrderId(generatedOrderId);
+//			orderDetail.setProductName(cartItem.getProduct().getProductName());
+//			orderDetail.setBrandName(cartItem.getProduct().getBrandName());
+//			orderDetail.setOrderAmount(cartItem.getAmount()); // 수량
+//			// 필요 시 가격 정보 등 추가 세팅
+//			// orderDetail.setPriceKrw(cartItem.getProduct().getPriceKrw());
+//
+//			// OrderService를 통해 OrderDetail table에 insert 수행
+//			orderService.insertOrderDetail(orderDetail);
+//		}
+//
+//		// 6. 모든 주문 데이터(마스터+상세)가 DB에 반영된 후, 결제 처리를 위해 큐에 Order 주입
+//		addOrderQueue(order);
+//
+//		// 7. 주문이 성공적으로 큐에 들어갔으므로 장바구니 비우기
+//		deleteFromCart();
+//	}
+	
+//	public void makeOrder() {
+//        Order order = new Order();
+//        
+//        
+//        ()
+//        
+//        
+//        addOrderQueue(order);
+//	}
 	
 }

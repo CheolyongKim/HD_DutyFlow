@@ -113,7 +113,8 @@ public class ShoppingCartService {
             BigDecimal wonPrice = product.getPriceKrw().multiply(BigDecimal.valueOf(quantity));
             
             // 상품별 DTO 생성
-            items.add(new CartItemDTO(product.getProductName(), quantity, dollarPrice, wonPrice));
+            items.add(new CartItemDTO(product.getProductId(), product.getProductName(), quantity, dollarPrice, wonPrice));
+
             
             // 총합 계산
             totalQuantity += quantity;

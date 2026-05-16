@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import category.Category;
-import product.dto.ProductDTO;
 import common.Currency;
 import common.OracleConnection;
 import exception.DataNotFoundException;
@@ -39,9 +38,9 @@ public class ProductDAO {
             ") st ON p.productId = st.productId ";
 
     /**
-     * productDto에 데이터 넣는 기능 공통 메서드화
+     * product에 데이터 넣는 기능 공통 메서드화
      */
-    private ProductDTO mapProduct(ResultSet rs) throws SQLException {
+    private Product mapProduct(ResultSet rs) throws SQLException {
 
         Category category = Category.builder()
                 .categoryId(rs.getInt("categoryId"))
@@ -49,17 +48,15 @@ public class ProductDAO {
                 .depth(rs.getInt("depth"))
                 .build();
 
-        return ProductDTO.builder()
+        return Product.builder()
                 .category(category)
                 .productName(rs.getString("productName"))
                 .brandName(rs.getString("brandName"))
                 .capacity(rs.getInt("capacity"))
-                .priceUsd(rs.getBigDecimal("priceUsd"))
-                .priceKrw(rs.getBigDecimal("priceKrw"))
-                .discountRate(rs.getDouble("discountRate"))
-                .hasEvent("Y".equalsIgnoreCase(rs.getString("hasEvent")))
-                .finalPriceKrw(rs.getBigDecimal("finalPriceKrw"))
-                .finalPriceUsd(rs.getBigDecimal("finalPriceUsd"))
+                .priceUsd(rs.getBigDecimal("finalPriceUsd"))
+                .priceKrw(rs.getBigDecimal("finalPriceKrw"))
+                .discountRate(rs.getInt("discountRate"))
+//                .hasEvent("Y".equalsIgnoreCase(rs.getString("hasEvent")))
                 .thresholdValue(rs.getInt("thresholdValue"))
                 .build();
     }
@@ -67,7 +64,7 @@ public class ProductDAO {
     /**
      * 모든 상품 조회
      */
-    public List<ProductDTO> getAllProducts() throws SystemException {
+    public List<Product> getAllProducts() throws SystemException {
 
         String sql = baseSql;
 
@@ -75,7 +72,7 @@ public class ProductDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
 
-            List<ProductDTO> productList = new ArrayList<>();
+            List<Product> productList = new ArrayList<>();
 
             while (rs.next()) {
                 productList.add(mapProduct(rs));
@@ -91,7 +88,7 @@ public class ProductDAO {
     /**
      * 해당하는 카테고리의 상품 조회
      */
-    public List<ProductDTO> getProductsByCategory(Category category) throws SystemException {
+    public List<Product> getProductsByCategory(Category category) throws SystemException {
 
         String sql = baseSql + "WHERE c.categoryName = ?";
 
@@ -101,7 +98,7 @@ public class ProductDAO {
             pstmt.setString(1, category.getCategoryName());
 
             try (ResultSet rs = pstmt.executeQuery()) {
-                List<ProductDTO> productList = new ArrayList<>();
+                List<Product> productList = new ArrayList<>();
 
                 while (rs.next()) {
                     productList.add(mapProduct(rs));
@@ -118,7 +115,7 @@ public class ProductDAO {
     /**
      * 특정 하나의 상품을 출력하는 메서드
      */
-    public ProductDTO getProductsByProductName(String productName) throws SystemException {
+    public Product getProductsByProductName(String productName) throws SystemException {
 
         String sql = baseSql + "WHERE p.productName = ?";
 
@@ -143,7 +140,7 @@ public class ProductDAO {
     /**
      * 금액 범위 지정한 상품 list 보기
      */
-    public List<ProductDTO> getProductsFilterByPrice(
+    public List<Product> getProductsFilterByPrice(
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Currency currency
@@ -166,7 +163,7 @@ public class ProductDAO {
             pstmt.setBigDecimal(2, maxPrice);
 
             try (ResultSet rs = pstmt.executeQuery()) {
-                List<ProductDTO> productList = new ArrayList<>();
+                List<Product> productList = new ArrayList<>();
 
                 while (rs.next()) {
                     productList.add(mapProduct(rs));
@@ -179,6 +176,7 @@ public class ProductDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }    
+
     // BrandID 구하기
     public int findBrandIdByBrandName(String brandName) throws SystemException {
 
@@ -302,7 +300,7 @@ public class ProductDAO {
         }
     }
     
-    //상품 삭제
+    // 상품 삭제
     public int deleteProductByBrandNameAndProductName(String brandName, String productName) throws SystemException {
 
         String sql =
@@ -329,66 +327,67 @@ public class ProductDAO {
     }
 
     // 상품 원화 가격 업데이트 
-	public void updateAllPriceKrw(Connection conn, BigDecimal exchangeRate) {
-	    String sql = "UPDATE Product SET priceKrw = ROUND(priceUsd * ?, 0)";
+    public void updateAllPriceKrw(Connection conn, BigDecimal exchangeRate) {
+        String sql = "UPDATE Product SET priceKrw = ROUND(priceUsd * ?, 0)";
 
-	    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-	        pstmt.setBigDecimal(1, exchangeRate);
-	        pstmt.executeUpdate();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setBigDecimal(1, exchangeRate);
+            pstmt.executeUpdate();
 
-	    } catch (SQLException e) {
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
-	}
-	public List<ProductDTO> getProductsByBrandName(String brandName) throws SystemException {
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 
-	    String sql = baseSql + "WHERE b.brandName = ?";
+    public List<Product> getProductsByBrandName(String brandName) throws SystemException {
 
-	    try (Connection conn = OracleConnection.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        String sql = baseSql + "WHERE b.brandName = ?";
 
-	        pstmt.setString(1, brandName);
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            List<ProductDTO> productList = new ArrayList<>();
+            pstmt.setString(1, brandName);
 
-	            while (rs.next()) {
-	                productList.add(mapProduct(rs));
-	            }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                List<Product> productList = new ArrayList<>();
 
-	            return productList;
-	        }
+                while (rs.next()) {
+                    productList.add(mapProduct(rs));
+                }
 
-	    } catch (SQLException e) {
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
-	}
-	
-	public ProductDTO getProductByBrandNameAndProductName(
-	        String brandName,
-	        String productName
-	) throws SystemException {
+                return productList;
+            }
 
-	    String sql = baseSql +
-	            "WHERE b.brandName = ? " +
-	            "  AND p.productName = ?";
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    public Product getProductByBrandNameAndProductName(
+            String brandName,
+            String productName
+    ) throws SystemException {
 
-	    try (Connection conn = OracleConnection.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        String sql = baseSql +
+                "WHERE b.brandName = ? " +
+                "  AND p.productName = ?";
 
-	        pstmt.setString(1, brandName);
-	        pstmt.setString(2, productName);
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            if (rs.next()) {
-	                return mapProduct(rs);
-	            }
+            pstmt.setString(1, brandName);
+            pstmt.setString(2, productName);
 
-	            return null;
-	        }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapProduct(rs);
+                }
 
-	    } catch (SQLException e) {
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
-	}
+                return null;
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }

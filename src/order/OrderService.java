@@ -23,6 +23,9 @@ import payment.PaymentDAO;
 import payment.PaymentService;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
+import shoppingCart.ShoppingCartService;
+import shoppingCart.dto.CartItemDTO;
+import shoppingCart.dto.TotalCartDTO;
 import tax.AlcoholTaxStrategy;
 import tax.GeneralTaxStrategy;
 import tax.PerfumeTaxStrategy;
@@ -40,7 +43,8 @@ public class OrderService {
 	private final FlightService flightService = new FlightService(flightDAO);
 	private final PaymentService paymentService = new PaymentService();
 	private final MembershipService membershipService = new MembershipService();
-
+	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
+	
 	// CategoryId 상수 (DB 기준)
 	private static final int CATEGORY_GENERAL = 1;
 	private static final int CATEGORY_ALCOHOL = 2;
@@ -100,6 +104,43 @@ public class OrderService {
 	// 주문 생성 + 결제
 	// -------------------------------------------------------
 
+	public int createOrder(int memberId, int reservationId, List<CartItemDTO> cartItems) {
+
+	    if (cartItems == null || cartItems.isEmpty()) {
+	        throw new BusinessException(ErrorCode.INVALID_INPUT);
+	    }
+
+	    // 1. 총액 계산 (dollarPrice = 단가 * 수량 합산값)
+	    BigDecimal totalPrice = cartItems.stream()
+	            .map(CartItemDTO::getDollarPrice)
+	            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+	    // 2. Order 도메인 객체 구성
+	    Order order = new Order();
+	    order.setMemberId(memberId);
+	    order.setReservationId(reservationId);
+	    order.setTotalPrice(totalPrice);
+
+	    // 3. CartItemDTO → OrderDTO 변환
+	    //    insertOrder()의 detailSql에서 dollarPrice는 상품 단가이므로 역산
+	    List<OrderDTO> orderItems = cartItems.stream()
+	            .map(item -> OrderDTO.builder()
+	                    .productId(item.getProductId())
+	                    .quantity(item.getQuantity())
+	                    .dollarPrice(
+	                        item.getDollarPrice()
+	                            .divide(BigDecimal.valueOf(item.getQuantity()), 2, BigDecimal.ROUND_HALF_UP)
+	                    )
+	                    .discountPrice(BigDecimal.ZERO)
+	                    .build())
+	            .collect(Collectors.toList());
+
+	    // 4. orders + order_detail 트랜잭션 insert → orderId 반환
+	    return orderDAO.insertOrder(order, orderItems);
+	}
+	
+	
+	
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
@@ -108,7 +149,8 @@ public class OrderService {
                                                  int reservationId,
                                                  List<OrderDTO> cartItems,
                                                  String cardNumber) {
-
+    	
+    	TotalCartDTO cartDTO =  shoppingCartService.getCart(memberId);
         if (cartItems == null || cartItems.isEmpty()) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
         }

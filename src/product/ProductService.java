@@ -15,11 +15,11 @@ public class ProductService {
 
     private final ProductDAO productDAO = new ProductDAO();
 
-    public List<ProductDTO> printAllProducts() {
+    public List<Product> getAllProducts() {
         return productDAO.getAllProducts();
     }
 
-    public List<ProductDTO> printAllProducts(Category category) {
+    public List<Product> getAllProducts(Category category) {
 
         if (category == null || category.getCategoryName() == null || category.getCategoryName().trim().isEmpty()) {
             throw new ValidationException(ErrorCode.INVALID_INPUT);
@@ -28,11 +28,11 @@ public class ProductService {
         return productDAO.getProductsByCategory(category);
     }
 
-    public ProductDTO printProduct(String productName) {
+    public Product getProduct(String productName) {
 
         validateProductName(productName);
 
-        ProductDTO product = productDAO.getProductsByProductName(productName);
+        Product product = productDAO.getProductsByProductName(productName);
 
         if (product == null) {
             throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
@@ -41,7 +41,7 @@ public class ProductService {
         return product;
     }
 
-    public List<ProductDTO> printProduct(
+    public List<Product> getProduct(
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Currency currency
@@ -61,19 +61,19 @@ public class ProductService {
         return productDAO.getProductsFilterByPrice(minPrice, maxPrice, currency);
     }
 
-    public List<ProductDTO> getProductsByBrandName(String brandName) {
+    public List<Product> getProductsByBrandName(String brandName) {
 
         validateBrandName(brandName);
 
         return productDAO.getProductsByBrandName(brandName);
     }
 
-    public ProductDTO getProductByBrandNameAndProductName(String brandName, String productName) {
+    public Product getProductByBrandNameAndProductName(String brandName, String productName) {
 
         validateBrandName(brandName);
         validateProductName(productName);
 
-        ProductDTO product = productDAO.getProductByBrandNameAndProductName(brandName, productName);
+        Product product = productDAO.getProductByBrandNameAndProductName(brandName, productName);
 
         if (product == null) {
             throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
