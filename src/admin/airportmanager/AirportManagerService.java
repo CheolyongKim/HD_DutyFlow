@@ -12,6 +12,7 @@ import member.Member;
 public class AirportManagerService {
 	
 	private final AirportManagerDao airportManagerDao;
+	private AirportManager airportManagerSession;
 	
 	private AirportManagerLoginDto airportManagerLoginDto;
 	 
@@ -22,10 +23,10 @@ public class AirportManagerService {
 	// 로그인 
 	public void login(int managerId, String password) {
 		 
-		if (airportManagerLoginDto != null) {
-			throw new BusinessException(ErrorCode.ALREADY_LOGGED_IN,
-				new Exception("이미 로그인된 상태입니다. 현재 관리자: " + airportManagerLoginDto.getManagerName()));
-		}
+		if (this.airportManagerSession != null) { 
+	        throw new BusinessException(ErrorCode.ALREADY_LOGGED_IN,
+	            new Exception("이미 로그인된 상태입니다. 현재 관리자: " + airportManagerSession.getManagerName()));
+	    }
  
 		AirportManager manager = airportManagerDao.findById(managerId);
 
@@ -34,18 +35,13 @@ public class AirportManagerService {
 				new Exception("관리자 ID 또는 비밀번호가 올바르지 않습니다."));
 		}
  
-		this.airportManagerLoginDto = AirportManagerLoginDto.builder()
-				.managerId(manager.getManagerId())
-				.managerName(manager.getManagerName())
-				.managerType(manager.getManagerType())
-				.build();
+		this.airportManagerSession = manager;
 	}
 	
 	// 로그아웃 
 	public void logout() {
-	    checkLoggedIn(); 
-
-	    this.airportManagerLoginDto = null; // 세션 초기화
+		checkLoggedIn(); 
+	    this.airportManagerSession = null; // 세션 초기화
 	}
 	
 	 // 전체 픽업 목록 처리
@@ -83,10 +79,10 @@ public class AirportManagerService {
 	    }
 
 	 private void checkLoggedIn() {
-        if (airportManagerLoginDto == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGGED_IN,
-                new Exception("로그인 후 이용 가능합니다."));
-        }
+		 if (this.airportManagerSession == null) { 
+		        throw new BusinessException(ErrorCode.NOT_LOGGED_IN,
+		            new Exception("로그인 후 이용 가능합니다."));
+		    }
     }
 
 	

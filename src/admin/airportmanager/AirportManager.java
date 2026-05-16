@@ -24,6 +24,8 @@ public class AirportManager extends Manager {
 
     @Override
     public boolean authenticate(String inputPassword) {
-        return getPassword() != null && getPassword().equals(inputPassword);
+    	return inputPassword != null && 
+    	           getPassword() != null && 
+    	           getPassword().equals(inputPassword);
     }
 }
