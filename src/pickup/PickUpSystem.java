@@ -158,14 +158,14 @@ public class PickUpSystem implements FlightObserver {
 		airplane.registerObserver(this);
 		// TODO: 피드백: DTO로 하세요
 		this.pq.enqueue(airplane, new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null, passportNum,
-				null, false, aqdto.getGrade(), null));
+				null, false, aqdto.getGrade(), null,null));
 		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
 	}
 
 	// DB에서 조건에 맞는 주문들을 메모리로 로드
 	public void loadOrders() {
 		System.out.println("SYSTEM: 인도장 시스템에 픽업 대기 중인 주문 목록을 로드합니다...");
-		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
+//		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
 		System.out.println("SYSTEM: 로드 완료 (총 " + this.orders.size() + "건의 대기 주문)");
 	}
 

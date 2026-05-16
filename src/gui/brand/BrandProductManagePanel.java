@@ -13,6 +13,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import brandSystem.BrandSystem;
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
 
@@ -106,13 +107,13 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
     }
 
     private void resetForm() {
-        categoryNameField.setText("위스키");
+        categoryNameField.setText("");
         productNameField.setText("");
-        capacityField.setText("700");
-        priceUsdField.setText("80");
-        priceKrwField.setText("108000");
-        thresholdField.setText("10");
-        purchaseAmountField.setText("20");
+        capacityField.setText("");
+        priceUsdField.setText("");
+        priceKrwField.setText("");
+        thresholdField.setText("");
+        purchaseAmountField.setText("");
         deleteProductNameField.setText("");
     }
 
@@ -140,8 +141,16 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "용량, 가격, 임계값은 숫자로 입력해야 합니다.");
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "신규 상품 등록 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }
@@ -172,8 +181,16 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "용량, 가격, 임계값, 발주 수량은 숫자로 입력해야 합니다.");
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "신규 상품 등록 및 발주 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }
@@ -192,8 +209,16 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
             JOptionPane.showMessageDialog(this, "상품 삭제 요청 완료");
             resetForm();
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "상품 삭제 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }

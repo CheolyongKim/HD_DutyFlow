@@ -3,13 +3,14 @@ package stock.service;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
+import exception.BusinessException;
+import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
@@ -26,63 +27,65 @@ public class StockPurchaseService {
     private final StockDao stockDao = new StockDao();
 
     public void requestPurchase(String productName, int amount) throws SystemException {
-        if (productName == null || productName.trim().isEmpty()) {
-            throw new IllegalArgumentException("상품명은 비어 있을 수 없습니다.");
-        }
-
-        if (amount <= 0) {
-            throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
-        }
+        validateRequiredText(productName);
+        validateAmount(amount);
 
         int result = stockPurchaseDao.insertPurchaseByProductName(productName, amount);
 
-        if (result == 1) {
-            System.out.println("[발주 요청 완료]");
-            System.out.println("상품명: " + productName);
-            System.out.println("발주 수량: " + amount);
-            System.out.println("상태: " + StockPurchaseStatus.REQUESTED);
-        } else {
-            System.out.println("[발주 요청 실패] 존재하지 않는 상품명일 수 있습니다.");
+        if (result != 1) {
+            throw new DataNotFoundException(
+                    ErrorCode.PRODUCT_NOT_FOUND,
+                    new Exception("발주 요청 실패. 존재하지 않는 상품명일 수 있습니다. 상품명: " + productName)
+            );
         }
     }
 
-    
     public void cancelPurchase(int purchaseId) throws SystemException {
+        validatePositiveId(purchaseId);
+
         StockPurchase purchase = stockPurchaseDao.findById(purchaseId);
 
         if (purchase == null) {
-            System.out.println("[발주 취소 실패] 존재하지 않는 발주입니다. purchaseId = " + purchaseId);
-            return;
+            throw new DataNotFoundException(
+                    ErrorCode.PURCHASE_NOT_FOUND,
+                    new Exception("존재하지 않는 발주입니다. purchaseId=" + purchaseId)
+            );
         }
 
         if (purchase.getStatus() != StockPurchaseStatus.REQUESTED) {
-            System.out.println("[발주 취소 실패] REQUESTED 상태의 발주만 취소할 수 있습니다.");
-            System.out.println("현재 발주 상태: " + purchase.getStatus());
-            return;
+            throw new BusinessException(
+                    ErrorCode.PURCHASE_CANCEL_FAILED,
+                    new Exception("REQUESTED 상태의 발주만 취소할 수 있습니다. 현재 상태: " + purchase.getStatus())
+            );
         }
 
         int result = stockPurchaseDao.cancelPurchase(purchaseId);
 
-        if (result == 1) {
-            System.out.println("[발주 취소 완료] purchaseId = " + purchaseId);
-        } else {
-            System.out.println("[발주 취소 실패] 이미 입고 완료되었거나 취소된 발주입니다.");
+        if (result != 1) {
+            throw new BusinessException(
+                    ErrorCode.PURCHASE_CANCEL_FAILED,
+                    new Exception("이미 입고 완료되었거나 취소된 발주입니다. purchaseId=" + purchaseId)
+            );
         }
     }
 
-    
     public void receivePurchase(int purchaseId) throws SystemException {
+        validatePositiveId(purchaseId);
+
         StockPurchase purchase = stockPurchaseDao.findById(purchaseId);
 
         if (purchase == null) {
-            System.out.println("[입고 실패] 존재하지 않는 발주입니다. purchaseId = " + purchaseId);
-            return;
+            throw new DataNotFoundException(
+                    ErrorCode.PURCHASE_NOT_FOUND,
+                    new Exception("존재하지 않는 발주입니다. purchaseId=" + purchaseId)
+            );
         }
 
         if (purchase.getStatus() != StockPurchaseStatus.REQUESTED) {
-            System.out.println("[입고 실패] REQUESTED 상태의 발주만 입고 처리할 수 있습니다.");
-            System.out.println("현재 발주 상태: " + purchase.getStatus());
-            return;
+            throw new BusinessException(
+                    ErrorCode.PURCHASE_RECEIVE_FAILED,
+                    new Exception("REQUESTED 상태의 발주만 입고 처리할 수 있습니다. 현재 상태: " + purchase.getStatus())
+            );
         }
 
         Stock stock = Stock.builder()
@@ -92,20 +95,24 @@ public class StockPurchaseService {
                 .build();
 
         int insertResult = stockDao.insertStock(stock);
+
+        if (insertResult != 1) {
+            throw new SystemException(
+                    ErrorCode.STOCK_UPDATE_FAILED,
+                    new Exception("발주 입고 중 재고 추가에 실패했습니다. purchaseId=" + purchaseId)
+            );
+        }
+
         int updateResult = stockPurchaseDao.markAsReceived(purchaseId);
 
-        if (insertResult == 1 && updateResult == 1) {
-            System.out.println("[입고 완료]");
-            System.out.println("purchaseId = " + purchaseId);
-            System.out.println("productId = " + purchase.getProductId());
-            System.out.println("입고 수량 = " + purchase.getAmount());
-        } else {
-            System.out.println("[입고 처리 실패]");
+        if (updateResult != 1) {
+            throw new BusinessException(
+                    ErrorCode.PURCHASE_RECEIVE_FAILED,
+                    new Exception("발주 상태를 RECEIVED로 변경하지 못했습니다. purchaseId=" + purchaseId)
+            );
         }
     }
 
-
-    
     public void completeReceivablePurchases() throws SystemException {
         List<StockPurchase> purchases = stockPurchaseDao.findReceivablePurchases();
 
@@ -114,79 +121,75 @@ public class StockPurchaseService {
         }
     }
 
-
-    
     public List<StockPurchase> getAllPurchaseHistory() throws SystemException {
         return stockPurchaseDao.findAll();
     }
 
-
     public List<StockPurchaseHistoryDto> getPurchaseHistoryByProductName(String productName) throws SystemException {
-        if (productName == null || productName.trim().isEmpty()) {
-            throw new IllegalArgumentException("상품명은 비어 있을 수 없습니다.");
-        }
-
+        validateRequiredText(productName);
         return stockPurchaseDao.findByProductName(productName);
     }
 
-
     public List<StockPurchaseHistoryDto> getPurchaseHistoryByStatus(StockPurchaseStatus status) throws SystemException {
         if (status == null) {
-            throw new IllegalArgumentException("발주 상태는 null일 수 없습니다.");
+            throw new ValidationException(
+                    ErrorCode.INVALID_PURCHASE_STATUS,
+                    new Exception("발주 상태는 null일 수 없습니다.")
+            );
         }
 
         return stockPurchaseDao.findByStatus(status);
     }
 
-
     public StockPurchase getPurchaseById(int purchaseId) throws SystemException {
-        return stockPurchaseDao.findById(purchaseId);
-    }
+        validatePositiveId(purchaseId);
 
+        StockPurchase purchase = stockPurchaseDao.findById(purchaseId);
+
+        if (purchase == null) {
+            throw new DataNotFoundException(
+                    ErrorCode.PURCHASE_NOT_FOUND,
+                    new Exception("존재하지 않는 발주입니다. purchaseId=" + purchaseId)
+            );
+        }
+
+        return purchase;
+    }
 
     public List<StockPurchaseHistoryDto> getRequestedPurchases() throws SystemException {
         return stockPurchaseDao.findRequestedPurchases();
     }
 
-
     public List<StockPurchaseHistoryDto> getReceivedPurchases() throws SystemException {
         return stockPurchaseDao.findReceivedPurchases();
     }
 
-
-    public void printPurchaseHistory(List<StockPurchaseHistoryDto> purchases) {
-        if (purchases == null || purchases.isEmpty()) {
-            System.out.println("조회된 발주 이력이 없습니다.");
-            return;
-        }
-
-        for (StockPurchaseHistoryDto purchase : purchases) {
-            System.out.println(purchase);
-        }
-    }
-    
     public List<StockPurchaseHistoryDto> getPurchaseHistoryDtoByBrandName(String brandName) {
-        if (brandName == null || brandName.trim().isEmpty()) {
-            throw new ValidationException(ErrorCode.INVALID_INPUT);
-        }
-
+        validateRequiredText(brandName);
         return stockPurchaseDao.findStockPurchasesHistoryByBrandName(brandName);
     }
-    
+
     public void exportPurchaseHistoryByBrandName(String brandName, File file) {
+        validateRequiredText(brandName);
+
+        if (file == null) {
+            throw new ValidationException(
+                    ErrorCode.INVALID_INPUT,
+                    new Exception("저장할 파일이 선택되지 않았습니다.")
+            );
+        }
 
         List<StockPurchaseHistoryDto> purchases =
                 getPurchaseHistoryDtoByBrandName(brandName);
 
         try (
-            BufferedWriter bw = new BufferedWriter(
-                    new OutputStreamWriter(
-                            new FileOutputStream(file),
-                            StandardCharsets.UTF_8
-                    )
-            )
+                BufferedWriter bw = new BufferedWriter(
+                        new OutputStreamWriter(
+                                new FileOutputStream(file),
+                                StandardCharsets.UTF_8
+                        )
+                )
         ) {
-            // Excel에서 UTF-8 CSV 한글 깨짐 방지용 BOM
             bw.write('\uFEFF');
 
             bw.write("purchaseId,productId,productName,brandName,categoryName,priceUsd,priceKrw,thresholdValue,purchaseDate,amount,status");
@@ -213,6 +216,25 @@ public class StockPurchaseService {
             throw new SystemException(ErrorCode.FILE_SAVE_FAILED, e);
         }
     }
+
+    private void validateRequiredText(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void validateAmount(int amount) {
+        if (amount <= 0) {
+            throw new ValidationException(ErrorCode.INVALID_PURCHASE_AMOUNT);
+        }
+    }
+
+    private void validatePositiveId(int id) {
+        if (id <= 0) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
     private String toCsvLine(String... values) {
         StringBuilder sb = new StringBuilder();
 

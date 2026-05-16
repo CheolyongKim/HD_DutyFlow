@@ -3,16 +3,19 @@ package brandSystem;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.List;
-
 import lombok.Getter;
+
+import exception.BusinessException;
+import exception.ErrorCode;
+import exception.ValidationException;
+
 import product.ProductService;
-import stock.domain.StockPurchase;
 import stock.domain.StockPurchaseStatus;
 import stock.dto.StockProductDto;
 import stock.dto.StockPurchaseHistoryDto;
-import stock.observer.StockObserver;
 import stock.service.StockPurchaseService;
 import stock.service.StockService;
+import stock.observer.StockObserver;
 
 @Getter
 public class BrandSystem implements StockObserver {
@@ -21,80 +24,36 @@ public class BrandSystem implements StockObserver {
     private final StockService stockService;
     private final StockPurchaseService purchaseService;
     private final ProductService productService;
-    
+
     public BrandSystem(String brandName) {
+        validateRequiredText(brandName);
+
         this.brandName = brandName;
         this.stockService = new StockService();
         this.purchaseService = new StockPurchaseService();
         this.productService = new ProductService();
 
-        this.stockService.registerObserver(this); // StockObserver를 구현한 BrandSystem을 stockService에 등록
+        this.stockService.registerObserver(this);
     }
-
 
     public void receiveOrder(String productName, int amount) {
-        if (!validateMyBrandProduct(productName)) {
-            return;
-        }
-        
-        try {
-            System.out.println("===== [" + brandName + "] 주문 접수 =====");
-            System.out.println("상품명: " + productName);
-            System.out.println("주문 수량: " + amount);
-
-            stockService.deductStockFIFO(productName, amount);
-
-            System.out.println("[주문 처리 완료] 재고가 차감되었습니다.");
-
-        } catch (IllegalStateException e) {
-            System.out.println("[주문 처리 실패]");
-            System.out.println(e.getMessage());
-
-        } catch (Exception e) {
-            System.out.println("[주문 처리 중 오류 발생]");
-            e.printStackTrace();
-        }
+        validateMyBrandProduct(productName);
+        stockService.deductStockFIFO(productName, amount);
     }
-
 
     public void makePurchase(String productName, int amount) {
-        if (!validateMyBrandProduct(productName)) {
-            return;
-        }
-        
-        try {
-            System.out.println("===== [" + brandName + "] 발주 요청 =====");
-            purchaseService.requestPurchase(productName, amount);
-
-        } catch (Exception e) {
-            System.out.println("[발주 요청 실패]");
-            e.printStackTrace();
-        }
+        validateMyBrandProduct(productName);
+        purchaseService.requestPurchase(productName, amount);
     }
 
-  
     public void cancelPurchase(int purchaseId) {
-        try {
-            System.out.println("===== [" + brandName + "] 발주 취소 =====");
-            purchaseService.cancelPurchase(purchaseId);
-
-        } catch (Exception e) {
-            System.out.println("[발주 취소 실패]");
-            e.printStackTrace();
-        }
+        purchaseService.cancelPurchase(purchaseId);
     }
 
     public void receivePurchase(int purchaseId) {
-        try {
-            System.out.println("===== [" + brandName + "] 발주 입고 처리 =====");
-            purchaseService.receivePurchase(purchaseId);
-
-        } catch (Exception e) {
-            System.out.println("[발주 입고 처리 실패]");
-            e.printStackTrace();
-        }
+        purchaseService.receivePurchase(purchaseId);
     }
-    
+
     public void registerNewProduct(
             String categoryName,
             String productName,
@@ -103,25 +62,17 @@ public class BrandSystem implements StockObserver {
             BigDecimal priceKrw,
             int thresholdValue
     ) {
-        try {
-            System.out.println("===== [" + brandName + "] 신규 상품 등록 =====");
-
-            productService.registerNewProduct(
-                    brandName,
-                    categoryName,
-                    productName,
-                    capacity,
-                    priceUsd,
-                    priceKrw,
-                    thresholdValue
-            );
-
-        } catch (Exception e) {
-            System.out.println("[신규 상품 등록 실패]");
-            e.printStackTrace();
-        }
+        productService.registerNewProduct(
+                brandName,
+                categoryName,
+                productName,
+                capacity,
+                priceUsd,
+                priceKrw,
+                thresholdValue
+        );
     }
-    
+
     public void registerNewProductAndPurchase(
             String categoryName,
             String productName,
@@ -131,133 +82,95 @@ public class BrandSystem implements StockObserver {
             int thresholdValue,
             int purchaseAmount
     ) {
-        try {
-            System.out.println("===== [" + brandName + "] 신규 상품 등록 및 발주 요청 =====");
+        productService.registerNewProduct(
+                brandName,
+                categoryName,
+                productName,
+                capacity,
+                priceUsd,
+                priceKrw,
+                thresholdValue
+        );
 
-            productService.registerNewProduct(
-                    brandName,
-                    categoryName,
-                    productName,
-                    capacity,
-                    priceUsd,
-                    priceKrw,
-                    thresholdValue
-            );
-
-            purchaseService.requestPurchase(productName, purchaseAmount);
-
-            System.out.println("[신규 상품 등록 및 발주 요청 완료]");
-            System.out.println("브랜드명: " + brandName);
-            System.out.println("상품명: " + productName);
-            System.out.println("발주 수량: " + purchaseAmount);
-
-        } catch (Exception e) {
-            System.out.println("[신규 상품 등록 및 발주 요청 실패]");
-            System.out.println(e.getMessage());
-        }
+        purchaseService.requestPurchase(productName, purchaseAmount);
     }
 
     public void deleteProduct(String productName) {
-        try {
-            System.out.println("===== [" + brandName + "] 상품 삭제 =====");
-
-            productService.deleteProduct(brandName, productName);
-
-        } catch (Exception e) {
-            System.out.println("[상품 삭제 실패]");
-            System.out.println(e.getMessage());
-        }
+        validateRequiredText(productName);
+        productService.deleteProduct(brandName, productName);
     }
+
     public List<StockProductDto> getMyBrandStocks() {
-        try {
-            return stockService.getAllStockByBrandName(brandName);
-        } catch (Exception e) {
-            System.out.println("[브랜드 전체 재고 조회 실패]");
-            e.printStackTrace();
-            return List.of();
-        }
+        return stockService.getAllStockByBrandName(brandName);
+    }
+    
+    public List<StockPurchaseHistoryDto> getMyBrandPurchaseHistory() {
+        return purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
     }
     
     public void exportPurchaseHistoryToFile(File file) {
         purchaseService.exportPurchaseHistoryByBrandName(brandName, file);
     }
-    
-    
+
+    public int getStockAmount(String productName) {
+        validateMyBrandProduct(productName);
+        return stockService.getTotalAmountByProductName(productName);
+    }
+
     public void printStockStatus(String productName) {
-	    if (!validateMyBrandProduct(productName)) {
-	        return;
-	    }
-	    
-	    try {
-	        int totalAmount = stockService.getTotalAmountByProductName(productName);
-	
-	        System.out.println("===== [" + brandName + "] 재고 조회 =====");
-	        System.out.println("상품명: " + productName);
-	        System.out.println("총 재고: " + totalAmount);
-	
-	    } catch (Exception e) {
-	        System.out.println("[재고 조회 실패]");
-	        e.printStackTrace();
-	    }
-	}
+        validateMyBrandProduct(productName);
 
-	public void printMyBrandStocks() {
-        try {
-            System.out.println("===== [" + brandName + "] 전체 재고 목록 =====");
-            stockService.printAllStockByBrandName(brandName);
+        int totalAmount = stockService.getTotalAmountByProductName(productName);
 
-        } catch (Exception e) {
-            System.out.println("[브랜드 전체 재고 조회 실패]");
-            e.printStackTrace();
-        }
+        System.out.println("===== [" + brandName + "] 재고 조회 =====");
+        System.out.println("상품명: " + productName);
+        System.out.println("총 재고: " + totalAmount);
+    }
+
+    public void printMyBrandStocks() {
+        System.out.println("===== [" + brandName + "] 전체 재고 목록 =====");
+        stockService.printAllStockByBrandName(brandName);
     }
 
     public void printPurchaseHistory() {
-        try {
-            System.out.println("===== [" + brandName + "] 브랜드 발주 이력 =====");
+        System.out.println("===== [" + brandName + "] 브랜드 발주 이력 =====");
 
-            List<StockPurchaseHistoryDto> purchases =
-                    purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
+        List<StockPurchaseHistoryDto> purchases =
+                purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
 
-            purchaseService.printPurchaseHistory(purchases);
-
-        } catch (Exception e) {
-            System.out.println("[발주 이력 조회 실패]");
-            e.printStackTrace();
-        }
+        printPurchaseHistory(purchases);
     }
-
 
     public void printPurchaseHistoryByProductName(String productName) {
-        try {
-            System.out.println("===== [" + brandName + "] 상품별 발주 이력 =====");
-            System.out.println("상품명: " + productName);
+        validateMyBrandProduct(productName);
 
-            List<StockPurchaseHistoryDto> purchases =
-                    purchaseService.getPurchaseHistoryByProductName(productName);
+        System.out.println("===== [" + brandName + "] 상품별 발주 이력 =====");
+        System.out.println("상품명: " + productName);
 
-            purchaseService.printPurchaseHistory(purchases);
+        List<StockPurchaseHistoryDto> purchases =
+                purchaseService.getPurchaseHistoryByProductName(productName);
 
-        } catch (Exception e) {
-            System.out.println("[상품별 발주 이력 조회 실패]");
-            e.printStackTrace();
-        }
+        printPurchaseHistory(purchases);
     }
 
-
     public void printPurchaseHistoryByStatus(StockPurchaseStatus status) {
-        try {
-            System.out.println("===== [" + brandName + "] 상태별 발주 이력 =====");
-            System.out.println("상태: " + status);
+        System.out.println("===== [" + brandName + "] 상태별 발주 이력 =====");
+        System.out.println("상태: " + status);
 
-            List<StockPurchaseHistoryDto> purchases =
-                    purchaseService.getPurchaseHistoryByStatus(status);
+        List<StockPurchaseHistoryDto> purchases =
+                purchaseService.getPurchaseHistoryByStatus(status);
 
-            purchaseService.printPurchaseHistory(purchases);
+        printPurchaseHistory(purchases);
+    }
 
-        } catch (Exception e) {
-            System.out.println("[상태별 발주 이력 조회 실패]");
-            e.printStackTrace();
+    private void printPurchaseHistory(List<StockPurchaseHistoryDto> purchases) {
+        if (purchases == null || purchases.isEmpty()) {
+            System.out.println("조회된 발주 이력이 없습니다.");
+            return;
+        }
+
+        for (StockPurchaseHistoryDto purchase : purchases) {
+            System.out.println(purchase);
         }
     }
 
@@ -283,26 +196,25 @@ public class BrandSystem implements StockObserver {
         System.out.println("====================================");
         System.out.println();
     }
-    
+
     public void logout() {
         System.out.println("[" + brandName + "] 브랜드 시스템 로그아웃");
     }
-    
-    private boolean validateMyBrandProduct(String productName) {
-        try {
-            if (!stockService.isBrandProduct(brandName, productName)) {
-                System.out.println("[처리 불가] 해당 브랜드의 상품이 아닙니다.");
-                System.out.println("브랜드 시스템: " + brandName);
-                System.out.println("요청 상품명: " + productName);
-                return false;
-            }
 
-            return true;
+    private void validateMyBrandProduct(String productName) {
+        validateRequiredText(productName);
 
-        } catch (Exception e) {
-            System.out.println("[브랜드 상품 검증 실패]");
-            e.printStackTrace();
-            return false;
+        if (!stockService.isBrandProduct(brandName, productName)) {
+            throw new BusinessException(
+                    ErrorCode.NOT_MY_BRAND_PRODUCT,
+                    new Exception("해당 브랜드의 상품이 아닙니다. 브랜드=" + brandName + ", 상품명=" + productName)
+            );
+        }
+    }
+
+    private void validateRequiredText(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
         }
     }
 }

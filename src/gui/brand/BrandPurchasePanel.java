@@ -11,6 +11,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 
 import brandSystem.BrandSystem;
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
 
@@ -78,8 +79,16 @@ public class BrandPurchasePanel extends JPanel {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "수량은 숫자로 입력해야 합니다.");
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "발주 요청 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }
@@ -95,8 +104,16 @@ public class BrandPurchasePanel extends JPanel {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "발주 ID는 숫자로 입력해야 합니다.");
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "발주 취소 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }

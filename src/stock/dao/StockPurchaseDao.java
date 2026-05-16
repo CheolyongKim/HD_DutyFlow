@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import common.OracleConnection;
+
 import exception.ErrorCode;
 import exception.SystemException;
+
 import stock.domain.StockPurchase;
 import stock.domain.StockPurchaseStatus;
 import stock.dto.StockPurchaseHistoryDto;
@@ -19,17 +21,8 @@ public class StockPurchaseDao {
     public int insertPurchaseByProductName(String productName, int amount) throws SystemException {
 
         String sql =
-                "INSERT INTO StockPurchase ( " +
-                "    productId, " +
-                "    purchaseDate, " +
-                "    amount, " +
-                "    status " +
-                ") " +
-                "SELECT " +
-                "    productId, " +
-                "    SYSDATE, " +
-                "    ?, " +
-                "    ? " +
+                "INSERT INTO StockPurchase (productId, purchaseDate, amount, status) " +
+                "SELECT productId, SYSDATE, ?, ? " +
                 "FROM Product " +
                 "WHERE productName = ?";
 
@@ -101,9 +94,21 @@ public class StockPurchaseDao {
         List<StockPurchaseHistoryDto> purchaseList = new ArrayList<>();
 
         String sql =
-                "SELECT sp.purchaseId, sp.productId, sp.purchaseDate, sp.amount, sp.status " +
+                "SELECT sp.purchaseId, " +
+                "       sp.productId, " +
+                "       p.productName, " +
+                "       b.brandName, " +
+                "       c.categoryName, " +
+                "       p.priceUsd, " +
+                "       p.priceKrw, " +
+                "       p.thresholdValue, " +
+                "       sp.purchaseDate, " +
+                "       sp.amount, " +
+                "       sp.status " +
                 "FROM StockPurchase sp " +
                 "JOIN Product p ON sp.productId = p.productId " +
+                "JOIN Brand b ON p.brandId = b.brandId " +
+                "JOIN Category c ON p.categoryId = c.categoryId " +
                 "WHERE p.productName = ? " +
                 "ORDER BY sp.purchaseId DESC";
 
@@ -130,11 +135,23 @@ public class StockPurchaseDao {
         List<StockPurchaseHistoryDto> purchaseList = new ArrayList<>();
 
         String sql =
-                "SELECT purchaseId, productId, purchaseDate, amount, status " +
-                "FROM StockPurchase sp" +
+                "SELECT sp.purchaseId, " +
+                "       sp.productId, " +
+                "       p.productName, " +
+                "       b.brandName, " +
+                "       c.categoryName, " +
+                "       p.priceUsd, " +
+                "       p.priceKrw, " +
+                "       p.thresholdValue, " +
+                "       sp.purchaseDate, " +
+                "       sp.amount, " +
+                "       sp.status " +
+                "FROM StockPurchase sp " +
                 "JOIN Product p ON sp.productId = p.productId " +
-                "WHERE status = ? " +
-                "ORDER BY purchaseDate ASC";
+                "JOIN Brand b ON p.brandId = b.brandId " +
+                "JOIN Category c ON p.categoryId = c.categoryId " +
+                "WHERE sp.status = ? " +
+                "ORDER BY sp.purchaseDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -190,7 +207,7 @@ public class StockPurchaseDao {
                 "SELECT purchaseId, productId, purchaseDate, amount, status " +
                 "FROM StockPurchase " +
                 "WHERE status = ? " +
-                "  AND purchaseDate <= SYSDATE - (3 / 1440) " + // 발주 후 3분이 지났을 때
+                "  AND purchaseDate <= SYSDATE - (3 / 1440) " +
                 "ORDER BY purchaseDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
@@ -253,18 +270,6 @@ public class StockPurchaseDao {
         );
     }
 
-    private StockPurchase mapToStockPurchase(ResultSet rs) throws SQLException {
-        return StockPurchase.builder()
-                .purchaseId(rs.getInt("purchaseId"))
-                .productId(rs.getInt("productId"))
-                .purchaseDate(rs.getDate("purchaseDate") != null
-                        ? rs.getTimestamp("purchaseDate").toLocalDateTime()
-                        : null)
-                .amount(rs.getInt("amount"))
-                .status(StockPurchaseStatus.valueOf(rs.getString("status")))
-                .build();
-    }
-    
     public List<StockPurchaseHistoryDto> findStockPurchasesHistoryByBrandName(String brandName) throws SystemException {
 
         List<StockPurchaseHistoryDto> purchaseHistoryList = new ArrayList<>();
@@ -305,12 +310,25 @@ public class StockPurchaseDao {
 
         return purchaseHistoryList;
     }
-    
+
+    private StockPurchase mapToStockPurchase(ResultSet rs) throws SQLException {
+        return StockPurchase.builder()
+                .purchaseId(rs.getInt("purchaseId"))
+                .productId(rs.getInt("productId"))
+                .purchaseDate(rs.getTimestamp("purchaseDate") != null
+                        ? rs.getTimestamp("purchaseDate").toLocalDateTime()
+                        : null)
+                .amount(rs.getInt("amount"))
+                .status(StockPurchaseStatus.valueOf(rs.getString("status")))
+                .build();
+    }
+
     private StockPurchaseHistoryDto mapToStockPurchaseHistoryDto(ResultSet rs) throws SQLException {
         return StockPurchaseHistoryDto.builder()
                 .purchaseId(rs.getInt("purchaseId"))
                 .productId(rs.getInt("productId"))
                 .productName(rs.getString("productName"))
+                .brandName(rs.getString("brandName"))
                 .categoryName(rs.getString("categoryName"))
                 .priceUsd(rs.getBigDecimal("priceUsd"))
                 .priceKrw(rs.getBigDecimal("priceKrw"))

@@ -16,6 +16,7 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableModel;
 
 import brandSystem.BrandSystem;
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
 import stock.dto.StockPurchaseHistoryDto;
@@ -86,9 +87,8 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
             tableModel.setRowCount(0);
 
             List<StockPurchaseHistoryDto> purchases =
-                    brandSystem.getPurchaseService()
-                            .getPurchaseHistoryDtoByBrandName(brandSystem.getBrandName());
-
+                    brandSystem.getMyBrandPurchaseHistory();
+            
             for (StockPurchaseHistoryDto purchase : purchases) {
                 tableModel.addRow(new Object[] {
                         purchase.getPurchaseId(),
@@ -104,8 +104,16 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
                 });
             }
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "발주 이력을 불러오는 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }
@@ -140,8 +148,16 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
                     "발주 이력을 파일로 저장했습니다.\n저장 위치: " + selectedFile.getAbsolutePath()
             );
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "발주 이력 파일 저장 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }
