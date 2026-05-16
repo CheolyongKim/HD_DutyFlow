@@ -187,8 +187,8 @@ CREATE TABLE Member (
     phoneNumber           VARCHAR2(100) NOT NULL,
     gradeSelectionDate    DATE NOT NULL,
     adult                 CHAR(1) DEFAULT 'N' NOT NULL,
-    passportNumber        VARCHAR2(200) NOT NULL,
-    passportExpiryDate    DATE NOT NULL,
+    passportNumber        VARCHAR2(200) NULL,
+    passportExpiryDate    DATE NULL,
 
     CONSTRAINT PK_MEMBER PRIMARY KEY (memberId),
     CONSTRAINT FK_MEMBERSHIP_TO_MEMBER_1
