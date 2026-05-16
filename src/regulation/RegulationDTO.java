@@ -1,24 +1,21 @@
 package regulation;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
 public class RegulationDTO {
-
-    private int regulationId;
-    private int categoryId;
-
-    private int limitCapacity;
-
-    private LocalDate establishedDate;
-
-    private int overageRate;
+	private int regulationId;
+	private int categoryId;
+	private int limitCapacity;
+	private LocalDate establishedDate;
+	private int overageRate;
 }
