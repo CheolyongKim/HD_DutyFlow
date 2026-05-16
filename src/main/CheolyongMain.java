@@ -2,6 +2,9 @@ package main;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
+
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import common.CurrentTime;
 import common.Grade;
 import member.Member;
@@ -19,7 +22,7 @@ public class CheolyongMain {
 		try {
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
-			PickUpSystem ps = new PickUpSystem();
+			PickUpSystem ps = new PickUpSystem(new AirportManagerService(new AirportManagerDao()));
 			ps.loadOrders();
 
 			System.out.println("\nSYSTEM: (창구 오픈 전) 타임워프를 통해 고객들이 순차적으로 번호표를 뽑습니다...");
