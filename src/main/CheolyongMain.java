@@ -2,7 +2,15 @@ package main;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
+
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import common.CurrentTime;
+
+import common.Grade;
+import flight.FlightDAO;
+import flight.FlightService;
+import member.Member;
 import pickup.PickUpSystem;
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
@@ -19,11 +27,17 @@ public class CheolyongMain {
 		try {
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
-			flight.FlightDAO flightDAO = new flight.FlightDAO();
-			flight.FlightService flightService = new flight.FlightService(flightDAO);
-			AirportManagerService airportManagerService = new AirportManagerService(new AirportManagerDao());
 
-			PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
+			
+			FlightDAO flightDAO = new FlightDAO();
+	        AirportManagerDao airportManagerDao = new AirportManagerDao();
+	        
+	        FlightService flightService = new FlightService(flightDAO);
+	        AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
+	        
+	        PickUpSystem ps = new PickUpSystem(airportManagerService,flightService);
+
+			
 			ps.loadOrders();
 
 			// ==========================================================

@@ -2,6 +2,7 @@ package main;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +39,7 @@ public class HeejinMain {
     public static void main(String[] args) {
 
         RegulationDAO regulationDAO = new RegulationDAO();
-        
-        PickUpSystem pickUpSystem = new PickUpSystem(new AirportManagerService(new AirportManagerDao()));
-
+      
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
         RegulationDTO alcoholRegulationDTO = regulationDAO.getRegulationByCategoryId(2);
@@ -204,9 +203,13 @@ public class HeejinMain {
         
         // ------------------------- Flight Delay Queue Test --------------------------
         FlightDAO flightDAO = new FlightDAO();
+        AirportManagerDao airportManagerDao = new AirportManagerDao();
+        
         FlightService flightService = new FlightService(flightDAO);
+        AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
+        
+        PickUpSystem pickUpSystem = new PickUpSystem(airportManagerService,flightService);
 
-        AirportManagerService airportManagerService = new AirportManagerService();
         
         System.out.println("\n=== 항공편 지연 테스트 =====");
 
@@ -276,7 +279,8 @@ public class HeejinMain {
         // 인도장 관리자 특정회원 픽업 목록 
         // =========================
         System.out.println("\n=== 특정 회원 픽업 목록 ===");
-        Member targetMember = new Member(3, null, null, false, null);
+        Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null, null);
+
         pickUpSystem.printAllPickUpList(targetMember);
         
         
