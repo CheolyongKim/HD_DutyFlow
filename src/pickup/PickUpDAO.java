@@ -8,11 +8,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import common.Grade;
 import common.OracleConnection;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
+import common.Grade;
 import pickup.dto.AppendQueueDTO;
 import pickup.dto.PickUpDTO;
 // DBUtil 등 필요한 임포트 유지
@@ -113,13 +113,14 @@ public class PickUpDAO {
 		}
 	}
 
-	// [PickUpDAO.java 에 추가할 메서드 2]
-	// 트랜잭션을 적용하여 Orders의 상태와 Pickup의 수령시간을 동시에 업데이트합니다.
-	// [PickUpDAO.java] updateOrderAndPickupStatus 메서드 수정
-	public void updateOrderAndPickupStatus(int orderId, String newState, LocalDateTime pickedUpAt)
+	/**
+	 * Orders 테이블의 상태를 업데이트하고, pickedUpAt이 전달되면 Pickup 테이블도 함께 갱신합니다.
+	 * - PICKED_UP: updateOrderAndPickupState(orderId, "PICKED_UP", CurrentTime.curTime)
+	 * - NO_SHOW:   updateOrderAndPickupState(orderId, "NO_SHOW", null)
+	 */
+	public void updateOrderAndPickupState(int orderId, String newState, LocalDateTime pickedUpAt)
 			throws SystemException {
 		String updateOrderSql = "UPDATE Orders SET orderState = ? WHERE orderId = ?";
-		// 🚨 SYSDATE 대신 ? (파라미터) 사용으로 변경
 		String updatePickupSql = "UPDATE Pickup SET pickedUpAt = ? WHERE orderId = ?";
 
 		Connection conn = null;
@@ -131,28 +132,33 @@ public class PickUpDAO {
 			try (PreparedStatement pstmt1 = conn.prepareStatement(updateOrderSql)) {
 				pstmt1.setString(1, newState);
 				pstmt1.setInt(2, orderId);
-				pstmt1.executeUpdate();
+
+				int affected = pstmt1.executeUpdate();
+				if (affected == 0) {
+					throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND,
+							new Exception("업데이트 대상 주문이 없습니다. orderId=" + orderId));
+				}
 			}
 
-			// 2. Pickup 테이블 수령시간 업데이트 (가상 시계 바인딩)
-			try (PreparedStatement pstmt2 = conn.prepareStatement(updatePickupSql)) {
-				// 💡 가상 시간인 pickedUpAt을 DB의 DATE 형식에 맞게 Timestamp로 변환
-				pstmt2.setTimestamp(1, java.sql.Timestamp.valueOf(pickedUpAt));
-				pstmt2.setInt(2, orderId);
-				pstmt2.executeUpdate();
+			// 2. pickedUpAt이 있을 때만 Pickup 테이블 수령시간 업데이트
+			if (pickedUpAt != null) {
+				try (PreparedStatement pstmt2 = conn.prepareStatement(updatePickupSql)) {
+					pstmt2.setTimestamp(1, java.sql.Timestamp.valueOf(pickedUpAt));
+					pstmt2.setInt(2, orderId);
+					pstmt2.executeUpdate();
+				}
 			}
 
 			conn.commit();
 		} catch (SQLException e) {
 			if (conn != null) {
-				try {
-					conn.rollback();
-				} catch (SQLException ex) {
-				}
+				try { conn.rollback(); } catch (SQLException ex) { /* ignored */ }
 			}
 			throw new SystemException(ErrorCode.DB_CONNECTION, e);
 		} finally {
-			// 자원 반납 로직 동일
+			if (conn != null) {
+				try { conn.close(); } catch (SQLException e) { /* ignored */ }
+			}
 		}
 	}
 

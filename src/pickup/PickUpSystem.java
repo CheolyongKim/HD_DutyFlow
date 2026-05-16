@@ -119,17 +119,15 @@ public class PickUpSystem implements FlightObserver {
 			}
 		}
  
-		// 2. 큐(AQ + BQ) 내 출국 경과 티켓 수집
-		List<PickUpTicket> allTickets = new ArrayList<>();
-		allTickets.addAll(this.pq.getAllFromAq());
-		allTickets.addAll(this.pq.getAllFromBq());
+		// 2. 큐(AQ + BQ) 내 출국 경과 티켓 일괄 추출 및 제거
+		List<PickUpTicket> expiredTickets = this.pq.getExpiredTickets(CurrentTime.curTime);
  
-		for (PickUpTicket ticket : allTickets) {
-			LocalDateTime departure = ticket.getAirplane().getDepartureAt();
-			if (CurrentTime.curTime.isAfter(departure)) {
-				processNoShow(ticket);
-				this.pq.removeTicket(ticket);
-			}
+		for (PickUpTicket ticket : expiredTickets) {
+			processNoShow(ticket);
+		}
+ 
+		if (!expiredTickets.isEmpty()) {
+			this.pq.removeExpiredTickets(expiredTickets);
 		}
 	}
 	
