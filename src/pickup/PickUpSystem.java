@@ -7,9 +7,11 @@ import java.util.List;
 import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
+import exception.DutyFreeException;
 import exception.ErrorCode;
 import exception.ValidationException;
 import flight.FlightObserver;
+import flight.FlightService;
 import member.Member;
 import order.Order;
 import order.OrderDAO;
@@ -27,8 +29,11 @@ public class PickUpSystem implements FlightObserver {
 	private LocalDateTime callTime; // 💡 고객을 호출한 시각 기록
 	private static final int CALL_TIMEOUT_LIMIT = 10; // 기본 타임아웃 (10분)
 	private boolean isCounterOpen = false; // 창구 오픈 상태
+	
+	private final FlightService flightService;
 
-	public PickUpSystem() {
+	public PickUpSystem(FlightService flightService) {
+		this.flightService = flightService;
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 	}
@@ -151,16 +156,24 @@ public class PickUpSystem implements FlightObserver {
 	}
 
 	// 큐에 번호표 뽑기 (뽑았는데 창구가 비어있으면 즉시 호출됨!)
-	public void appendQueue(String passportNum, int flightResNum) {
-		this.validateInfo(passportNum, flightResNum);
-		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
-		Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
-		airplane.registerObserver(this);
-		// TODO: 피드백: DTO로 하세요
-		this.pq.enqueue(airplane, new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null, passportNum,
-				null, false, aqdto.getGrade(), null, null));
-		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
-	}
+		public void appendQueue(String passportNum, int flightResNum) throws DutyFreeException {
+			this.validateInfo(passportNum, flightResNum);
+			AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+			
+			// 예약 유효성 검증
+			flightService.getBookByMemberAndFlight(aqdto.getMemberId(), aqdto.getFlightCode());
+			
+			Airplane airplane = flightService.getFlightInfo(aqdto.getReservationCode());
+			
+			airplane.registerObserver(this);
+			
+			this.pq.enqueue(airplane, new Member(
+					aqdto.getMemberId(), null, null, aqdto.getName(), null, null, 
+					passportNum, null, false, aqdto.getGrade(), null, null
+			));
+			
+			this.tryCallNextCustomer(); 
+		} 
 
 	// DB에서 조건에 맞는 주문들을 메모리로 로드
 	public void loadOrders() {

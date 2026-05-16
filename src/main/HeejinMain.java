@@ -11,6 +11,8 @@ import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
+import flight.FlightDAO;
+import flight.FlightService;
 import order.Order;
 import pickup.PickUpSystem;
 import regulation.RegulationDAO;
@@ -189,13 +191,16 @@ public class HeejinMain {
         System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
         
         // ------------------------- Flight Delay Queue Test --------------------------
+        FlightDAO flightDAO = new FlightDAO();
+        FlightService flightService = new FlightService(flightDAO);
+        
         System.out.println("\n=== 항공편 지연 테스트 =====");
 
         // 현재 시각 설정
         CurrentTime.curTime =
         	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
-
-        PickUpSystem ps = new PickUpSystem();
+        
+        PickUpSystem ps = new PickUpSystem(flightService);
 
         // 번호표 발급 (AQ/BQ 들어감)
         ps.appendQueue("M11111111", 1); // 이급박

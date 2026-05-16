@@ -19,7 +19,11 @@ public class CheolyongMain {
 		try {
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
-			PickUpSystem ps = new PickUpSystem();
+			
+			flight.FlightDAO flightDAO = new flight.FlightDAO();
+			flight.FlightService flightService = new flight.FlightService(flightDAO);
+			
+			PickUpSystem ps = new PickUpSystem(flightService);
 			ps.loadOrders();
 
 			System.out.println("\nSYSTEM: (창구 오픈 전) 타임워프를 통해 고객들이 순차적으로 번호표를 뽑습니다...");

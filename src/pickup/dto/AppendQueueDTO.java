@@ -21,6 +21,8 @@ public class AppendQueueDTO {
 	private LocalDateTime departureAt;
 	private int isDelayed;
 	
+	private String reservationCode;
+	
 	private int memberId;
 	private Grade grade;
 	private String name;

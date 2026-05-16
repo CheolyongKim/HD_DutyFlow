@@ -26,16 +26,16 @@ public class FlightService {
     	
     	validateFlightCode(reservationCode);
 
-        FlightDTO dto = flightDAO.getFlightByReservationCode(reservationCode);
+        FlightDTO flightDto = flightDAO.getFlightByReservationCode(reservationCode);
 
-        if (dto == null) {
+        if (flightDto == null) {
             throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
         }
 
         return new Airplane(
-                dto.getFlightId(),
-                dto.getFlightCode(),
-                dto.getDepartureAt()
+        		flightDto.getFlightId(),
+        		flightDto.getFlightCode(),
+        		flightDto.getDepartureAt()
         );
     }
     
@@ -49,13 +49,13 @@ public class FlightService {
             throw new ValidationException(ErrorCode.INVALID_INPUT);
         }
     	
-        FlightBookDTO bookDto = flightDAO.getBookByMemberAndFlight(memberId, flightCode);
+        FlightBookDTO flightBookDto = flightDAO.getBookByMemberAndFlight(memberId, flightCode);
 
-        if (bookDto == null) {
+        if (flightBookDto == null) {
             throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
         }
 
-        return bookDto;
+        return flightBookDto;
     }
     
 
