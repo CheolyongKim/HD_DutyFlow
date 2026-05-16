@@ -97,14 +97,18 @@ public enum ErrorCode {
 	INVALID_MEMBER_NAME("INVALID_MEMBER_NAME", "회원 이름 입력값이 올바르지 않습니다."),
 	INVALID_BIRTH_DATE("INVALID_BIRTH_DATE", "생년월일 입력값이 올바르지 않습니다."),
 	INVALID_PHONE_NUMBER("INVALID_PHONE_NUMBER", "전화번호 입력값이 올바르지 않습니다."),
-	INVALID_PASSPORT("INVALID_PASSPORT", "여권 정보가 올바르지 않습니다."),
-
+	
 	DUPLICATE_LOGIN_ID("DUPLICATE_LOGIN_ID", "이미 사용 중인 아이디입니다."),
-	DUPLICATE_PHONE_NUMBER("DUPLICATE_PHONE_NUMBER", "이미 등록된 전화번호입니다."),
+	DUPLICATE_PHONE_NUMBER("DUPLICATE_PHONE_NUMBER", "이미 등록된 전화번호입니다."),	
+	
+	// 여권
+	EMPTY_PASSPORT_NUMBER("EMPTY_PASSPORT_NUMBER", "여권번호를 입력해주세요."),
+	INVALID_PASSPORT_FORMAT("INVALID_PASSPORT_FORMAT", "여권번호 형식이 올바르지 않습니다."),
+	EMPTY_PASSPORT_EXPIRY_DATE("EMPTY_PASSPORT_EXPIRY_DATE", "여권 만료일을 입력해주세요."),
+	EXPIRED_PASSPORT("EXPIRED_PASSPORT", "만료된 여권입니다."),
 	DUPLICATE_PASSPORT("DUPLICATE_PASSPORT", "이미 등록된 여권번호입니다."),
-	
-	
 	;
+	
     private final String code;
     private final String message;
     

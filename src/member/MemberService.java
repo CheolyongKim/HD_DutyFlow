@@ -76,4 +76,45 @@ public class MemberService {
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
+    
+    // 여권 정보 등록
+    public void registerPassport(int memberId, String passportNum, LocalDate passportExpiredDate) {
+
+        validatePassportInput(passportNum, passportExpiredDate);
+
+        if (memberDAO.existsByPassportNum(passportNum)) {
+            throw new ValidationException(ErrorCode.DUPLICATE_PASSPORT);
+        }
+
+        memberDAO.updatePassport(memberId, passportNum, passportExpiredDate);
+    }
+
+    // 여권번호 및 여권 만료일 검증
+    private void validatePassportInput(String passportNum, LocalDate passportExpiredDate) {
+
+        // 여권번호를 입력하지 않은 경우
+        if (isBlank(passportNum)) {
+            throw new ValidationException(ErrorCode.EMPTY_PASSPORT_NUMBER);
+        }
+
+        // 신여권 - 영문 1자 + 숫자 3자리 + 영문 1자 + 숫자 4자리
+        // 구여권 - 영문 1자 + 숫자 8자리
+        // 두 경우 모두 허용
+        String passportPattern = "^[A-Z][0-9]{8}$|^[A-Z][0-9]{3}[A-Z][0-9]{4}$";
+
+        // 여권번호 형식이 일치하지 않는 경우
+        if (!passportNum.matches(passportPattern)) {
+            throw new ValidationException(ErrorCode.INVALID_PASSPORT_FORMAT);
+        }
+
+        // 여권 만료일을 입력하지 않은 경우
+        if (passportExpiredDate == null) {
+            throw new ValidationException(ErrorCode.EMPTY_PASSPORT_EXPIRY_DATE);
+        }
+
+        // 여권이 이미 만료된 경우
+        if (!passportExpiredDate.isAfter(LocalDate.now())) {
+            throw new ValidationException(ErrorCode.EXPIRED_PASSPORT);
+        }
+    }
 }

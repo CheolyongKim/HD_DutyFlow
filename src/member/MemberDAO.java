@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+
 import common.Grade;
 import common.OracleConnection;
 import exception.ErrorCode;
@@ -95,6 +97,43 @@ public class MemberDAO {
             pstmt.setString(6, member.getPhoneNumber());
             pstmt.setDate(7, java.sql.Date.valueOf(member.getGradeSelectionDate()));
             pstmt.setString(8, member.isAdult() ? "Y" : "N");
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    // 여권번호 중복 확인
+    public boolean existsByPassportNum(String passportNum) {
+        String sql = "SELECT COUNT(*) FROM Member WHERE passportNumber = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, passportNum);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
+    // 회원의 여권번호 및 여권 만료일 정보를 업데이트
+    public void updatePassport(int memberId, String passportNum, LocalDate passportExpiredDate) {
+        String sql = "UPDATE Member SET passportNumber = ?, passportExpiryDate = ? WHERE memberId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, passportNum);
+            pstmt.setDate(2, java.sql.Date.valueOf(passportExpiredDate));
+            pstmt.setInt(3, memberId);
 
             pstmt.executeUpdate();
 
