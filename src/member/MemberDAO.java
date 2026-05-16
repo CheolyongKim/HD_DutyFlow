@@ -145,8 +145,7 @@ public class MemberDAO {
     // 아이디, 비밀번호로 회원 조회
     public Member findByLoginIdAndPassword(String loginId, String password) {
 
-        String sql =  "SELECT memberId, loginId, password, name, isAdult, grade FROM Member WHERE loginId = ? AND password = ?";
-
+    	String sql = "SELECT memberId, loginId, password, name, adult, grade, passportExpiryDate FROM Member WHERE loginId = ? AND password = ?";
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -156,14 +155,19 @@ public class MemberDAO {
             try (ResultSet rs = pstmt.executeQuery()) {
 
                 if (rs.next()) {
-                    return Member.builder()
-                            .memberId(rs.getInt("memberId"))
-                            .loginId(rs.getString("loginId"))
-                            .password(rs.getString("password"))
-                            .name(rs.getString("name"))
-                            .isAdult("Y".equals(rs.getString("isAdult")))
-                            .grade(Grade.valueOf(rs.getString("grade")))
-                            .build();
+                	return Member.builder()
+                	        .memberId(rs.getInt("memberId"))
+                	        .loginId(rs.getString("loginId"))
+                	        .password(rs.getString("password"))
+                	        .name(rs.getString("name"))
+                	        .isAdult("Y".equals(rs.getString("adult")))
+                	        .grade(Grade.valueOf(rs.getString("grade")))
+                	        .passportExpiredDate(
+                	                rs.getDate("passportExpiryDate") == null
+                	                        ? null
+                	                        : rs.getDate("passportExpiryDate").toLocalDate()
+                	        )
+                	        .build();
                 }
             }
 
