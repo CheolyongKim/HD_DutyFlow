@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.swing.JPanel;
 
+import brandSystem.BrandSystem;
 import gui.common.Refreshable;
 
 public class ScreenManager {
@@ -14,6 +15,8 @@ public class ScreenManager {
     private final JPanel mainPanel;
     private final Map<String, JPanel> screens = new HashMap<>();
 
+    private BrandSystem brandSystem;
+	
     public ScreenManager(CardLayout cardLayout, JPanel mainPanel) {
         this.cardLayout = cardLayout;
         this.mainPanel = mainPanel;
@@ -32,5 +35,17 @@ public class ScreenManager {
         }
 
         cardLayout.show(mainPanel, name);
+    }
+
+    public void setBrandSystem(BrandSystem brandSystem) {
+        this.brandSystem = brandSystem;
+    }
+
+    public BrandSystem getBrandSystem() {
+        return brandSystem;
+    }
+
+    public void clearBrandSystem() {
+        this.brandSystem = null;
     }
 }

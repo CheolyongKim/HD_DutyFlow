@@ -7,6 +7,7 @@ import java.util.List;
 
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
+import admin.airportmanager.dto.PickUpListDTO;
 import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
@@ -369,27 +370,26 @@ public class PickUpSystem implements FlightObserver {
 
 	// 로그인
 	public void login(int managerId, String password) {
-		airportManagerService.login(managerId, password);
-	}
+        this.airportManagerService.login(managerId, password);
+    }
 
 	// 로그아웃
 	public void logout() {
-		airportManagerService.logout();
-	}
+		this.airportManagerService.logout();
+    }
 
 	// 전체 픽업 목록
-	public void printAllPickUpList() {
-		airportManagerService.printAllPickUpList();
+	public List<PickUpListDTO> getAllPickUpList() {
+		return this.airportManagerService.getAllPickUpList();
 	}
 
 	// 특정 회원 픽업 목록
-	public void printAllPickUpList(Member member) {
-		airportManagerService.printAllPickUpList(member);
-	}
+	public List<PickUpListDTO> getAllPickUpListByMember(Member member) {
+		return this.airportManagerService.getAllPickUpListByMember(member);
+    }
 
 	// 기간별 픽업 목록
-	public void printAllPickUpList(LocalDate start, LocalDate end) {
-		airportManagerService.printAllPickUpList(start, end);
-	}
-
+	public List<PickUpListDTO> getAllPickUpListByDateRange(LocalDate start, LocalDate end) {
+		return this.airportManagerService.getAllPickUpListByDateRange(start, end);
+    }
 }

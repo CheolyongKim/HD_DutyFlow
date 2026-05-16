@@ -20,7 +20,6 @@ import gui.common.Refreshable;
 public class BrandProductManagePanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
-    private final BrandSystem brandSystem;
 
     private JTextField categoryNameField;
     private JTextField productNameField;
@@ -31,9 +30,8 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
     private JTextField purchaseAmountField;
     private JTextField deleteProductNameField;
 
-    public BrandProductManagePanel(ScreenManager screenManager, BrandSystem brandSystem) {
+    public BrandProductManagePanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        this.brandSystem = brandSystem;
 
         setLayout(new BorderLayout());
 
@@ -119,6 +117,8 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
 
     private void registerNewProduct() {
         try {
+        	BrandSystem brandSystem = screenManager.getBrandSystem();
+
             String categoryName = categoryNameField.getText();
             String productName = productNameField.getText();
             int capacity = Integer.parseInt(capacityField.getText());
@@ -157,6 +157,8 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
 
     private void registerNewProductAndPurchase() {
         try {
+        	BrandSystem brandSystem = screenManager.getBrandSystem();
+
             String categoryName = categoryNameField.getText();
             String productName = productNameField.getText();
             int capacity = Integer.parseInt(capacityField.getText());
@@ -197,6 +199,8 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
 
     private void deleteProduct() {
         try {
+        	BrandSystem brandSystem = screenManager.getBrandSystem();
+
             String productName = deleteProductNameField.getText();
 
             if (productName == null || productName.trim().isEmpty()) {

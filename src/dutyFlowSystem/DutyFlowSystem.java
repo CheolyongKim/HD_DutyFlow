@@ -9,6 +9,8 @@ import brandSystem.BrandSystem;
 import brandSystem.dto.BrandOrderRequestDTO;
 import exception.BusinessException;
 import exception.ErrorCode;
+import java.time.LocalDate;
+import exception.ValidationException;
 import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
@@ -16,6 +18,8 @@ import flight.FlightBookDTO;
 import flight.FlightDTO;
 import flight.FlightService;
 import member.Member;
+import member.MemberService;
+import member.MemberSignupDTO;
 import order.Order;
 import order.OrderService;
 import order.dto.OrderDTO;
@@ -36,8 +40,12 @@ public class DutyFlowSystem {
 	// private TaxCalculator taxCalculator;
 
 	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
-	private final OrderService orderService = new OrderService();
 	private final FlightService flightService = new FlightService();;
+    private final OrderService orderService = new OrderService();
+    private final MemberService memberService = new MemberService();
+    
+    // 초기에 null로 설정, 로그인 성공 시 loginMemberId값 세팅
+    private Integer loginMemberId = null;
     
 	// 백그라운드에서 실행될 결제 Worker
 	private final PaymentWorker paymentWorker = new PaymentWorker();
@@ -62,30 +70,61 @@ public class DutyFlowSystem {
 			paymentWorkerThread.interrupt();
 		}
 	}
+	
+	// 회원가입
+	public void signup(MemberSignupDTO dto) {
+	    memberService.signup(dto);
+	}
+	
+	// 로그인
+	public void login(String loginId, String password) {
+	    loginMemberId = memberService.login(loginId, password);
+	}
 
+	// 로그아웃
+	public void logout() {
+	    loginMemberId = null;
+	}
+
+	// 로그인된 회원의 memberId 반환
+	private int getLoginMemberId() {
+
+	    if (loginMemberId == null) {
+	        throw new ValidationException(ErrorCode.NOT_LOGGED_IN);
+	    }
+
+	    return loginMemberId;
+	}
+
+	// 여권 정보 등록
+	public void registerPassport(String passportNum, LocalDate passportExpiredDate) {
+
+	    memberService.registerPassport(getLoginMemberId(),passportNum,passportExpiredDate);
+	}
+	
 	// 회원 장바구니에 상품 추가
 	public void addToCart(Product p, int wishAmount) {
-		shoppingCartService.addToCart(member.getMemberId(), p, wishAmount);
+		shoppingCartService.addToCart(getLoginMemberId(), p, wishAmount);
 	}
 
 	// 장바구니 내 특정 상품 수량 변경
 	public void updateQuantity(Product p, int newAmount) {
-		shoppingCartService.updateQuantity(member.getMemberId(), p, newAmount);
+		shoppingCartService.updateQuantity(getLoginMemberId(), p, newAmount);
 	}
 
 	// 장바구니 조회
 	public TotalCartDTO printCart() {
-		return shoppingCartService.getCart(member.getMemberId());
+	    return shoppingCartService.getCart(getLoginMemberId());
 	}
 
 	// 장바구니 비우기
 	public void deleteFromCart() {
-		shoppingCartService.flush(member.getMemberId());
+		shoppingCartService.flush(getLoginMemberId());
 	}
 
 	// 장바구니 선택 상품 제거
-	public void deleteFromCart(List<Product> selectedProducts) {
-		shoppingCartService.flush(member.getMemberId(), selectedProducts);
+	public void deleteFromCart(List<Product> selectedProducts) { 
+		shoppingCartService.flush(getLoginMemberId(), selectedProducts);
 	}
 
 	// 환율 서비스 및 스케줄러
