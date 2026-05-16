@@ -233,6 +233,8 @@ public class DutyFlowSystem {
 
 	        List<BrandOrderRequestDTO> requests =
 	                orderService.placeOrder(
+	                		order,
+	                		order.getOrderId(),
 	                		getLoginMemberId(),
 	                        reservationId,
 	                        orderDetails,
@@ -339,27 +341,34 @@ public class DutyFlowSystem {
 	    int memberId = getLoginMemberId();
 
 	    TotalCartDTO totalCart = shoppingCartService.getCart(memberId);
+
 	    if (totalCart == null
 	            || totalCart.getItems() == null
 	            || totalCart.getItems().isEmpty()) {
+
 	        throw new BusinessException(ErrorCode.INVALID_INPUT);
 	    }
 
 	    FlightBookDTO flightBookDto = flightService.getFlightBookByMemberId(memberId);
+	    
 	    int reservationId = flightBookDto.getReservationId();
 
-	    int orderId = orderService.createOrder(memberId, reservationId, totalCart.getItems());
+	    int orderId = orderService.createOrder(
+	            memberId,
+	            reservationId,
+	            totalCart.getItems()
+	    );
 
 	    Order order = new Order();
 	    order.setOrderId(orderId);
 	    order.setMemberId(memberId);
 	    order.setReservationId(reservationId);
+
 	    addOrderQueue(order);
 
 	    deleteFromCart();
 
-	    System.out.println("✅ 주문 생성 완료 orderId = " + orderId);
-	    return orderId;  // ← 반환
+	    return orderId;
 	}
 	
 

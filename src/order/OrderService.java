@@ -147,7 +147,7 @@ public class OrderService {
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
 
-    public List<BrandOrderRequestDTO> placeOrder(int memberId,
+	public List<BrandOrderRequestDTO> placeOrder(Order order,int orderId, int memberId,
                                                  int reservationId,
                                                  List<OrderDTO> cartItems,
                                                  String cardNumber) {
@@ -180,11 +180,6 @@ public class OrderService {
             }
         }
 
-        // 3. 주문 생성
-        Order order = new Order();
-        order.setMemberId(memberId);
-        order.setReservationId(reservationId);
-
         BigDecimal totalBeforeTax = cartItems.stream()
                 .map(item -> {
                     BigDecimal price = item.getDollarPrice();
@@ -196,13 +191,10 @@ public class OrderService {
 
         order.setTotalPrice(totalBeforeTax);
 
-        // 4. 저장
-        int orderId = orderDAO.insertOrder(order, cartItems);
-
-        // 5. 결제
+        // 4. 결제
         order(orderId, generalReg, alcoholReg, cosmeticsReg, cardNumber);
 
-        // 6. 브랜드 DTO 반환
+        // 5. 브랜드 DTO 반환
         return cartItems.stream()
                 .map(item -> BrandOrderRequestDTO.builder()
                         .brandName(item.getBrandName())
