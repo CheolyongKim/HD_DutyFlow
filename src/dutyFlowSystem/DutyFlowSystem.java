@@ -52,6 +52,11 @@ public class DutyFlowSystem {
 	// PaymentWorker를 실행할 Thread
 	private Thread paymentWorkerThread;
 
+	public DutyFlowSystem(List<BrandSystem> brandList) {
+		this.brandList = brandList;
+	}
+	
+	
 	// PaymentWorker 실행
 	// DutyFlowSystem 시작 시 백그라운드에서 Queue 감시 시작
 	public void startPaymentWorker() {

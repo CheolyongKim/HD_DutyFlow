@@ -138,6 +138,50 @@ public class PaymentDAO {
         }
     }
 
+ // orderId로 SUCCESS 상태의 payment 조회
+    public Payment findSuccessByOrderId(int orderId) {
+
+        String sql =
+            "SELECT paymentId, orderId, paymentMethod, paymentStatus, " +
+            "requestedAmount, cardNumberMask, requestedAt, processedAt, failReason " +
+            "FROM Payment " +
+            "WHERE orderId = ? " +
+            "AND paymentStatus = 'SUCCESS' " +
+            "ORDER BY paymentId DESC FETCH FIRST 1 ROWS ONLY";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, orderId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                if (rs.next()) {
+                    return Payment.builder()
+                            .paymentId(rs.getInt("paymentId"))
+                            .orderId(rs.getInt("orderId"))
+                            .paymentMethod(rs.getString("paymentMethod"))
+                            .paymentStatus(PaymentStatus.valueOf(rs.getString("paymentStatus")))
+                            .requestedAmount(rs.getBigDecimal("requestedAmount"))
+                            .cardNumberMask(rs.getString("cardNumberMask"))
+                            .requestedAt(rs.getTimestamp("requestedAt").toLocalDateTime())
+                            .processedAt(
+                                    rs.getTimestamp("processedAt") == null
+                                            ? null
+                                            : rs.getTimestamp("processedAt").toLocalDateTime()
+                            )
+                            .failReason(rs.getString("failReason"))
+                            .build();
+                }
+            }
+
+            return null;
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+    
     // 결제 상태 PROCESSING으로 변경
     // 결제 대기 Queue에서 Worker가 결제 처리를 위해 꺼낼 때
     public void updateStatusToProcessing(int paymentId) {

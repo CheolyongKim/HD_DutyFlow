@@ -15,8 +15,11 @@ import exception.ErrorCode;
 import flight.FlightDAO;
 import flight.FlightService;
 import member.MemberDAO;
+import membership.MembershipService;
 import order.dto.OrderDTO;
 import order.state.PendingState;
+import payment.Payment;
+import payment.PaymentDAO;
 import payment.PaymentService;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
@@ -30,11 +33,14 @@ public class OrderService {
 
 	private final OrderDAO orderDAO = new OrderDAO();
 	private final RegulationDAO regulationDAO = new RegulationDAO();
-	
+
 	private final FlightDAO flightDAO = new FlightDAO();
+	private final PaymentDAO paymentDAO = new PaymentDAO();
+
 	private final FlightService flightService = new FlightService(flightDAO);
 	private final PaymentService paymentService = new PaymentService();
-	
+	private final MembershipService membershipService = new MembershipService();
+
 	// CategoryId 상수 (DB 기준)
 	private static final int CATEGORY_GENERAL = 1;
 	private static final int CATEGORY_ALCOHOL = 2;
@@ -71,23 +77,23 @@ public class OrderService {
 		}
 		return orders;
 	}
-	
+
 	/**
 	 * 브랜드명으로 주문/판매 내역 조회
 	 */
 	public List<OrderDTO> getOrdersByBrandName(String brandName) {
 
-	    if (brandName == null || brandName.trim().isEmpty()) {
-	        throw new BusinessException(ErrorCode.INVALID_INPUT);
-	    }
+		if (brandName == null || brandName.trim().isEmpty()) {
+			throw new BusinessException(ErrorCode.INVALID_INPUT);
+		}
 
-	    List<OrderDTO> orders = orderDAO.findOrdersByBrandName(brandName);
+		List<OrderDTO> orders = orderDAO.findOrdersByBrandName(brandName);
 
-	    if (orders == null || orders.isEmpty()) {
-	        throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
-	    }
+		if (orders == null || orders.isEmpty()) {
+			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+		}
 
-	    return orders;
+		return orders;
 	}
 
 	// -------------------------------------------------------
@@ -97,7 +103,8 @@ public class OrderService {
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
-	public List<BrandOrderRequestDTO> placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems, String cardNumber) {
+	public List<BrandOrderRequestDTO> placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems,
+			String cardNumber) {
 
 		if (cartItems == null || cartItems.isEmpty()) {
 			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
@@ -125,7 +132,7 @@ public class OrderService {
 
 			if (!answer.equalsIgnoreCase("Y")) {
 				System.out.println("주문이 취소되었습니다.");
-			    return Collections.emptyList();
+				return Collections.emptyList();
 			}
 		}
 
@@ -145,40 +152,36 @@ public class OrderService {
 
 		order.setTotalPrice(totalBeforeTax); // 상품 할인 적용된 합계 세팅
 		order.setMemberId(memberId);
-		
+
 		// 5. 주문 저장
 		int orderId = orderDAO.insertOrder(order, cartItems);
 
 		// 6. 결제 프로세스 (조회한 규정 재사용)
 		try {
-			order(orderId, generalReg, alcoholReg, perfumeReg,cardNumber);
+			order(orderId, generalReg, alcoholReg, perfumeReg, cardNumber);
 			System.out.println("넘어가는 orderId = " + orderId);
 		} catch (BusinessException e) {
 			System.err.println("주문 생성 후 결제 단계 오류: " + e.getMessage());
 			throw e;
 		}
 		// 여기서 상품별 브랜드 name과, 차감 수량 적어주고 DTO 만들어서 리턴하면 되겠다.
-		
-	    // 7. 브랜드 재고 차감 요청 DTO 생성
-		List<BrandOrderRequestDTO> brandRequests =
-		        cartItems.stream()
-		                .map(item -> BrandOrderRequestDTO.builder()
-		                        .brandName(item.getBrandName())
-		                        .productName(item.getProductName())
-		                        .orderAmount(item.getQuantity())
-		                        .build())
-		                .collect(Collectors.toList());
-		
-	    return brandRequests;
-		
-		
+
+		// 7. 브랜드 재고 차감 요청 DTO 생성
+		List<BrandOrderRequestDTO> brandRequests = cartItems.stream()
+				.map(item -> BrandOrderRequestDTO.builder().brandName(item.getBrandName())
+						.productName(item.getProductName()).orderAmount(item.getQuantity()).build())
+				.collect(Collectors.toList());
+
+		return brandRequests;
+
 	}
 
 	/**
 	 * 최종 결제 승인
 	 */
-	
-	public void order(int orderId, RegulationDTO generalReg, RegulationDTO alcoholReg, RegulationDTO perfumeReg, String cardNumber) {
+
+	public void order(int orderId, RegulationDTO generalReg, RegulationDTO alcoholReg, RegulationDTO perfumeReg,
+			String cardNumber) {
 
 		System.out.println("in Order");
 
@@ -190,26 +193,23 @@ public class OrderService {
 			throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
-		
-
 		// 2. 상태 검증
 		if (!(order.getState() instanceof PendingState)) {
 			throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
 		}
 
 		// 고객의 항공편 예약 번호 검증
-		String reservationCode = orderDAO.findReservationCodeByOrderId(orderId); 
-	    flightService.validateReservationCode(reservationCode);
-		
-		
+		String reservationCode = orderDAO.findReservationCodeByOrderId(orderId);
+		flightService.validateReservationCode(reservationCode);
+
 		// 멤버십 할인 반영
 		MemberDAO memberDAO = new MemberDAO();
 		Member member = memberDAO.findById(order.getMemberId());
 		if (member == null) {
-		    throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND); // 멤버가 없을 때의 예외 처리
+			throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND); // 멤버가 없을 때의 예외 처리
 		}
 		Grade grade = member.getGrade();
-		
+
 		// 멤버십 할인액 계산: (현재가 * 할인율 / 100)
 		BigDecimal membershipDiscount = order.getTotalPrice().multiply(grade.getDiscountRate())
 				.divide(new BigDecimal("100"), 2, BigDecimal.ROUND_HALF_UP);
@@ -218,14 +218,13 @@ public class OrderService {
 		order.setDiscountPrice(membershipDiscount);
 		order.setTotalPrice(order.getTotalPrice().subtract(membershipDiscount));
 
-	    // 검증 완료 상태 전환
-	 		order.verify();
+		// 검증 완료 상태 전환
+		order.verify();
 
 		// 3. 세금 계산 (전략 패턴)
 		BigDecimal totalTax = calculateTax(orderItems, generalReg, alcoholReg, perfumeReg);
 		BigDecimal finalAmount = order.getTotalPrice().add(totalTax);
 
-		
 		try {
 			// 5. 외부 결제 요청
 			boolean paySuccess = paymentService.payment(orderId, finalAmount, cardNumber);
@@ -240,11 +239,13 @@ public class OrderService {
 
 			// 7. 결제 완료 상태 변경
 			order.pay();
-			
+
 			// TODO: 재고 감소 메서드 위치
 
 			// 8. DB 반영
 			orderDAO.update(order);
+			
+			membershipService.updateMembershipGrade(order.getMemberId());
 
 			System.out.println();
 			System.out.println("✅ 결제 및 DB 반영 완료");
@@ -252,9 +253,9 @@ public class OrderService {
 		} catch (BusinessException e) {
 			throw new BusinessException(ErrorCode.PAYMENT_FAILED);
 		} catch (Exception e) {
-			    // 🔥 원래 터진 진짜 에러 원인(세금 계산 오류 등)을 콘솔에 출력!!
-			    System.err.println("❌ [시스템 에러 디버그] 결제 처리 중 내부 예외 발생:");
-			    e.printStackTrace(); 
+			// 🔥 원래 터진 진짜 에러 원인(세금 계산 오류 등)을 콘솔에 출력!!
+			System.err.println("❌ [시스템 에러 디버그] 결제 처리 중 내부 예외 발생:");
+			e.printStackTrace();
 		}
 	}
 
@@ -344,9 +345,9 @@ public class OrderService {
 		for (OrderDTO item : items) {
 			int categoryId = item.getCategoryId();
 			int totalCapacity = item.getCapacity() * item.getQuantity();
-			
+
 			System.out.println("상품명: " + item.getProductName() + ", 용량: " + item.getCapacity());
-			
+
 			BigDecimal itemPrice = item.getDollarPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
 			totalPrice = totalPrice.add(itemPrice);
@@ -419,6 +420,19 @@ public class OrderService {
 		System.out.println("✅ 픽업 완료 orderId = " + orderId);
 	}
 
+	private boolean canclePay(Order order) {
+		try {
+			Payment payment = paymentDAO.findSuccessByOrderId(order.getOrderId());
+			int paymentId = payment.getPaymentId();
+			paymentService.cancelPayment(paymentId);
+			System.out.println("✅ 주문 취소 완료 orderId = " + order.getOrderId());
+			membershipService.updateMembershipGrade(order.getMemberId());
+			return true;
+		} catch (Exception e) {
+			throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED, e);
+		}
+	}
+
 	/** 주문 취소 — ORDERED, PAID 상태에서만 가능 */
 	public void cancelOrder(int orderId) {
 
@@ -430,7 +444,8 @@ public class OrderService {
 		order.cancel();
 		orderDAO.update(order);
 
-		System.out.println("✅ 주문 취소 완료 orderId = " + orderId);
+		canclePay(order);
+
 	}
 
 	/** 미수령 처리 — PICKUP_RESERVED 상태에서만 가능 */
@@ -444,6 +459,7 @@ public class OrderService {
 		order.noShow();
 		orderDAO.update(order);
 
+		canclePay(order);
 		System.out.println("✅ 미수령 처리 완료 orderId = " + orderId);
 	}
 }
