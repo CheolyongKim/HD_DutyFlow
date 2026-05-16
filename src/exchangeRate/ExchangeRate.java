@@ -9,9 +9,17 @@ import lombok.ToString;
 
 @Getter
 @Setter
-@ToString
 public class ExchangeRate {
 	private BigDecimal exchangeRate;
 	private LocalDate exchangeDate;
 	private char isLatest;
+	
+	@Override
+	public String toString() {
+	    return String.format(
+	            "[%s | %s원]",
+	            exchangeDate,
+	            exchangeRate
+	    );
+	}
 }
