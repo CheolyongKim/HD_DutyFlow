@@ -69,6 +69,7 @@ CREATE TABLE Manager (
     managerId     NUMBER DEFAULT manager_seq.NEXTVAL NOT NULL,
     managerName   VARCHAR2(20) NOT NULL,
     managerType   VARCHAR2(20) NOT NULL,
+    password     VARCHAR2(30) NOT NULL,
 
     CONSTRAINT PK_MANAGER PRIMARY KEY (managerId)
 );

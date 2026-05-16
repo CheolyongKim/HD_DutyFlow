@@ -24,14 +24,12 @@ import stock.dto.StockPurchaseHistoryDto;
 public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
-    private final BrandSystem brandSystem;
 
     private DefaultTableModel tableModel;
     private JTable purchaseTable;
 
-    public BrandPurchaseHistoryPanel(ScreenManager screenManager, BrandSystem brandSystem) {
+    public BrandPurchaseHistoryPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        this.brandSystem = brandSystem;
 
         setLayout(new BorderLayout());
 
@@ -59,7 +57,6 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         };
 
         purchaseTable = new JTable(tableModel);
-
         JScrollPane scrollPane = new JScrollPane(purchaseTable);
 
         JButton refreshButton = new JButton("새로고침");
@@ -79,16 +76,23 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        loadPurchaseHistory();
+        // 여기서 loadPurchaseHistory() 호출하면 안 됨
+        // 로그인 전에는 BrandSystem이 null이기 때문
     }
 
     private void loadPurchaseHistory() {
         try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
             tableModel.setRowCount(0);
 
             List<StockPurchaseHistoryDto> purchases =
                     brandSystem.getMyBrandPurchaseHistory();
-            
+
             for (StockPurchaseHistoryDto purchase : purchases) {
                 tableModel.addRow(new Object[] {
                         purchase.getPurchaseId(),
@@ -104,7 +108,7 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
                 });
             }
 
-        }  catch (DutyFreeException e) {
+        } catch (DutyFreeException e) {
             JOptionPane.showMessageDialog(
                     this,
                     e.getErrorCode().getMessage(),
@@ -119,28 +123,34 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
     }
 
     private void exportPurchaseHistory() {
-        JFileChooser fileChooser = new JFileChooser();
-
-        fileChooser.setDialogTitle("발주 이력 저장 위치 선택");
-        fileChooser.setSelectedFile(
-                new File("purchase_history_"
-                        + brandSystem.getBrandName().replaceAll("\\s+", "_")
-                        + ".csv")
-        );
-
-        int result = fileChooser.showSaveDialog(this);
-
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return;
-        }
-
-        File selectedFile = fileChooser.getSelectedFile();
-
-        if (!selectedFile.getName().toLowerCase().endsWith(".csv")) {
-            selectedFile = new File(selectedFile.getAbsolutePath() + ".csv");
-        }
-
         try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            fileChooser.setDialogTitle("발주 이력 저장 위치 선택");
+            fileChooser.setSelectedFile(
+                    new File("purchase_history_"
+                            + brandSystem.getBrandName().replaceAll("\\s+", "_")
+                            + ".csv")
+            );
+
+            int result = fileChooser.showSaveDialog(this);
+
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            File selectedFile = fileChooser.getSelectedFile();
+
+            if (!selectedFile.getName().toLowerCase().endsWith(".csv")) {
+                selectedFile = new File(selectedFile.getAbsolutePath() + ".csv");
+            }
+
             brandSystem.exportPurchaseHistoryToFile(selectedFile);
 
             JOptionPane.showMessageDialog(
@@ -148,7 +158,7 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
                     "발주 이력을 파일로 저장했습니다.\n저장 위치: " + selectedFile.getAbsolutePath()
             );
 
-        }  catch (DutyFreeException e) {
+        } catch (DutyFreeException e) {
             JOptionPane.showMessageDialog(
                     this,
                     e.getErrorCode().getMessage(),
@@ -160,6 +170,18 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
             JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
+    }
+
+    private BrandSystem getLoginBrandSystem() {
+        BrandSystem brandSystem = screenManager.getBrandSystem();
+
+        if (brandSystem == null) {
+            JOptionPane.showMessageDialog(this, "브랜드 관리자 로그인이 필요합니다.");
+            screenManager.show("BRAND_MANAGER_LOGIN");
+            return null;
+        }
+
+        return brandSystem;
     }
 
     @Override

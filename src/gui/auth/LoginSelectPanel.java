@@ -36,8 +36,8 @@ public class LoginSelectPanel extends JPanel {
             System.out.println("[회원 로그인] 아직 구현 전입니다.");
         });
 
-        brandLoginButton.addActionListener(e -> screenManager.show("BRAND_MAIN"));
-
+        brandLoginButton.addActionListener(e -> screenManager.show("BRAND_MANAGER_LOGIN"));
+        
         dutyFreeManagerLoginButton.addActionListener(e -> {
             System.out.println("[면세 시스템 관리자 로그인] 아직 구현 전입니다.");
         });

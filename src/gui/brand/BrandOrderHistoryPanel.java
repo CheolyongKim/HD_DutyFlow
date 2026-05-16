@@ -22,14 +22,12 @@ import order.dto.OrderDTO;
 public class BrandOrderHistoryPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
-    private final BrandSystem brandSystem;
 
     private DefaultTableModel tableModel;
     private JTable orderTable;
 
-    public BrandOrderHistoryPanel(ScreenManager screenManager, BrandSystem brandSystem) {
+    public BrandOrderHistoryPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        this.brandSystem = brandSystem;
 
         setLayout(new BorderLayout());
 
@@ -77,11 +75,17 @@ public class BrandOrderHistoryPanel extends JPanel implements Refreshable {
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        loadOrders();
+        // 로그인 전에는 BrandSystem이 없을 수 있으므로 생성자에서 바로 loadOrders() 호출하지 않음
     }
 
     private void loadOrders() {
         try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
             tableModel.setRowCount(0);
 
             List<OrderDTO> orders = brandSystem.getOrdersByBrandName();
@@ -106,12 +110,29 @@ public class BrandOrderHistoryPanel extends JPanel implements Refreshable {
             }
 
         } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage());
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "브랜드 판매 내역을 불러오는 중 오류가 발생했습니다.");
             e.printStackTrace();
         }
+    }
+
+    private BrandSystem getLoginBrandSystem() {
+        BrandSystem brandSystem = screenManager.getBrandSystem();
+
+        if (brandSystem == null) {
+            JOptionPane.showMessageDialog(this, "브랜드 관리자 로그인이 필요합니다.");
+            screenManager.show("BRAND_MANAGER_LOGIN");
+            return null;
+        }
+
+        return brandSystem;
     }
 
     @Override
