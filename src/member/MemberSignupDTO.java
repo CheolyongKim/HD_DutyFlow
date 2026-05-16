@@ -13,4 +13,5 @@ public class MemberSignupDTO {
     private final String name;
     private final LocalDate birthDate;
     private final String phoneNumber;
+    
 }

@@ -17,6 +17,7 @@ import brandSystem.BrandSystem;
 import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
+import product.Product;
 import product.dto.ProductDTO;
 
 public class BrandProductListPanel extends JPanel implements Refreshable {
@@ -86,9 +87,9 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
 
             tableModel.setRowCount(0);
 
-            List<ProductDTO> products = brandSystem.getProductsByBrandName();
+            List<Product> products = brandSystem.getProductsByBrandName();
 
-            for (ProductDTO product : products) {
+            for (Product product : products) {
                 tableModel.addRow(new Object[] {
                         product.getProductName(),
                         product.getBrandName(),

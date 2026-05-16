@@ -20,6 +20,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class ProductDTO {
 	
+	private int productId;
 	private Category category;
 	private String productName;
 	private String brandName;

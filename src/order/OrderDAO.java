@@ -295,8 +295,6 @@ public class OrderDAO {
 	}
 	
 	public int insertOrder(Order order, List<OrderDTO> items) {
-
-	    // 물음표(?) 총 4개: memberId(1), reservationId(2), totalAmount(3), RETURNING(4)
 	    String orderSql =
 	            "INSERT INTO Orders " +
 	            "(orderId, memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " +
@@ -305,7 +303,6 @@ public class OrderDAO {
 	            "SYSDATE, 'ORDERED', ?) " +
 	            "RETURNING orderId INTO ?";
 
-	    // 물음표(?) 총 5개: productId(1), orderId(2), quantity(3), discountPrice(4), dollarPrice(5)
 	    String detailSql =
 	            "INSERT INTO OrderDetail " +
 	            "(productId, orderId, quantity, discountPrice, dollarPrice) " +
@@ -325,17 +322,14 @@ public class OrderDAO {
 	        try (PreparedStatement pstmt = conn.prepareStatement(orderSql)) {
 	            OraclePreparedStatement opstmt = (OraclePreparedStatement) pstmt;
 
-	            // 💡 [중요] 쿼리문 안의 물음표 순서와 번호를 완벽하게 일치시켰습니다.
 	            opstmt.setInt(1, order.getMemberId());         // 1번째 ? : memberId
 	            opstmt.setInt(2, order.getReservationId());    // 2번째 ? : reservationId
 	            opstmt.setBigDecimal(3, order.getTotalPrice());   // 3번째 ? : totalAmount
 
-	            // 🔥 4번째 ? : RETURNING INTO 자리에 발급될 정수형(INTEGER) 키 등록 (ORA-17003 해결)
 	            opstmt.registerReturnParameter(4, OracleTypes.INTEGER); 
 
 	            opstmt.executeUpdate();
 
-	            // Oracle 드라이버 규격에 맞춰 생성된 orderId 수령
 	            try (ResultSet rset = opstmt.getReturnResultSet()) {
 	                if (rset.next()) {
 	                    orderId = rset.getInt(1);
@@ -343,7 +337,6 @@ public class OrderDAO {
 	            }
 	        }
 
-	        // 만약 정상적으로 orderId를 발급받지 못했다면 강제 예외 발생
 	        if (orderId == -1) {
 	            throw new SQLException("Orders 테이블 insert 후 생성된 orderId를 가져오지 못했습니다.");
 	        }
@@ -354,7 +347,6 @@ public class OrderDAO {
 	        try (PreparedStatement pstmt = conn.prepareStatement(detailSql)) {
 
 	            for (OrderDTO item : items) {
-	                // 💡 1번부터 5번까지 순서대로 누락 없이 바인딩
 	                pstmt.setInt(1, item.getProductId());
 	                pstmt.setInt(2, orderId); // 위에서 시퀀스로 발급받은 ID 연동
 	                pstmt.setInt(3, item.getQuantity());

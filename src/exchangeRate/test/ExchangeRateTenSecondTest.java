@@ -18,6 +18,7 @@ import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateApiClient;
 import exchangeRate.ExchangeRateDAO;
 import exchangeRate.ExchangeRateProvider;
+import product.Product;
 import product.ProductDAO;
 import product.dto.ProductDTO;
 
@@ -89,7 +90,7 @@ public class ExchangeRateTenSecondTest {
             ExchangeRateProvider.getInstance()
                     .update(newExchangeRate, exchangeDate);
 
-            ProductDTO product =
+            Product product =
                     productDAO.getProductsByProductName("샤넬 향수");
 
             BigDecimal todayRate =
