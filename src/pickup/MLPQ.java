@@ -54,23 +54,17 @@ public class MLPQ {
 			throw new QueueException(ErrorCode.QUEUE_EMPTY, new Exception("호출할 대기열이 비어있습니다."));
 	}
 
-	public void enqueue(Airplane airplane, Member member) {
-		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()
+	public void enqueue(PickUpTicket ticket) {
+		if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds()
 				/ 60 < this.promotionThresholdMinutes) {
-			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
+			this.aq.add(ticket);
 		} else {
-			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
+			this.bq.add(ticket);
 		}
 	}
 	
-	// 기존 enqueue 바로 아래에 추가
-	public void requeue(PickUpTicket ticket) {
-	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds() / 60
-	            < this.promotionThresholdMinutes) {
-	        this.aq.add(ticket);
-	    } else {
-	        this.bq.add(ticket);
-	    }
+	public int nextNum() {
+	    return ++this.lastNum;
 	}
 
 	public PickUpTicket peek() {
@@ -157,6 +151,35 @@ public class MLPQ {
 	// bq 복사본
 	public List<PickUpTicket> getAllFromBq() {
 		return new ArrayList<>(this.bq);
+	}
+	
+	/**
+	 * AQ·BQ에서 출국 시간이 경과한(departureAt < now) 티켓 목록을 반환합니다.
+	 * 큐 자체를 변경하지 않으므로, 제거는 호출자가 removeExpiredTickets()로 별도 수행합니다.
+	 */
+	public List<PickUpTicket> getExpiredTickets(LocalDateTime now) {
+		List<PickUpTicket> expired = new ArrayList<>();
+ 
+		for (PickUpTicket ticket : this.aq) {
+			if (now.isAfter(ticket.getAirplane().getDepartureAt())) {
+				expired.add(ticket);
+			}
+		}
+		for (PickUpTicket ticket : this.bq) {
+			if (now.isAfter(ticket.getAirplane().getDepartureAt())) {
+				expired.add(ticket);
+			}
+		}
+ 
+		return expired;
+	}
+ 
+	/**
+	 * 전달받은 티켓들을 AQ·BQ에서 일괄 제거합니다.
+	 */
+	public void removeExpiredTickets(List<PickUpTicket> tickets) {
+		this.aq.removeAll(tickets);
+		this.bq.removeAll(tickets);
 	}
 
 	public void clearAll() {

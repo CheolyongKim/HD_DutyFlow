@@ -2,14 +2,30 @@ package main;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import common.CurrentTime;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
+
+import flight.FlightDAO;
+import flight.FlightService;
+
+import member.Member;
 import order.Order;
+import pickup.PickUpSystem;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
 import tax.AlcoholTaxStrategy;
@@ -23,7 +39,7 @@ public class HeejinMain {
     public static void main(String[] args) {
 
         RegulationDAO regulationDAO = new RegulationDAO();
-
+      
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
         RegulationDTO alcoholRegulationDTO = regulationDAO.getRegulationByCategoryId(2);
@@ -59,7 +75,6 @@ public class HeejinMain {
         // 케이스 3. 주류 초과
         // =========================
         System.out.println("\n===== 케이스 3: 일반상품 500달러 + 주류 5리터 (주류 초과 : 3 * 0.70 = 2.10달러) =====");
-
         Order order3 = new Order();
         order3.setTotalPrice(new BigDecimal("500"));
         order3.setTotalAlcohol(5);
@@ -185,6 +200,127 @@ public class HeejinMain {
         }
 
         System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
+        
+        // ------------------------- Flight Delay Queue Test --------------------------
+        FlightDAO flightDAO = new FlightDAO();
+        AirportManagerDao airportManagerDao = new AirportManagerDao();
+        
+        FlightService flightService = new FlightService(flightDAO);
+        AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
+        
+        PickUpSystem pickUpSystem = new PickUpSystem(airportManagerService,flightService);
+
+        
+        System.out.println("\n=== 항공편 지연 테스트 =====");
+
+        // 현재 시각 설정
+        CurrentTime.curTime =
+        	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
+        
+        PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
+
+        // 번호표 발급 (AQ/BQ 들어감)
+        ps.appendQueue("M11111111", 1); // 이급박
+        ps.appendQueue("M22222222", 2); // 박지각
+        ps.appendQueue("M33333333", 3); // 김철용
+        ps.appendQueue("M44444444", 4); // 오블랙
+
+        System.out.println("\n--- [시나리오] AQ 사람의 항공편 지연 ---");
+
+        System.out.println("\n[ PickUpSystem ] 지연 전 대기열 상태");
+        ps.printCurrentQueue();
+
+        // 박지각 항공편 지연
+        System.out.println("\n[ PickUpSystem ] 박지각의 OZ1015 항공편이 14:00으로 지연되었습니다.");
+
+        ps.delayFlight(
+            "OZ1015",
+            LocalDateTime.of(2026, 5, 1, 14, 0, 0)
+        );
+
+        System.out.println("\n[ PickUpSystem ] 지연 후 대기열 상태");
+        ps.printCurrentQueue();
+
+        System.out.println(
+            "\n 출국 임박이라 AQ에 있던 박지각이 "
+            + "14:00으로 밀리면서 AQ에서 "
+            + "BQ 우선순위 규칙으로 재배치됨."
+        );
+
+        // 창구 오픈
+        System.out.println("\n[ PickUpSystem ] 카운터 오픈");
+        ps.openCounter();
+      
+        //--------------------- AirportManager ------------------------
+        
+        // =========================
+        // 인도장 관리자 로그인 
+        // =========================
+        
+        System.out.println("\n===== 로그인 실패 테스트 ===");
+        try {
+        	pickUpSystem.login(100, "wrongPW");
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
+        System.out.println("\n===== 로그인 성공 테스트 ===");
+        pickUpSystem.login(100, "airport1234");
+       
+        
+        // =========================
+        // 인도장 관리자 전체픽업목록 조회 
+        // =========================
+        System.out.println("\n===== 전체 픽업 목록 =====");
+        pickUpSystem.printAllPickUpList();
+        
+        
+        // =========================
+        // 인도장 관리자 특정회원 픽업 목록 
+        // =========================
+        System.out.println("\n=== 특정 회원 픽업 목록 ===");
+        Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null, null);
+
+        pickUpSystem.printAllPickUpList(targetMember);
+        
+        
+        // =========================
+        // 인도장 관리자 기간별 픽업 목록 
+        // =========================
+        System.out.println("\n=== 기간별 픽업 목록 ===");
+        pickUpSystem.printAllPickUpList(
+            LocalDate.of(2025, 1, 1),
+            LocalDate.of(2025, 12, 31)
+        );
+        
+        // =========================
+        // 인도장 관리자 중복 로그인 시도
+        // =========================
+        System.out.println("\n=== 중복 로그인 시도 ===");
+        try {
+        	pickUpSystem.login(100, "airport1234");
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
+        
+        // =========================
+        // 인도장 관리자 로그아웃  
+        // =========================
+        System.out.println("\n=== 로그아웃 ===");
+        pickUpSystem.logout();
+        
+        // =========================
+        // 로그아웃 후 재조회 시도
+        // =========================
+      
+        System.out.println("\n=== 로그아웃 후 조회 시도 ===");
+        try {
+        	pickUpSystem.printAllPickUpList();
+        } catch (BusinessException e) {
+            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+        }
+        
     }
     
     
@@ -196,13 +332,21 @@ public class HeejinMain {
                                         RegulationDTO perfumeRegulationDTO) {
     	
     	if (order == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        }
+    	    throw new BusinessException(ErrorCode.INVALID_INPUT);
+    	}
+
+    	if (order.getTotalPrice() == null) {
+    	    throw new BusinessException(ErrorCode.INVALID_PRODUCT_PRICE);
+    	}
 
         List<TaxStrategy> strategies = new ArrayList<>();
 
-        // 일반상품은 항상 포함
-        strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        // 일반상품은 한도 초과 시에만 추가
+        BigDecimal limit = BigDecimal.valueOf(generalRegulationDTO.getLimitCapacity());
+
+        if (order.getTotalPrice().compareTo(limit) > 0) {
+            strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        }
 
         // 주류 한도 초과 시에만 추가
         if (order.getTotalAlcohol() > alcoholRegulationDTO.getLimitCapacity()) {
@@ -212,6 +356,10 @@ public class HeejinMain {
         // 향수 한도 초과 시에만 추가
         if (order.getTotalPerfume() > perfumeRegulationDTO.getLimitCapacity()) {
             strategies.add(new PerfumeTaxStrategy(perfumeRegulationDTO));
+        }
+
+        if (strategies.isEmpty()) {
+            return BigDecimal.ZERO;
         }
 
         TaxCalculator calculator = new TaxCalculator(strategies);

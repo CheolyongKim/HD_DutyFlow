@@ -5,34 +5,91 @@ import java.util.List;
 
 import category.Category;
 import common.Currency;
-import exception.SystemException;
+import exception.BusinessException;
+import exception.DataNotFoundException;
+import exception.ErrorCode;
+import exception.ValidationException;
 import product.dto.ProductDTO;
 
 public class ProductService {
 
     private final ProductDAO productDAO = new ProductDAO();
 
-    public List<ProductDTO> printAllProducts() throws SystemException {
+    public List<ProductDTO> printAllProducts() {
         return productDAO.getAllProducts();
     }
 
-    public List<ProductDTO> printAllProducts(Category category) throws SystemException {
+    public List<ProductDTO> printAllProducts(Category category) {
+
+        if (category == null || category.getCategoryName() == null || category.getCategoryName().trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+
         return productDAO.getProductsByCategory(category);
     }
 
-    public ProductDTO printProduct(String productName) throws SystemException {
-        return productDAO.getProductsByProductName(productName);
+    public ProductDTO printProduct(String productName) {
+
+        validateProductName(productName);
+
+        ProductDTO product = productDAO.getProductsByProductName(productName);
+
+        if (product == null) {
+            throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        return product;
     }
 
     public List<ProductDTO> printProduct(
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Currency currency
-    ) throws SystemException {
+    ) {
+        if (minPrice == null || maxPrice == null || currency == null) {
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
+        }
+
+        if (minPrice.compareTo(BigDecimal.ZERO) < 0 || maxPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
+        }
+
+        if (minPrice.compareTo(maxPrice) > 0) {
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
+        }
+
         return productDAO.getProductsFilterByPrice(minPrice, maxPrice, currency);
     }
 
-    // 신규 상품 등록
+    public List<ProductDTO> getProductsByBrandName(String brandName) {
+
+        validateBrandName(brandName);
+
+        return productDAO.getProductsByBrandName(brandName);
+    }
+
+    public ProductDTO getProductByBrandNameAndProductName(String brandName, String productName) {
+
+        validateBrandName(brandName);
+        validateProductName(productName);
+
+        ProductDTO product = productDAO.getProductByBrandNameAndProductName(brandName, productName);
+
+        if (product == null) {
+            throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        return product;
+    }
+
+    public boolean isBrandProduct(String brandName, String productName) {
+
+        validateBrandName(brandName);
+        validateProductName(productName);
+
+        return productDAO.existsByBrandNameAndProductName(brandName, productName);
+    }
+
     public void registerNewProduct(
             String brandName,
             String categoryName,
@@ -41,38 +98,29 @@ public class ProductService {
             BigDecimal priceUsd,
             BigDecimal priceKrw,
             int thresholdValue
-    ) throws SystemException {
-
-        if (brandName == null || brandName.trim().isEmpty()) {
-            throw new IllegalArgumentException("브랜드명은 비어 있을 수 없습니다.");
-        }
-
-        if (categoryName == null || categoryName.trim().isEmpty()) {
-            throw new IllegalArgumentException("카테고리명은 비어 있을 수 없습니다.");
-        }
-
-        if (productName == null || productName.trim().isEmpty()) {
-            throw new IllegalArgumentException("상품명은 비어 있을 수 없습니다.");
-        }
+    ) {
+        validateBrandName(brandName);
+        validateCategoryName(categoryName);
+        validateProductName(productName);
 
         if (capacity <= 0) {
-            throw new IllegalArgumentException("용량은 1 이상이어야 합니다.");
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_INPUT);
         }
 
         if (priceUsd == null || priceUsd.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("달러 가격은 0 이상이어야 합니다.");
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
         }
 
         if (priceKrw == null || priceKrw.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("원화 가격은 0 이상이어야 합니다.");
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
         }
 
         if (thresholdValue < 0) {
-            throw new IllegalArgumentException("임계값은 0 이상이어야 합니다.");
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_INPUT);
         }
 
         if (productDAO.existsByBrandNameAndProductName(brandName, productName)) {
-            throw new IllegalStateException("이미 등록된 상품입니다. productName = " + productName);
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_EXISTS);
         }
 
         int brandId = productDAO.findBrandIdByBrandName(brandName);
@@ -88,39 +136,42 @@ public class ProductService {
                 thresholdValue
         );
 
-        if (result == 1) {
-            System.out.println("[신규 상품 등록 완료]");
-            System.out.println("브랜드명: " + brandName);
-            System.out.println("카테고리명: " + categoryName);
-            System.out.println("상품명: " + productName);
-        } else {
-            System.out.println("[신규 상품 등록 실패]");
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.INVALID_PRODUCT_INPUT);
         }
     }
 
+    public void deleteProduct(String brandName, String productName) {
 
-    public void deleteProduct(String brandName, String productName) throws SystemException {
-
-        if (brandName == null || brandName.trim().isEmpty()) {
-            throw new IllegalArgumentException("브랜드명은 비어 있을 수 없습니다.");
-        }
-
-        if (productName == null || productName.trim().isEmpty()) {
-            throw new IllegalArgumentException("상품명은 비어 있을 수 없습니다.");
-        }
+        validateBrandName(brandName);
+        validateProductName(productName);
 
         if (!productDAO.existsByBrandNameAndProductName(brandName, productName)) {
-            throw new IllegalStateException("삭제할 상품이 존재하지 않습니다. productName = " + productName);
+            throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
         int result = productDAO.deleteProductByBrandNameAndProductName(brandName, productName);
 
-        if (result == 1) {
-            System.out.println("[상품 삭제 완료]");
-            System.out.println("브랜드명: " + brandName);
-            System.out.println("상품명: " + productName);
-        } else {
-            System.out.println("[상품 삭제 실패]");
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.ILLEGAL_STATE);
+        }
+    }
+
+    private void validateBrandName(String brandName) {
+        if (brandName == null || brandName.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void validateCategoryName(String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void validateProductName(String productName) {
+        if (productName == null || productName.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_PRODUCT_INPUT);
         }
     }
 }

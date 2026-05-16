@@ -35,6 +35,11 @@ DROP SEQUENCE stockpurchase_seq;
 DROP SEQUENCE log_seq;
 DROP SEQUENCE payment_seq;
 
+SELECT table_name 
+FROM user_tables
+ORDER BY table_name;
+
+COMMIT;
 
 CREATE SEQUENCE manager_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 CREATE SEQUENCE category_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
@@ -113,12 +118,10 @@ CREATE TABLE Product (
     categoryId        NUMBER NOT NULL,
     brandId           NUMBER NOT NULL,
     productName       VARCHAR2(100) NOT NULL,
-    stockAmount       NUMBER NOT NULL,
     capacity          NUMBER NOT NULL,
     priceUsd          NUMBER NOT NULL,
     priceKrw          NUMBER NOT NULL,
     thresholdValue    NUMBER NOT NULL,
-    madeAt            DATE NOT NULL,
 
     CONSTRAINT PK_PRODUCT PRIMARY KEY (productId),
     CONSTRAINT FK_CATEGORY_TO_PRODUCT_1
@@ -238,7 +241,7 @@ CREATE TABLE Orders (
     reservationId   NUMBER NOT NULL,
     exchangeDate    DATE NOT NULL,
     orderedAt       DATE NOT NULL,
-    orderState      VARCHAR2(30) NOT NULL,
+    orderState      VARCHAR2(100) NOT NULL,
     totalAmount     NUMBER(12,2) NOT NULL,
 
     CONSTRAINT PK_ORDERS PRIMARY KEY (orderId),
@@ -270,7 +273,7 @@ CREATE TABLE OrderDetail (
     productId       NUMBER NOT NULL,
     orderId         NUMBER NOT NULL,
     quantity        NUMBER NOT NULL,
-    discountAmount  NUMBER(12,2) NOT NULL,
+    discountPrice  NUMBER(12,2) NOT NULL,
     dollarPrice     NUMBER(12,2) NOT NULL,
 
     CONSTRAINT PK_ORDERDETAIL PRIMARY KEY (productId, orderId),
@@ -327,6 +330,9 @@ CREATE TABLE ShoppingCart (
     productId   NUMBER NOT NULL,
     memberId    NUMBER NOT NULL,
     amount      NUMBER NOT NULL,
+    
+    createdAt   DATE DEFAULT SYSDATE NOT NULL,
+    updatedAt   DATE DEFAULT SYSDATE NOT NULL,
 
     CONSTRAINT PK_SHOPPINGCART PRIMARY KEY (productId, memberId),
 
@@ -341,8 +347,10 @@ CREATE TABLE ShoppingCart (
 
 CREATE TABLE SystemLog (
     logId       NUMBER DEFAULT log_seq.NEXTVAL NOT NULL,
-    errorCode   VARCHAR2(20) NULL,
-    logMessage  VARCHAR2(100) NOT NULL,
+    errorCode   VARCHAR2(200) NULL,
+    logMessage  VARCHAR2(512) NOT NULL,
+    detailLogMessage  CLOB NULL,
+    createdAt   DATE DEFAULT SYSDATE NOT NULL,
 
     CONSTRAINT PK_SYSTEMLOG PRIMARY KEY (logId)
 );
@@ -377,10 +385,9 @@ CREATE TABLE Payment (
             'PROCESSING',
             'SUCCESS',
             'FAILED',
-             'CANCELED'
+            'CANCELED'
         ))
 );
 
-COMMIT;
-
 SELECT table_name FROM user_tables;
+COMMIT;

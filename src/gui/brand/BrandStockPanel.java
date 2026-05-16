@@ -14,6 +14,7 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableModel;
 
 import brandSystem.BrandSystem;
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
 import stock.dto.StockProductDto;
@@ -37,7 +38,6 @@ public class BrandStockPanel extends JPanel implements Refreshable {
 
         String[] columnNames = {
                 "상품명",
-                "브랜드",
                 "카테고리",
                 "용량",
                 "가격($)",
@@ -97,7 +97,6 @@ public class BrandStockPanel extends JPanel implements Refreshable {
 
                 tableModel.addRow(new Object[] {
                         stock.getProductName(),
-                        stock.getBrandName(),
                         stock.getCategory().getCategoryName(),
                         stock.getCapacity(),
                         stock.getPriceUsd(),
@@ -109,8 +108,16 @@ public class BrandStockPanel extends JPanel implements Refreshable {
                 });
             }
 
+        }  catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "재고 데이터를 불러오는 중 오류가 발생했습니다.");
+            JOptionPane.showMessageDialog(this, "예상하지 못한 오류가 발생했습니다.");
             e.printStackTrace();
         }
     }

@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -144,6 +146,44 @@ public class OrderDAO {
 		}
 
 		return null;
+	}
+	
+	/**
+	 * 브랜드명으로 주문/판매 내역 조회
+	 */
+	public List<OrderDTO> findOrdersByBrandName(String brandName) {
+
+	    String sql =
+	            "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, " +
+	            "       d.productId, d.quantity, d.discountPrice, d.dollarPrice, " +
+	            "       p.productName, p.capacity, p.categoryId, " +
+	            "       c.categoryName " +
+	            "FROM orders o " +
+	            "JOIN orderdetail d ON o.orderId = d.orderId " +
+	            "JOIN product p ON d.productId = p.productId " +
+	            "JOIN brand b ON p.brandId = b.brandId " +
+	            "JOIN category c ON p.categoryId = c.categoryId " +
+	            "WHERE b.brandName = ? " +
+	            "ORDER BY o.orderedAt DESC";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setString(1, brandName);
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            List<OrderDTO> orders = new ArrayList<>();
+
+	            while (rs.next()) {
+	                orders.add(mapOrder(rs));
+	            }
+
+	            return orders;
+	        }
+
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
 	}
 
 	/**
@@ -339,4 +379,39 @@ public class OrderDAO {
 	    System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
 	    return null;
 	}
+	
+    public List<Order> getPendingOrders(LocalDateTime simulatedNow) throws SystemException {
+        List<Order> orderList = new ArrayList<>();
+        
+        String sql = "SELECT O.orderId, O.reservationId, M.loginId, O.totalAmount, O.orderedAt "
+                   + "FROM Orders O "
+                   + "JOIN Pickup P ON O.orderId = P.orderId "
+                   + "JOIN Member M ON O.memberId = M.memberId "
+                   + "WHERE O.orderState = 'PICKUP_RESERVED' "
+                   + "AND P.pickedUpAt IS NULL "
+                   + "AND P.pickupAvailableAt BETWEEN ? AND ?";
+                   
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             
+            // 현재(시뮬레이션) 시간 기준으로 -3시간, +3시간 바인딩
+            pstmt.setTimestamp(1, Timestamp.valueOf(simulatedNow.minusHours(3)));
+            pstmt.setTimestamp(2, Timestamp.valueOf(simulatedNow.plusHours(3)));
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while(rs.next()) {
+                    Order order = new Order();
+                    order.setOrderId(rs.getInt("orderId")); 
+                    order.setReservationId(rs.getInt("reservationId"));
+                    order.setLoginId(rs.getString("loginId"));
+                    order.setTotalPrice(rs.getBigDecimal("totalAmount"));
+                    order.setOrderedAt(rs.getTimestamp("orderedAt").toLocalDateTime());
+                    orderList.add(order);
+                }
+            }
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+        return orderList;
+    }
 }

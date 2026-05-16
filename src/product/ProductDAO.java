@@ -12,6 +12,7 @@ import category.Category;
 import product.dto.ProductDTO;
 import common.Currency;
 import common.OracleConnection;
+import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
 
@@ -201,7 +202,7 @@ public class ProductDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new IllegalArgumentException("존재하지 않는 브랜드입니다. brandName = " + brandName);
+        throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
     }
     
     // CategoryID 구하기
@@ -227,7 +228,7 @@ public class ProductDAO {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new IllegalArgumentException("존재하지 않는 카테고리입니다. categoryName = " + categoryName);
+        throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
     }
     
     // 상품명 중복 확인
@@ -334,6 +335,57 @@ public class ProductDAO {
 	    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 	        pstmt.setBigDecimal(1, exchangeRate);
 	        pstmt.executeUpdate();
+
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+	}
+	public List<ProductDTO> getProductsByBrandName(String brandName) throws SystemException {
+
+	    String sql = baseSql + "WHERE b.brandName = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setString(1, brandName);
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            List<ProductDTO> productList = new ArrayList<>();
+
+	            while (rs.next()) {
+	                productList.add(mapProduct(rs));
+	            }
+
+	            return productList;
+	        }
+
+	    } catch (SQLException e) {
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+	}
+	
+	public ProductDTO getProductByBrandNameAndProductName(
+	        String brandName,
+	        String productName
+	) throws SystemException {
+
+	    String sql = baseSql +
+	            "WHERE b.brandName = ? " +
+	            "  AND p.productName = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setString(1, brandName);
+	        pstmt.setString(2, productName);
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                return mapProduct(rs);
+	            }
+
+	            return null;
+	        }
 
 	    } catch (SQLException e) {
 	        throw new SystemException(ErrorCode.DB_CONNECTION, e);

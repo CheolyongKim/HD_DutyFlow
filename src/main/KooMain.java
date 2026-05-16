@@ -11,7 +11,7 @@ public class KooMain {
 
     public static void main(String[] args) {
 
-        BrandSystem brandSystem = new BrandSystem("Johnnie Walker");
+        BrandSystem brandSystem = new BrandSystem("Brand_01");
 
         StockPurchaseScheduler purchaseScheduler =
                 new StockPurchaseScheduler(brandSystem.getPurchaseService());

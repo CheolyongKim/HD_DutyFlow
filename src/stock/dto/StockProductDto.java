@@ -18,14 +18,11 @@ import lombok.ToString;
 public class StockProductDto {
 	private Category category;
 	private String productName;
-	private String brandName;
-	private int stockAmount;
 	private int capacity;
 	private BigDecimal priceUsd;
 	private BigDecimal priceKrw;
 	private double discountRate;
 	private int thresholdValue;
-	private LocalDate madeAt;
 	private LocalDate manufacturedDate;
 	private int amount;
 }
