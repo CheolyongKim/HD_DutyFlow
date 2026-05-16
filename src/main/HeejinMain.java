@@ -239,13 +239,21 @@ public class HeejinMain {
                                         RegulationDTO perfumeRegulationDTO) {
     	
     	if (order == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        }
+    	    throw new BusinessException(ErrorCode.INVALID_INPUT);
+    	}
+
+    	if (order.getTotalPrice() == null) {
+    	    throw new BusinessException(ErrorCode.INVALID_PRODUCT_PRICE);
+    	}
 
         List<TaxStrategy> strategies = new ArrayList<>();
 
-        // 일반상품은 항상 포함
-        strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        // 일반상품은 한도 초과 시에만 추가
+        BigDecimal limit = BigDecimal.valueOf(generalRegulationDTO.getLimitCapacity());
+
+        if (order.getTotalPrice().compareTo(limit) > 0) {
+            strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        }
 
         // 주류 한도 초과 시에만 추가
         if (order.getTotalAlcohol() > alcoholRegulationDTO.getLimitCapacity()) {
@@ -255,6 +263,10 @@ public class HeejinMain {
         // 향수 한도 초과 시에만 추가
         if (order.getTotalPerfume() > perfumeRegulationDTO.getLimitCapacity()) {
             strategies.add(new PerfumeTaxStrategy(perfumeRegulationDTO));
+        }
+
+        if (strategies.isEmpty()) {
+            return BigDecimal.ZERO;
         }
 
         TaxCalculator calculator = new TaxCalculator(strategies);
