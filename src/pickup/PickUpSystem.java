@@ -152,14 +152,16 @@ public class PickUpSystem implements FlightObserver {
 
 	// 큐에 번호표 뽑기 (뽑았는데 창구가 비어있으면 즉시 호출됨!)
 	public void appendQueue(String passportNum, int flightResNum) {
-		this.validateInfo(passportNum, flightResNum);
-		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
-		Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
-		airplane.registerObserver(this);
-		// TODO: 피드백: DTO로 하세요
-		this.pq.enqueue(airplane, new Member(aqdto.getMemberId(), null, null, aqdto.getName(), null, null, passportNum,
-				null, false, aqdto.getGrade(), null));
-		this.tryCallNextCustomer(); // 오픈 전이면 무시됨
+	    this.validateInfo(passportNum, flightResNum);
+	    AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
+	    Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
+	    airplane.registerObserver(this);
+
+	    Member member = new Member(aqdto.getMemberId(), aqdto.getName(), passportNum, false, aqdto.getGrade());
+	    PickUpTicket ticket = new PickUpTicket(member, airplane, this.pq.nextNum());
+
+	    this.pq.enqueue(ticket);
+	    this.tryCallNextCustomer();
 	}
 
 	// DB에서 조건에 맞는 주문들을 메모리로 로드
@@ -216,7 +218,7 @@ public class PickUpSystem implements FlightObserver {
 
 	    // 🔧 기존 티켓 객체를 그대로 재삽입 → ticketIssueTime, ticketNum 보존
 	    for (PickUpTicket ticket : allTickets) {
-	        pq.requeue(ticket);
+	        pq.enqueue(ticket);
 	    }
 
 	    System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());

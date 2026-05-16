@@ -54,23 +54,17 @@ public class MLPQ {
 			throw new QueueException(ErrorCode.QUEUE_EMPTY, new Exception("호출할 대기열이 비어있습니다."));
 	}
 
-	public void enqueue(Airplane airplane, Member member) {
-		if (Duration.between(CurrentTime.curTime, airplane.getDepartureAt()).getSeconds()
-				/ 60 < this.promotionThresholdMinutes) {
-			this.aq.add(new PickUpTicket(member, airplane, ++this.lastNum));
-		} else {
-			this.bq.add(new PickUpTicket(member, airplane, ++this.lastNum));
-		}
-	}
-	
-	// 기존 enqueue 바로 아래에 추가
-	public void requeue(PickUpTicket ticket) {
-	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds() / 60
-	            < this.promotionThresholdMinutes) {
+	public void enqueue(PickUpTicket ticket) {
+	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt())
+	            .getSeconds() / 60 < this.promotionThresholdMinutes) {
 	        this.aq.add(ticket);
 	    } else {
 	        this.bq.add(ticket);
 	    }
+	}
+	
+	public int nextNum() {
+	    return ++this.lastNum;
 	}
 
 	public PickUpTicket peek() {
