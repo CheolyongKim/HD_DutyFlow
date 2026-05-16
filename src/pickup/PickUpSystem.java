@@ -42,7 +42,7 @@ public class PickUpSystem implements FlightObserver {
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
-		this.pickUpDAO.updateOrderAndPickupStatus(oud.getOrderId(), oud.getNewState(), pickedUpAt);
+		this.pickUpDAO.updateOrderAndPickupState(oud.getOrderId(), oud.getNewState(), pickedUpAt);
 	}
 
 	// ---------------------------------------------------------
@@ -92,7 +92,7 @@ public class PickUpSystem implements FlightObserver {
 		}
 
 		int targetOrderId = this.pickUpDAO.getOrderIdForPickup(passportNum, flightResNum);
-		this.pickUpDAO.updateOrderAndPickupStatus(targetOrderId, "PICKED_UP", CurrentTime.curTime);
+		this.pickUpDAO.updateOrderAndPickupState(targetOrderId, "PICKED_UP", CurrentTime.curTime);
 
 		System.out.println("✔️ 4. [" + currentTicket.getMember().getName() + "]님 인도 완료. (시각: "
 				+ CurrentTime.curTime.toLocalTime() + ")");
@@ -159,7 +159,7 @@ public class PickUpSystem implements FlightObserver {
 			}
  
 			order.noShow();
-			this.orderDAO.update(order);
+			this.pickUpDAO.updateOrderAndPickupState(orderId, "NO_SHOW", null);
 			System.out.println("   🛫 [NO_SHOW] " + name + " 고객님 — 출국 시간 경과로 미수령(NO_SHOW) 처리 완료");
  
 		} catch (DataNotFoundException e) {
