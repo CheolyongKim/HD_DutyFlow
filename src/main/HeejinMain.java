@@ -39,7 +39,7 @@ public class HeejinMain {
     public static void main(String[] args) {
 
         RegulationDAO regulationDAO = new RegulationDAO();
-        
+      
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
         RegulationDTO alcoholRegulationDTO = regulationDAO.getRegulationByCategoryId(2);
@@ -280,6 +280,7 @@ public class HeejinMain {
         // =========================
         System.out.println("\n=== 특정 회원 픽업 목록 ===");
         Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null, null);
+
         pickUpSystem.printAllPickUpList(targetMember);
         
         
