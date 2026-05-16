@@ -65,7 +65,7 @@ public class ShoppingCartDAO {
     // 회원의 장바구니에 새로운 상품 추가
     public void insertCartItem(int memberId, int productId, int amount) {
         String sql = "INSERT INTO ShoppingCart(productId, memberId, amount) VALUES (?, ?, ?)";
-
+        
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 

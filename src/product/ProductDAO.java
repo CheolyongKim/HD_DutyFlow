@@ -49,6 +49,7 @@ public class ProductDAO {
                 .build();
 
         return Product.builder()
+        		.productId(rs.getInt("productId"))
                 .category(category)
                 .productName(rs.getString("productName"))
                 .brandName(rs.getString("brandName"))
@@ -67,7 +68,7 @@ public class ProductDAO {
     public List<Product> getAllProducts() throws SystemException {
 
         String sql = baseSql;
-
+        System.out.println(sql);
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {

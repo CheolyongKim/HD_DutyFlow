@@ -6,10 +6,10 @@ import java.util.List;
 
 import brandSystem.BrandSystem;
 import member.MemberSignupDTO;
-import order.Order;
 import order.dto.OrderDTO;
 import product.Product;
 import product.ProductService;
+import product.dto.ProductDTO;
 
 public class DutyFlowSystemTest {
 
@@ -43,38 +43,38 @@ public class DutyFlowSystemTest {
         // =====================================================
         // 4. 회원가입
         // =====================================================
-        try {
-            MemberSignupDTO signupDTO = new MemberSignupDTO(
-                    "testuser01",
-                    "1234",
-                    "김민준",
-                    LocalDate.of(1998, 5, 10),
-                    "01012345678"
-            );
-
-            system.signup(signupDTO);
-
-            System.out.println("회원가입 성공");
-
-        } catch (Exception e) {
-            System.out.println("회원가입 실패 | reason = " + e.getMessage());
-        }
+//        try {
+//            MemberSignupDTO signupDTO = new MemberSignupDTO(
+//                    "testuser01",
+//                    "1234",
+//                    "김민준",
+//                    LocalDate.of(1998, 5, 10),
+//                    "01012345678"
+//            );
+//
+//            system.signup(signupDTO);
+//
+//            System.out.println("회원가입 성공");
+//
+//        } catch (Exception e) {
+//            System.out.println("회원가입 실패 | reason = " + e.getMessage());
+//        }
 
         // =====================================================
         // 5. 로그인
         // =====================================================
-        system.login("testuser01", "1234");
+        system.login("user01", "pass01");
 
         // =====================================================
         // 6. 여권 등록
         // =====================================================
-        system.registerPassport("M12345678", LocalDate.of(2030, 12, 31));
+//        system.registerPassport("M12345678", LocalDate.of(2030, 12, 31));
 
         // =====================================================
         // 7. 상품 조회
         // =====================================================
         List<Product> products = productService.getAllProducts();
-
+        
         Product p1 = products.get(0);
         Product p2 = products.get(1);
         Product p3 = products.get(2);
@@ -85,11 +85,6 @@ public class DutyFlowSystemTest {
         system.addToCart(p1, 1);
         system.addToCart(p2, 2);
         system.addToCart(p3, 1);
-        
-        system.makeOrder();
-        
-        System.out.println("========== CART ==========");
-        System.out.println(system.printCart());
 
         // 수량 수정 테스트
         system.updateQuantity(p2, 1);
@@ -97,12 +92,20 @@ public class DutyFlowSystemTest {
         System.out.println("========== CART AFTER UPDATE ==========");
         System.out.println(system.printCart());
 
+        System.out.println("========== CART ==========");
+        System.out.println(system.printCart());
+        
+
+
         // =====================================================
         // 9. 주문 큐 적재
         // =====================================================
         
+        
         system.makeOrder();
         
+
+
 
 
         // =====================================================

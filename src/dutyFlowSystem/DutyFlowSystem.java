@@ -110,6 +110,7 @@ public class DutyFlowSystem {
 
 	// 장바구니 내 특정 상품 수량 변경
 	public void updateQuantity(Product p, int newAmount) {
+		
 		shoppingCartService.updateQuantity(getLoginMemberId(), p, newAmount);
 	}
 

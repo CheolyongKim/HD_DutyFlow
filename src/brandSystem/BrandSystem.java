@@ -8,7 +8,7 @@ import lombok.Getter;
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.ValidationException;
-
+import product.Product;
 import product.ProductService;
 import stock.domain.StockPurchaseStatus;
 import stock.dto.StockProductDto;
@@ -113,7 +113,7 @@ public class BrandSystem implements StockObserver {
         return purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
     }
     
-    public List<ProductDTO> getProductsByBrandName() {
+    public List<Product> getProductsByBrandName() {
         return productService.getProductsByBrandName(brandName);
     }
 
@@ -189,11 +189,11 @@ public class BrandSystem implements StockObserver {
     }
     
     public void printProductsByBrandName() {
-        List<ProductDTO> products = productService.getProductsByBrandName(brandName);
+        List<Product> products = productService.getProductsByBrandName(brandName);
 
         System.out.println("===== [" + brandName + "] 브랜드 상품 목록 =====");
 
-        for (ProductDTO product : products) {
+        for (Product product : products) {
             System.out.println(product);
         }
     }
