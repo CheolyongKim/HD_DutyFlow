@@ -17,6 +17,8 @@ import flight.FlightService;
 import member.MemberDAO;
 import order.dto.OrderDTO;
 import order.state.PendingState;
+import payment.Payment;
+import payment.PaymentDAO;
 import payment.PaymentService;
 import regulation.RegulationDAO;
 import regulation.RegulationDTO;
@@ -32,6 +34,8 @@ public class OrderService {
 	private final RegulationDAO regulationDAO = new RegulationDAO();
 	
 	private final FlightDAO flightDAO = new FlightDAO();
+	private final PaymentDAO paymentDAO = new PaymentDAO();
+	
 	private final FlightService flightService = new FlightService(flightDAO);
 	private final PaymentService paymentService = new PaymentService();
 	
@@ -429,8 +433,16 @@ public class OrderService {
 
 		order.cancel();
 		orderDAO.update(order);
+		
+		try {
+			Payment payment = paymentDAO.findSuccessByOrderId(orderId);
+			int paymentId = payment.getPaymentId();
+			paymentService.cancelPayment(paymentId);
+			System.out.println("✅ 주문 취소 완료 orderId = " + orderId);
+		}catch (Exception e) {
+			throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED,e);
+		}
 
-		System.out.println("✅ 주문 취소 완료 orderId = " + orderId);
 	}
 
 	/** 미수령 처리 — PICKUP_RESERVED 상태에서만 가능 */
