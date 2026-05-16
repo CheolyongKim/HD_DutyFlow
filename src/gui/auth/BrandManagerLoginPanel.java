@@ -1,9 +1,10 @@
 package gui.auth;
 
 import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+
 import admin.brandmanager.dto.BrandManager;
 import admin.brandmanager.service.BrandManagerService;
 import brandSystem.BrandSystem;
@@ -11,92 +12,148 @@ import exception.DutyFreeException;
 import gui.ScreenManager;
 
 public class BrandManagerLoginPanel extends JPanel {
+
     private final ScreenManager screenManager;
     private final BrandManagerService brandManagerService = new BrandManagerService();
+
     private JTextField managerIdField;
     private JPasswordField passwordField;
 
+    // UI 컬러 테마 (MemberLoginPanel과 통일)
+    private static final Color BG_COLOR = new Color(0xF5F6FA);
+    private static final Color CARD_BG = Color.WHITE;
+    private static final Color PRIMARY_COLOR = new Color(0x2D6CDF); 
+    private static final Color SECONDARY_COLOR = new Color(0x6B7280);
+
     public BrandManagerLoginPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        setLayout(new GridBagLayout()); // 중앙 배치를 위해 GridBagLayout 사용
-        setBackground(new Color(236, 240, 241));
 
-        // 로그인 카드 패널
+        setLayout(new GridBagLayout()); // 중앙 배치를 위해 GridBagLayout 사용
+        setBackground(BG_COLOR);
+
+        /* ── 브랜드 관리자 로그인 카드 ── */
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(Color.WHITE);
+        card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(new Color(200, 200, 200), 1),
-            new EmptyBorder(40, 40, 40, 40)
+                BorderFactory.createLineBorder(new Color(0xDCDDE1), 1),
+                new EmptyBorder(40, 40, 40, 40)
         ));
 
-        // 타이틀
+        // 타이틀 섹션
         JLabel titleLabel = new JLabel("BRAND ADMIN LOGIN");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(new Color(0x2F3640));
 
-        // 입력 필드 세트
-        managerIdField = new JTextField(15);
-        passwordField = new JPasswordField(15);
+        JLabel subTitle = new JLabel("브랜드 관리 시스템 접속");
+        subTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        subTitle.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+        subTitle.setForeground(SECONDARY_COLOR);
+        subTitle.setBorder(new EmptyBorder(5, 0, 30, 0));
+
+        // 입력 필드 섹션 (GridLayout 사용)
+        JPanel inputPanel = new JPanel(new GridLayout(4, 1, 0, 5));
+        inputPanel.setOpaque(false);
+        inputPanel.setMaximumSize(new Dimension(300, 150));
+
+        managerIdField = new JTextField();
+        passwordField = new JPasswordField();
         
-        setupInput(card, "관리자 ID", managerIdField);
-        setupInput(card, "비밀번호", passwordField);
+        // 엔터 키 입력 시 로그인 시도
+        ActionListener loginAction = e -> handleLogin();
+        managerIdField.addActionListener(loginAction);
+        passwordField.addActionListener(loginAction);
 
-        // 버튼 패널
-        JPanel btnPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        btnPanel.setOpaque(false);
-        btnPanel.setMaximumSize(new Dimension(300, 45));
+        inputPanel.add(new JLabel("관리자 ID"));
+        inputPanel.add(managerIdField);
+        inputPanel.add(new JLabel("비밀번호"));
+        inputPanel.add(passwordField);
 
-        JButton loginButton = new JButton("로그인");
-        loginButton.setBackground(new Color(52, 152, 219));
-        loginButton.setForeground(Color.WHITE);
-        loginButton.setFont(new Font("맑은 고딕", Font.BOLD, 14));
-        loginButton.addActionListener(e -> handleLogin());
+        // 버튼 섹션
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 1, 0, 10)); // 브랜드 로그인은 가입 버튼이 없으므로 1열
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(25, 0, 0, 0));
+        buttonPanel.setMaximumSize(new Dimension(300, 75));
 
-        JButton backButton = new JButton("뒤로가기");
-        backButton.addActionListener(e -> screenManager.show("LOGIN_SELECT"));
+        JButton loginButton = createStyledButton("로그인", PRIMARY_COLOR);
+        loginButton.addActionListener(loginAction);
+        buttonPanel.add(loginButton);
 
-        btnPanel.add(loginButton);
-        btnPanel.add(backButton);
+        // 뒤로가기 링크 (텍스트 버튼 형태)
+        JButton backButton = new JButton("<html><u>이전 화면으로 돌아가기</u></html>");
+        backButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        backButton.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
+        backButton.setForeground(SECONDARY_COLOR);
+        backButton.setBorderPainted(false);
+        backButton.setContentAreaFilled(false);
+        backButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backButton.addActionListener(e -> {
+            clearFields();
+            screenManager.show("LOGIN_SELECT");
+        });
 
+        // 카드에 컴포넌트 추가
         card.add(titleLabel);
-        card.add(btnPanel);
+        card.add(subTitle);
+        card.add(inputPanel);
+        card.add(buttonPanel);
+        card.add(Box.createVerticalStrut(20));
+        card.add(backButton);
+
         add(card);
     }
 
-    private void setupInput(JPanel card, String labelText, JTextField field) {
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
-        field.setMaximumSize(new Dimension(300, 35));
-        
-        card.add(label);
-        card.add(Box.createVerticalStrut(5));
-        card.add(field);
-        card.add(Box.createVerticalStrut(15));
-    }
-
-    // handleLogin() 로직은 기존 코드와 동일하게 유지
-    private void handleLogin() { 
-        /* 기존 로직 생략 */ 
-        String managerIdText = managerIdField.getText();
+    private void handleLogin() {
+        String managerIdText = managerIdField.getText().trim();
         String password = new String(passwordField.getPassword());
+
+        if (managerIdText.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "ID와 비밀번호를 입력하세요.", "알림", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         try {
-            if (managerIdText.isEmpty() || password.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "ID와 비밀번호를 입력하세요.");
-                return;
-            }
             int managerId = Integer.parseInt(managerIdText);
             BrandManager brandManager = brandManagerService.login(managerId, password);
+            
             BrandSystem brandSystem = new BrandSystem(brandManager.getBrandName());
             screenManager.setBrandSystem(brandSystem);
+            
             JOptionPane.showMessageDialog(this, brandManager.getManagerName() + "님 환영합니다.");
-            managerIdField.setText("");
-            passwordField.setText("");
+            clearFields();
             screenManager.show("BRAND_MAIN");
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "관리자 ID는 숫자로 입력해야 합니다.", "형식 오류", JOptionPane.ERROR_MESSAGE);
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage(), "로그인 실패", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "로그인 정보가 올바르지 않습니다.");
+            JOptionPane.showMessageDialog(this, "로그인 중 오류가 발생했습니다.");
+            e.printStackTrace();
         }
+    }
+
+    private void clearFields() {
+        managerIdField.setText("");
+        passwordField.setText("");
+    }
+
+    private JButton createStyledButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bg);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(bg.darker()); }
+            @Override public void mouseExited(MouseEvent e) { btn.setBackground(bg); }
+        });
+
+        return btn;
     }
 }

@@ -18,6 +18,9 @@ public class ScreenManager {
     private final CardLayout cardLayout;
     private final JPanel mainPanel;
     private final Map<String, JPanel> screens = new HashMap<>();
+    
+    // 여권정보 입력 유무 확인
+    private boolean passportAfterSignup;
 
     private BrandSystem brandSystem;
     private Integer loginMemberId;
@@ -52,6 +55,13 @@ public class ScreenManager {
 
     public boolean isMemberLoggedIn() {
         return loginMemberId != null;
+    }
+    public boolean isPassportAfterSignup() {
+        return passportAfterSignup;
+    }
+
+    public void setPassportAfterSignup(boolean passportAfterSignup) {
+        this.passportAfterSignup = passportAfterSignup;
     }
     
     
