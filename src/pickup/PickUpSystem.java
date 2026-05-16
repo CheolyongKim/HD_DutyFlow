@@ -32,12 +32,9 @@ public class PickUpSystem implements FlightObserver {
 	private static final int CALL_TIMEOUT_LIMIT = 10; // 기본 타임아웃 (10분)
 	private boolean isCounterOpen = false; // 창구 오픈 상태
 
-	public PickUpSystem() {
+	public PickUpSystem(AirportManagerService airportManagerService) {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
-	}
-
-	public PickUpSystem(AirportManagerService airportManagerService) {
 		this.airportManagerService = airportManagerService;
     }
 
