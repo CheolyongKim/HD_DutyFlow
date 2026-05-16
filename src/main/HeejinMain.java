@@ -205,6 +205,8 @@ public class HeejinMain {
         // ------------------------- Flight Delay Queue Test --------------------------
         FlightDAO flightDAO = new FlightDAO();
         FlightService flightService = new FlightService(flightDAO);
+
+        AirportManagerService airportManagerService = new AirportManagerService();
         
         System.out.println("\n=== 항공편 지연 테스트 =====");
 
@@ -212,7 +214,7 @@ public class HeejinMain {
         CurrentTime.curTime =
         	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
         
-        PickUpSystem ps = new PickUpSystem(flightService);
+        PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
 
         // 번호표 발급 (AQ/BQ 들어감)
         ps.appendQueue("M11111111", 1); // 이급박
