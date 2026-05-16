@@ -1,32 +1,21 @@
 package gui;
 
 import java.awt.CardLayout;
+import java.awt.Font;
+import java.awt.Color;
+import javax.swing.*;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
 import flight.FlightDAO;
 import flight.FlightService;
-import gui.auth.BrandManagerLoginPanel;
-import gui.auth.LoginSelectPanel;
-import gui.auth.MemberLoginPanel;
-import gui.brand.BrandMainPanel;
-import gui.brand.BrandOrderHistoryPanel;
-import gui.brand.BrandProductListPanel;
-import gui.brand.BrandProductManagePanel;
-import gui.brand.BrandPurchaseHistoryPanel;
-import gui.brand.BrandPurchasePanel;
-import gui.brand.BrandStockPanel;
+import gui.auth.*;
+import gui.brand.*;
 import gui.home.HomePanel;
-import gui.member.MemberMainPanel;
-import gui.member.MemberPassportPanel;
-import gui.member.MemberSignupPanel;
-import gui.auth.AirportManagerLoginPanel;
-import gui.pickup.PickupListPanel;
-import gui.pickup.PickupMainPanel;
-import gui.pickup.PickupVerificationPanel;
+import gui.member.*;
+import gui.pickup.*;
 import pickup.PickUpSystem;
 
 public class MainFrame extends JFrame {
@@ -37,8 +26,11 @@ public class MainFrame extends JFrame {
     private PickUpSystem pickUpSystem;
 
     public MainFrame() {
+        // 1. 전역 UI 스타일 설정 (컴포넌트 생성 전 실행)
+        applyGlobalStyle();
+
         setTitle("현대면세점 공항 인도장 픽업 예약 관리 시스템");
-        setSize(1100, 700);
+        setSize(1200, 800); // 가독성을 위해 너비를 조금 더 키웠습니다.
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -55,7 +47,33 @@ public class MainFrame extends JFrame {
         setVisible(true);
     }
 
+    private void applyGlobalStyle() {
+        try {
+            // 모던한 Light 테마 적용
+            FlatLightLaf.setup();
+            
+            // 전역 폰트 설정 (이 설정으로 모든 컴포넌트의 폰트가 통일됩니다)
+            Font globalFont = new Font("맑은 고딕", Font.PLAIN, 14);
+            UIManager.put("defaultFont", globalFont);
+            
+            // 버튼, 라벨 등 특정 컴포넌트 여백 및 디자인 디테일 조정
+            UIManager.put("Button.arc", 8); // 버튼 모서리 둥글게
+            UIManager.put("Component.arc", 8); // 입력창 모서리 둥글게
+            UIManager.put("Table.rowHeight", 30); // 테이블 행 높이 조절
+            UIManager.put("TableHeader.font", new Font("맑은 고딕", Font.BOLD, 14));
+            
+        } catch (Exception ex) {
+            System.err.println("테마를 적용할 수 없습니다. 기본 UI로 실행합니다.");
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void initScreens() {
+        // 기존 패널 등록 로직 (동일)
         screenManager.addScreen("HOME", new HomePanel(screenManager));
         screenManager.addScreen("LOGIN_SELECT", new LoginSelectPanel(screenManager));
         screenManager.addScreen("BRAND_MANAGER_LOGIN", new BrandManagerLoginPanel(screenManager));
@@ -73,28 +91,26 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("MEMBER_MAIN", new MemberMainPanel(screenManager));
         screenManager.addScreen("MEMBER_PASSPORT", new MemberPassportPanel(screenManager));
       
-        // ── 인도장 시스템 의존성 생성 ──
+        // ── 인도장 시스템 의존성 설정 ──
         FlightDAO flightDAO = new FlightDAO();
         AirportManagerDao airportManagerDao = new AirportManagerDao();
         FlightService flightService = new FlightService(flightDAO);
         AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
         pickUpSystem = new PickUpSystem(airportManagerService, flightService);
       
-        // -- 인도장 시스템 로그인 --
+        // -- 인도장 화면 등록 --
         AirportManagerLoginPanel loginPanel = new AirportManagerLoginPanel(screenManager);
         loginPanel.setPickUpSystem(pickUpSystem);
         screenManager.addScreen("AIRPORT_MANAGER_LOGIN", loginPanel);
 
-        // -- 인도장 시스템 로그인 의존성 생성 --
-        PickupMainPanel mainPanel = new PickupMainPanel(screenManager);
-        mainPanel.setPickUpSystem(pickUpSystem);
-        screenManager.addScreen("PICKUP_MAIN", mainPanel);
+        PickupMainPanel pMainPanel = new PickupMainPanel(screenManager);
+        pMainPanel.setPickUpSystem(pickUpSystem);
+        screenManager.addScreen("PICKUP_MAIN", pMainPanel);
         
-        // ── 인도장 GUI 패널 등록 ──
-        screenManager.addScreen("PICKUP_LIST",       new PickupListPanel(screenManager));
+        screenManager.addScreen("PICKUP_LIST", new PickupListPanel(screenManager));
         
         PickupVerificationPanel verifyPanel = new PickupVerificationPanel(screenManager);
         verifyPanel.setPickUpSystem(pickUpSystem);
-        screenManager.addScreen("PICKUP_VERIFY",     verifyPanel);
+        screenManager.addScreen("PICKUP_VERIFY", verifyPanel);
     }
 }
