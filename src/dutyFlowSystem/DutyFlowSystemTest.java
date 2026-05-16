@@ -13,36 +13,32 @@ import product.dto.ProductDTO;
 
 public class DutyFlowSystemTest {
 
-    public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException {
 
-        // =====================================================
-        // 1. 브랜드 시스템 Mock
-        // =====================================================
-        BrandSystem johnnieWalker = new BrandSystem("Johnnie Walker");
-        BrandSystem chanel = new BrandSystem("Chanel");
-        BrandSystem iqosBrand = new BrandSystem("IQOS");
+		// =====================================================
+		// 1. 브랜드 시스템 Mock
+		// =====================================================
+		BrandSystem johnnieWalker = new BrandSystem("Johnnie Walker");
+		BrandSystem chanel = new BrandSystem("Chanel");
+		BrandSystem iqosBrand = new BrandSystem("IQOS");
 
-        List<BrandSystem> brandList = Arrays.asList(
-                johnnieWalker,
-                chanel,
-                iqosBrand
-        );
+		List<BrandSystem> brandList = Arrays.asList(johnnieWalker, chanel, iqosBrand);
 
-        // =====================================================
-        // 2. 시스템 생성
-        // =====================================================
-        DutyFlowSystem system = new DutyFlowSystem(brandList);
-        ProductService productService = new ProductService();
+		// =====================================================
+		// 2. 시스템 생성
+		// =====================================================
+		DutyFlowSystem system = new DutyFlowSystem(brandList);
+		ProductService productService = new ProductService();
 
-        // =====================================================
-        // 3. Worker 시작
-        // =====================================================
-        system.startPaymentWorker();
-        system.startExchangeRateScheduler();
+		// =====================================================
+		// 3. Worker 시작
+		// =====================================================
+		system.startPaymentWorker();
+		system.startExchangeRateScheduler();
 
-        // =====================================================
-        // 4. 회원가입
-        // =====================================================
+		// =====================================================
+		// 4. 회원가입
+		// =====================================================
 //        try {
 //            MemberSignupDTO signupDTO = new MemberSignupDTO(
 //                    "testuser01",
@@ -60,92 +56,75 @@ public class DutyFlowSystemTest {
 //            System.out.println("회원가입 실패 | reason = " + e.getMessage());
 //        }
 
-        // =====================================================
-        // 5. 로그인
-        // =====================================================
-        system.login("user01", "pass01");
+		// =====================================================
+		// 5. 로그인
+		// =====================================================
+		system.login("user01", "pass01");
 
-        // =====================================================
-        // 6. 여권 등록
-        // =====================================================
+		// =====================================================
+		// 6. 여권 등록
+		// =====================================================
 //        system.registerPassport("M12345678", LocalDate.of(2030, 12, 31));
 
-        // =====================================================
-        // 7. 상품 조회
-        // =====================================================
-        List<Product> products = productService.getAllProducts();
-        
-        Product p1 = products.get(0);
-        Product p2 = products.get(1);
-        Product p3 = products.get(2);
+		// =====================================================
+		// 7. 상품 조회
+		// =====================================================
+		List<Product> products = productService.getAllProducts();
 
-        // =====================================================
-        // 8. 장바구니 테스트
-        // =====================================================
-        system.addToCart(p1, 1);
-        system.addToCart(p2, 2);
-        system.addToCart(p3, 1);
+		Product p1 = products.get(0);
+		Product p2 = products.get(1);
+		Product p3 = products.get(2);
 
-        // 수량 수정 테스트
-        system.updateQuantity(p2, 1);
+		// =====================================================
+		// 8. 장바구니 테스트
+		// =====================================================
+		system.addToCart(p1, 1);
+		system.addToCart(p2, 2);
+		system.addToCart(p3, 1);
 
-        System.out.println("========== CART AFTER UPDATE ==========");
-        System.out.println(system.printCart());
+		// 수량 수정 테스트
+		system.updateQuantity(p2, 1);
 
-        System.out.println("========== CART ==========");
-        System.out.println(system.printCart());
-        
+		System.out.println("========== CART AFTER UPDATE ==========");
+		System.out.println(system.printCart());
 
+		System.out.println("========== CART ==========");
+		System.out.println(system.printCart());
 
-        // =====================================================
-        // 9. 주문 큐 적재
-        // =====================================================
-        
-        
-        system.makeOrder();
-        
+		// =====================================================
+		// 9. 주문 큐 적재
+		// =====================================================
 
+		system.makeOrder();
+		int orderId = system.makeOrder(); // ← orderId 받아서
 
+		// 10. 주문 처리
+		system.processOrderQueue();
+		Thread.sleep(2000);
 
+		// 11. 주문 조회
+		List<OrderDTO> myOrders = system.getMyOrders();
+		System.out.println(myOrders);
 
-        // =====================================================
-        // 10. 주문 처리 실행
-        // =====================================================
-        System.out.println("========== PROCESS ORDER QUEUE ==========");
-        system.processOrderQueue();
+		// 12. 픽업 예약
+		system.reservePickup(orderId); // ← 하드코딩 1 대신 동적 orderId
 
-        Thread.sleep(2000);
+		// 13. 픽업 완료
+		system.completePickup(orderId); // ← 동일
 
-        // =====================================================
-        // 11. 주문 조회 테스트
-        // =====================================================
-        System.out.println("========== MY ORDERS ==========");
-        List<OrderDTO> myOrders = system.getMyOrders();
-        System.out.println(myOrders);
+		// =====================================================
+		// 14. 환율 테스트
+		// =====================================================
+		System.out.println("오늘 환율 = " + system.getTodayExchangeRate());
+		System.out.println("주간 환율 = " + system.getWeeklyExchangeRates());
+		System.out.println("월간 환율 = " + system.getMonthlyExchangeRates());
 
-        // =====================================================
-        // 12. 픽업 예약 테스트
-        // =====================================================
-        system.reservePickup(1);
+		// =====================================================
+		// 15. 시스템 종료
+		// =====================================================
+		system.stopPaymentWorker();
+		system.stopExchangeRateScheduler();
 
-        // =====================================================
-        // 13. 픽업 완료 테스트
-        // =====================================================
-        system.completePickup(1);
-
-        // =====================================================
-        // 14. 환율 테스트
-        // =====================================================
-        System.out.println("오늘 환율 = " + system.getTodayExchangeRate());
-        System.out.println("주간 환율 = " + system.getWeeklyExchangeRates());
-        System.out.println("월간 환율 = " + system.getMonthlyExchangeRates());
-
-        // =====================================================
-        // 15. 시스템 종료
-        // =====================================================
-        system.stopPaymentWorker();
-        system.stopExchangeRateScheduler();
-
-        System.out.println("========== SYSTEM END ==========");
-    }
+		System.out.println("========== SYSTEM END ==========");
+	}
 }

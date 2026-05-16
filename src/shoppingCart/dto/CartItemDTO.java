@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class CartItemDTO {
-	private final int productId;
+    private final int productId;
     private final String productName;
     private final int quantity;
     private final BigDecimal dollarPrice;

@@ -334,10 +334,9 @@ public class DutyFlowSystem {
 	    this.brandList = brandList;
 	}
 	
-	public void makeOrder() {
+	public int makeOrder() {
 	    int memberId = getLoginMemberId();
 
-	    // 1. 장바구니 조회
 	    TotalCartDTO totalCart = shoppingCartService.getCart(memberId);
 	    if (totalCart == null
 	            || totalCart.getItems() == null
@@ -345,24 +344,21 @@ public class DutyFlowSystem {
 	        throw new BusinessException(ErrorCode.INVALID_INPUT);
 	    }
 
-	    // 2. 항공편 예약 정보 조회
 	    FlightBookDTO flightBookDto = flightService.getFlightBookByMemberId(memberId);
 	    int reservationId = flightBookDto.getReservationId();
 
-	    // 3. orders + order_detail DB insert → orderId 발급
 	    int orderId = orderService.createOrder(memberId, reservationId, totalCart.getItems());
 
-	    // 4. 큐에 적재
 	    Order order = new Order();
 	    order.setOrderId(orderId);
 	    order.setMemberId(memberId);
 	    order.setReservationId(reservationId);
 	    addOrderQueue(order);
 
-	    // 5. 장바구니 비우기
 	    deleteFromCart();
 
 	    System.out.println("✅ 주문 생성 완료 orderId = " + orderId);
+	    return orderId;  // ← 반환
 	}
 	
 

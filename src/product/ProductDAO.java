@@ -68,7 +68,6 @@ public class ProductDAO {
     public List<Product> getAllProducts() throws SystemException {
 
         String sql = baseSql;
-        System.out.println(sql);
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {

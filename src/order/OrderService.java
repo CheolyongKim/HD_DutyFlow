@@ -126,6 +126,8 @@ public class OrderService {
 	    List<OrderDTO> orderItems = cartItems.stream()
 	            .map(item -> OrderDTO.builder()
 	                    .productId(item.getProductId())
+	                    .categoryId(item.getCategoryId())   // ← 추가
+	                    .capacity(item.getCapacity())        // ← 추가
 	                    .quantity(item.getQuantity())
 	                    .dollarPrice(
 	                        item.getDollarPrice()
