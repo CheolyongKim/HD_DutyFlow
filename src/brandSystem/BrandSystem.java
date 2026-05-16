@@ -16,6 +16,9 @@ import stock.dto.StockPurchaseHistoryDto;
 import stock.service.StockPurchaseService;
 import stock.service.StockService;
 import stock.observer.StockObserver;
+import order.OrderService;
+import order.dto.OrderDTO;
+import product.dto.ProductDTO;
 
 @Getter
 public class BrandSystem implements StockObserver {
@@ -24,6 +27,7 @@ public class BrandSystem implements StockObserver {
     private final StockService stockService;
     private final StockPurchaseService purchaseService;
     private final ProductService productService;
+    private final OrderService orderService;
 
     public BrandSystem(String brandName) {
         validateRequiredText(brandName);
@@ -32,6 +36,7 @@ public class BrandSystem implements StockObserver {
         this.stockService = new StockService();
         this.purchaseService = new StockPurchaseService();
         this.productService = new ProductService();
+        this.orderService = new OrderService();
 
         this.stockService.registerObserver(this);
     }
@@ -108,6 +113,15 @@ public class BrandSystem implements StockObserver {
         return purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
     }
     
+    public List<ProductDTO> getProductsByBrandName() {
+        return productService.getProductsByBrandName(brandName);
+    }
+
+    public List<OrderDTO> getOrdersByBrandName() {
+        return orderService.getOrdersByBrandName(brandName);
+    }
+    
+    
     public void exportPurchaseHistoryToFile(File file) {
         purchaseService.exportPurchaseHistoryByBrandName(brandName, file);
     }
@@ -173,6 +187,27 @@ public class BrandSystem implements StockObserver {
             System.out.println(purchase);
         }
     }
+    
+    public void printProductsByBrandName() {
+        List<ProductDTO> products = productService.getProductsByBrandName(brandName);
+
+        System.out.println("===== [" + brandName + "] 브랜드 상품 목록 =====");
+
+        for (ProductDTO product : products) {
+            System.out.println(product);
+        }
+    }
+
+    public void printOrdersByBrandName() {
+        List<OrderDTO> orders = orderService.getOrdersByBrandName(brandName);
+
+        System.out.println("===== [" + brandName + "] 브랜드 판매 내역 =====");
+
+        for (OrderDTO order : orders) {
+            System.out.println(order);
+        }
+    }
+
 
     @Override
     public void onStockShortageDetected(
