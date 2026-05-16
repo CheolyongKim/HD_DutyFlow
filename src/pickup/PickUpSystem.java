@@ -1,9 +1,12 @@
 package pickup;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
@@ -21,6 +24,7 @@ public class PickUpSystem implements FlightObserver {
 
 	public MLPQ pq;
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
+	private final AirportManagerService airportManagerService;
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
 	private PickUpTicket currentTicket;
@@ -32,6 +36,10 @@ public class PickUpSystem implements FlightObserver {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 	}
+
+	public PickUpSystem(AirportManagerService airportManagerService) {
+		this.airportManagerService = airportManagerService;
+    }
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
@@ -271,4 +279,31 @@ public class PickUpSystem implements FlightObserver {
 
 		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
+	
+	// 로그인 
+	public void login(int managerId, String password) {
+        airportManagerService.login(managerId, password); 
+    }
+	
+	// 로그아웃 
+	public void logout() {
+        airportManagerService.logout(); 
+    }
+	
+	// 전체 픽업 목록
+	public void printAllPickUpList() {
+        airportManagerService.printAllPickUpList(); 
+    }
+	
+	// 특정 회원 픽업 목록
+	public void printAllPickUpList(Member member) {
+		airportManagerService.printAllPickUpList(member);
+	}
+	
+	// 기간별 픽업 목록 
+	public void printAllPickUpList(LocalDate start, LocalDate end) {
+        airportManagerService.printAllPickUpList(start, end);
+    }
+	
+	
 }
