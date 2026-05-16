@@ -8,6 +8,7 @@ import javax.swing.border.EmptyBorder;
 
 import common.CurrentTime;
 import gui.ScreenManager;
+import pickup.PickUpSystem;
 
 /**
  * 인도장 관리 시스템 — 메인 메뉴 (화면설계서 섹션 1)
@@ -19,8 +20,13 @@ import gui.ScreenManager;
 public class PickupMainPanel extends JPanel {
 
     private final ScreenManager screenManager;
+    private PickUpSystem pickUpSystem;
     private final JLabel clockLabel;
     private final Timer clockTimer;
+
+    public void setPickUpSystem(PickUpSystem ps) {
+        this.pickUpSystem = ps;
+    }
 
     /* ── 색상 상수 ── */
     private static final Color BG          = new Color(0xF5F6FA);
@@ -169,6 +175,14 @@ public class PickupMainPanel extends JPanel {
                     this, "로그아웃 하시겠습니까?", "로그아웃",
                     JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
             if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    if (pickUpSystem != null) {
+                        pickUpSystem.logout();
+                    }
+                } catch (Exception ex) {
+                    // 로그아웃 실패해도 화면 전환은 진행
+                    System.out.println("[로그아웃 오류] " + ex.getMessage());
+                }
                 screenManager.show("LOGIN_SELECT");
             }
         });

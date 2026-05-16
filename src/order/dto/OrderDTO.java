@@ -43,6 +43,7 @@ public class OrderDTO {
 
 	// Product
 	private String productName;
+	private String brandName;
 	
 	public BigDecimal getDiscountedUnitPrice() {
 	    // discountPrice 필드에 20, 30 같은 할인율이 들어있는 경우

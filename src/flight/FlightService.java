@@ -1,6 +1,7 @@
 package flight;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import airplane.Airplane;
 
@@ -8,6 +9,8 @@ import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.ValidationException;
 import exception.BusinessException;
+import lombok.NoArgsConstructor;
+
 
 public class FlightService {
 
@@ -26,6 +29,10 @@ public class FlightService {
         }
     }
  
+
+    public FlightService() {
+		this.flightDAO = new FlightDAO();
+    }
     // 항공편 조회 (예약코드 기반)
     public Airplane getFlightInfo(String reservationCode) {
     	
@@ -66,6 +73,24 @@ public class FlightService {
 
 
     // 항공편 지연 정보 업데이트 
+    // 항공편 조회 (memberid 기반)
+    public FlightBookDTO getFlightBookByMemberId(int memberId) {
+
+
+        List<FlightBookDTO> list =
+        		flightDAO.getFlightBookByMemberId(memberId);
+
+        if (list == null || list.isEmpty()) {
+            throw new BusinessException(
+                    ErrorCode.DATA_NOT_FOUND
+            );
+        }
+
+        return list.get(0);
+    }
+    
+    
+    // 지연 정보 처리
     public void updateDelayedFlight(String flightCode, LocalDateTime newDepartureAt) {
 
         if (flightCode == null || newDepartureAt == null) {

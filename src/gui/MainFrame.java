@@ -5,6 +5,10 @@ import java.awt.CardLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
+import flight.FlightDAO;
+import flight.FlightService;
 import gui.auth.BrandManagerLoginPanel;
 import gui.auth.LoginSelectPanel;
 import gui.auth.MemberLoginPanel;
@@ -20,13 +24,16 @@ import gui.member.MemberMainPanel;
 import gui.member.MemberPassportPanel;
 import gui.member.MemberSignupPanel;
 import gui.auth.AirportManagerLoginPanel;
+import gui.pickup.PickupListPanel;
 import gui.pickup.PickupMainPanel;
+import pickup.PickUpSystem;
 
 public class MainFrame extends JFrame {
 
     private CardLayout cardLayout;
     private JPanel mainPanel;
     private ScreenManager screenManager;
+    private PickUpSystem pickUpSystem;
 
     public MainFrame() {
         setTitle("현대면세점 공항 인도장 픽업 예약 관리 시스템");
@@ -51,7 +58,6 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("HOME", new HomePanel(screenManager));
         screenManager.addScreen("LOGIN_SELECT", new LoginSelectPanel(screenManager));
         screenManager.addScreen("BRAND_MANAGER_LOGIN", new BrandManagerLoginPanel(screenManager));
-        screenManager.addScreen("AIRPORT_MANAGER_LOGIN", new AirportManagerLoginPanel(screenManager));
 
         screenManager.addScreen("BRAND_MAIN", new BrandMainPanel(screenManager));
         screenManager.addScreen("BRAND_STOCK", new BrandStockPanel(screenManager));
@@ -65,8 +71,25 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("MEMBER_SIGNUP", new MemberSignupPanel(screenManager));
         screenManager.addScreen("MEMBER_MAIN", new MemberMainPanel(screenManager));
         screenManager.addScreen("MEMBER_PASSPORT", new MemberPassportPanel(screenManager));
+      
+        // ── 인도장 시스템 의존성 생성 ──
+        FlightDAO flightDAO = new FlightDAO();
+        AirportManagerDao airportManagerDao = new AirportManagerDao();
+        FlightService flightService = new FlightService(flightDAO);
+        AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
+        pickUpSystem = new PickUpSystem(airportManagerService, flightService);
+      
+        // -- 인도장 시스템 로그인 --
+        AirportManagerLoginPanel loginPanel = new AirportManagerLoginPanel(screenManager);
+        loginPanel.setPickUpSystem(pickUpSystem);
+        screenManager.addScreen("AIRPORT_MANAGER_LOGIN", loginPanel);
+      
+        // -- 인도장 시스템 로그인 의존성 생성 --
+        PickupMainPanel mainPanel = new PickupMainPanel(screenManager);
+        mainPanel.setPickUpSystem(pickUpSystem);
+        screenManager.addScreen("PICKUP_MAIN", mainPanel);
         
         // ── 인도장 GUI 패널 등록 ──
-        screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
+        screenManager.addScreen("PICKUP_LIST",       new PickupListPanel(screenManager));
     }
 }
