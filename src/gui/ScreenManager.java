@@ -8,7 +8,11 @@ import javax.swing.JPanel;
 
 import brandSystem.BrandSystem;
 import gui.common.Refreshable;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class ScreenManager {
 
     private final CardLayout cardLayout;
@@ -16,6 +20,7 @@ public class ScreenManager {
     private final Map<String, JPanel> screens = new HashMap<>();
 
     private BrandSystem brandSystem;
+    private Integer loginMemberId;
 	
     public ScreenManager(CardLayout cardLayout, JPanel mainPanel) {
         this.cardLayout = cardLayout;
@@ -37,15 +42,17 @@ public class ScreenManager {
         cardLayout.show(mainPanel, name);
     }
 
-    public void setBrandSystem(BrandSystem brandSystem) {
-        this.brandSystem = brandSystem;
-    }
-
-    public BrandSystem getBrandSystem() {
-        return brandSystem;
-    }
-
     public void clearBrandSystem() {
         this.brandSystem = null;
     }
+    
+    public void clearLoginMemberId() {
+        this.loginMemberId = null;
+    }
+
+    public boolean isMemberLoggedIn() {
+        return loginMemberId != null;
+    }
+    
+    
 }

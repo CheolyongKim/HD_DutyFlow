@@ -11,6 +11,7 @@ import flight.FlightDAO;
 import flight.FlightService;
 import gui.auth.BrandManagerLoginPanel;
 import gui.auth.LoginSelectPanel;
+import gui.auth.MemberLoginPanel;
 import gui.brand.BrandMainPanel;
 import gui.brand.BrandOrderHistoryPanel;
 import gui.brand.BrandProductListPanel;
@@ -19,6 +20,9 @@ import gui.brand.BrandPurchaseHistoryPanel;
 import gui.brand.BrandPurchasePanel;
 import gui.brand.BrandStockPanel;
 import gui.home.HomePanel;
+import gui.member.MemberMainPanel;
+import gui.member.MemberPassportPanel;
+import gui.member.MemberSignupPanel;
 import gui.auth.AirportManagerLoginPanel;
 import gui.pickup.PickupListPanel;
 import gui.pickup.PickupMainPanel;
@@ -64,16 +68,24 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("BRAND_PURCHASE", new BrandPurchasePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE_HISTORY", new BrandPurchaseHistoryPanel(screenManager));
         
+        screenManager.addScreen("MEMBER_LOGIN", new MemberLoginPanel(screenManager));
+        screenManager.addScreen("MEMBER_SIGNUP", new MemberSignupPanel(screenManager));
+        screenManager.addScreen("MEMBER_MAIN", new MemberMainPanel(screenManager));
+        screenManager.addScreen("MEMBER_PASSPORT", new MemberPassportPanel(screenManager));
+      
         // ── 인도장 시스템 의존성 생성 ──
         FlightDAO flightDAO = new FlightDAO();
         AirportManagerDao airportManagerDao = new AirportManagerDao();
         FlightService flightService = new FlightService(flightDAO);
         AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
         pickUpSystem = new PickUpSystem(airportManagerService, flightService);
+      
         // -- 인도장 시스템 로그인 --
         AirportManagerLoginPanel loginPanel = new AirportManagerLoginPanel(screenManager);
         loginPanel.setPickUpSystem(pickUpSystem);
         screenManager.addScreen("AIRPORT_MANAGER_LOGIN", loginPanel);
+
+        // -- 인도장 시스템 로그인 의존성 생성 --
         PickupMainPanel mainPanel = new PickupMainPanel(screenManager);
         mainPanel.setPickUpSystem(pickUpSystem);
         screenManager.addScreen("PICKUP_MAIN", mainPanel);
