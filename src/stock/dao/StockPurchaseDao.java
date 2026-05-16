@@ -305,6 +305,9 @@ public class StockPurchaseDao {
             }
 
         } catch (SQLException e) {
+            System.err.println("[StockPurchaseDao] SQL 실행 실패");
+            System.err.println("원인: " + e.getMessage());
+            e.printStackTrace();
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
