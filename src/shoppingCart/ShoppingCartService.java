@@ -66,34 +66,144 @@ public class ShoppingCartService {
 		shoppingCartDAO.updateAmount(memberId, productId, newAmount);
 	}
 
+//	// 장바구니 조회
+//	public TotalCartDTO getCart(int memberId) {
+//
+//		Map<Product, Integer> products = shoppingCartDAO.findCartProductsByMemberId(memberId);
+//
+//		if (products.isEmpty()) {
+//			return new TotalCartDTO(List.of(), 0, BigDecimal.ZERO, BigDecimal.ZERO); // 비어있는 장바구니 DTO 객체를 생성해서 반환함
+//		}
+//
+//		// DTO 생성 중 일부만 처리되고 예외가 발생하는 상황을 방지하기 위해
+//		// 반환 전에 상품 정보 및 수량 데이터를 먼저 검증
+//		for (Map.Entry<Product, Integer> entry : products.entrySet()) {
+//			Product product = entry.getKey();
+//			int quantity = entry.getValue();
+//
+//			// 상품 정보가 없는 경우
+//			if (product == null) {
+//				throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+//			}
+//
+//			// 수량이 0 이하인 경우
+//			if (quantity <= 0) {
+//				throw new ValidationException(ErrorCode.INVALID_QUANTITY);
+//			}
+//
+//			// 상품 가격 정보가 없는 경우
+//			if (product.getPriceUsd() == null || product.getPriceKrw() == null) {
+//				throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
+//			}
+//		}
+//
+//		List<CartItemDTO> items = new ArrayList<>();
+//
+//		int totalQuantity = 0;
+//
+//		BigDecimal totalDollarPrice = BigDecimal.ZERO;
+//		BigDecimal totalWonPrice = BigDecimal.ZERO;
+//
+//		for (Map.Entry<Product, Integer> entry : products.entrySet()) {
+//			Product product = entry.getKey();
+//			int quantity = entry.getValue();
+//
+//			BigDecimal dollarPrice = product.getPriceUsd().multiply(BigDecimal.valueOf(quantity));
+//			BigDecimal wonPrice = product.getPriceKrw().multiply(BigDecimal.valueOf(quantity));
+//
+//			// 상품별 DTO 생성
+//			items.add(new CartItemDTO(product.getProductId(), product.getProductName(), quantity, dollarPrice, wonPrice,
+//					product.getCategory().getCategoryId(), product.getCapacity()));
+//
+//			// 총합 계산
+//			totalQuantity += quantity;
+//			totalDollarPrice = totalDollarPrice.add(dollarPrice);
+//			totalWonPrice = totalWonPrice.add(wonPrice);
+//		}
+//
+//		return new TotalCartDTO(items, totalQuantity, totalDollarPrice, totalWonPrice);
+//	}
+	
 	// 장바구니 조회
 	public TotalCartDTO getCart(int memberId) {
 
-		Map<Product, Integer> products = shoppingCartDAO.findCartProductsByMemberId(memberId);
+		System.out.println("========== getCart START ==========");
+		System.out.println("memberId = " + memberId);
+
+		Map<Product, Integer> products =
+				shoppingCartDAO.findCartProductsByMemberId(memberId);
+
+		System.out.println("조회된 products size = " + products.size());
 
 		if (products.isEmpty()) {
-			return new TotalCartDTO(List.of(), 0, BigDecimal.ZERO, BigDecimal.ZERO); // 비어있는 장바구니 DTO 객체를 생성해서 반환함
+
+			System.out.println("장바구니 비어있음");
+
+			return new TotalCartDTO(
+					List.of(),
+					0,
+					BigDecimal.ZERO,
+					BigDecimal.ZERO
+			);
 		}
 
-		// DTO 생성 중 일부만 처리되고 예외가 발생하는 상황을 방지하기 위해
-		// 반환 전에 상품 정보 및 수량 데이터를 먼저 검증
+		// 검증
 		for (Map.Entry<Product, Integer> entry : products.entrySet()) {
+
 			Product product = entry.getKey();
 			int quantity = entry.getValue();
 
+			System.out.println("----- 상품 검증 -----");
+
+			System.out.println("product = " + product);
+
+			if (product != null) {
+				System.out.println("productId = " + product.getProductId());
+				System.out.println("productName = " + product.getProductName());
+				System.out.println("priceUsd = " + product.getPriceUsd());
+				System.out.println("priceKrw = " + product.getPriceKrw());
+
+				if (product.getCategory() != null) {
+					System.out.println(
+							"categoryId = "
+							+ product.getCategory().getCategoryId()
+					);
+				} else {
+					System.out.println("category = null");
+				}
+			}
+
+			System.out.println("quantity = " + quantity);
+
 			// 상품 정보가 없는 경우
 			if (product == null) {
-				throw new DataNotFoundException(ErrorCode.PRODUCT_NOT_FOUND);
+
+				System.out.println("product == null");
+
+				throw new DataNotFoundException(
+						ErrorCode.PRODUCT_NOT_FOUND
+				);
 			}
 
 			// 수량이 0 이하인 경우
 			if (quantity <= 0) {
-				throw new ValidationException(ErrorCode.INVALID_QUANTITY);
+
+				System.out.println("quantity <= 0");
+
+				throw new ValidationException(
+						ErrorCode.INVALID_QUANTITY
+				);
 			}
 
 			// 상품 가격 정보가 없는 경우
-			if (product.getPriceUsd() == null || product.getPriceKrw() == null) {
-				throw new ValidationException(ErrorCode.INVALID_PRODUCT_PRICE);
+			if (product.getPriceUsd() == null
+					|| product.getPriceKrw() == null) {
+
+				System.out.println("상품 가격 null");
+
+				throw new ValidationException(
+						ErrorCode.INVALID_PRODUCT_PRICE
+				);
 			}
 		}
 
@@ -105,23 +215,69 @@ public class ShoppingCartService {
 		BigDecimal totalWonPrice = BigDecimal.ZERO;
 
 		for (Map.Entry<Product, Integer> entry : products.entrySet()) {
+
 			Product product = entry.getKey();
 			int quantity = entry.getValue();
 
-			BigDecimal dollarPrice = product.getPriceUsd().multiply(BigDecimal.valueOf(quantity));
-			BigDecimal wonPrice = product.getPriceKrw().multiply(BigDecimal.valueOf(quantity));
+			System.out.println("----- DTO 생성 -----");
 
+			System.out.println("productName = " + product.getProductName());
+			System.out.println("quantity = " + quantity);
+
+			BigDecimal dollarPrice =
+					product.getPriceUsd()
+							.multiply(BigDecimal.valueOf(quantity));
+
+			BigDecimal wonPrice =
+					product.getPriceKrw()
+							.multiply(BigDecimal.valueOf(quantity));
+
+			System.out.println("dollarPrice = " + dollarPrice);
+			System.out.println("wonPrice = " + wonPrice);
+
+			if (product.getCategory() == null) {
+				System.out.println("category null 발생");
+				System.out.println("productId = " + product.getProductId());
+				System.out.println("productName = " + product.getProductName());
+
+				throw new DataNotFoundException(ErrorCode.INVALID_QUANTITY);
+			}
+			
 			// 상품별 DTO 생성
-			items.add(new CartItemDTO(product.getProductId(), product.getProductName(), quantity, dollarPrice, wonPrice,
-					product.getCategory().getCategoryId(), product.getCapacity()));
+			items.add(
+					new CartItemDTO(
+							product.getProductId(),
+							product.getProductName(),
+							quantity,
+							dollarPrice,
+							wonPrice,
+							product.getCategory().getCategoryId(),
+							product.getCapacity()
+					)
+			);
+
+			System.out.println("CartItemDTO 추가 완료");
 
 			// 총합 계산
 			totalQuantity += quantity;
-			totalDollarPrice = totalDollarPrice.add(dollarPrice);
-			totalWonPrice = totalWonPrice.add(wonPrice);
+
+			totalDollarPrice =
+					totalDollarPrice.add(dollarPrice);
+
+			totalWonPrice =
+					totalWonPrice.add(wonPrice);
+
+			System.out.println("현재 totalQuantity = " + totalQuantity);
+			System.out.println("현재 totalDollarPrice = " + totalDollarPrice);
+			System.out.println("현재 totalWonPrice = " + totalWonPrice);
 		}
 
-		return new TotalCartDTO(items, totalQuantity, totalDollarPrice, totalWonPrice);
+		return new TotalCartDTO(
+				items,
+				totalQuantity,
+				totalDollarPrice,
+				totalWonPrice
+		);
 	}
 
 	// 장바구니 전체 비우기

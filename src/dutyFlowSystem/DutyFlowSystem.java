@@ -116,6 +116,7 @@ public class DutyFlowSystem {
 
 	// 장바구니 조회
 	public TotalCartDTO printCart() {
+		System.out.println("시스템");
 	    return shoppingCartService.getCart(getLoginMemberId());
 	}
 
