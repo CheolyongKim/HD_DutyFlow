@@ -89,7 +89,21 @@ public enum ErrorCode {
 	NOT_MY_BRAND_PRODUCT("PR003", "해당 브랜드의 상품이 아닙니다."),
 	INVALID_PRODUCT_INPUT("PR004", "상품 입력값이 올바르지 않습니다."),
 	// 파일
-	FILE_SAVE_FAILED("FILE_SAVE_FAILED", "파일 저장 중 오류가 발생했습니다.")
+	FILE_SAVE_FAILED("FILE_SAVE_FAILED", "파일 저장 중 오류가 발생했습니다."),
+	
+	// 회원
+	INVALID_LOGIN_ID("INVALID_LOGIN_ID", "아이디 입력값이 올바르지 않습니다."),
+	INVALID_PASSWORD("INVALID_PASSWORD", "비밀번호 입력값이 올바르지 않습니다."),
+	INVALID_MEMBER_NAME("INVALID_MEMBER_NAME", "회원 이름 입력값이 올바르지 않습니다."),
+	INVALID_BIRTH_DATE("INVALID_BIRTH_DATE", "생년월일 입력값이 올바르지 않습니다."),
+	INVALID_PHONE_NUMBER("INVALID_PHONE_NUMBER", "전화번호 입력값이 올바르지 않습니다."),
+	INVALID_PASSPORT("INVALID_PASSPORT", "여권 정보가 올바르지 않습니다."),
+
+	DUPLICATE_LOGIN_ID("DUPLICATE_LOGIN_ID", "이미 사용 중인 아이디입니다."),
+	DUPLICATE_PHONE_NUMBER("DUPLICATE_PHONE_NUMBER", "이미 등록된 전화번호입니다."),
+	DUPLICATE_PASSPORT("DUPLICATE_PASSPORT", "이미 등록된 여권번호입니다."),
+	
+	
 	;
     private final String code;
     private final String message;

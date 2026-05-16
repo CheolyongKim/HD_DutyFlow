@@ -41,4 +41,65 @@ public class MemberDAO {
 	    return member; // 결과가 없으면 null 리턴
 	}
 	
+	// 아이디 중복 확인
+    public boolean existsByLoginId(String loginId) {
+        String sql = "SELECT COUNT(*) FROM Member WHERE loginId = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, loginId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0; // 존재할 경우 true 반환
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+    // 전화번호 중복 확인
+    public boolean existsByPhoneNumber(String phoneNumber) {
+        String sql = "SELECT COUNT(*) FROM Member WHERE phoneNumber = ?";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, phoneNumber);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
+
+    public void insert(Member member) {
+        String sql =
+            "INSERT INTO Member (grade, loginId, password, name, birthDate, "
+            + "phoneNumber, gradeSelectionDate, adult) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, member.getGrade().name());
+            pstmt.setString(2, member.getLoginId());
+            pstmt.setString(3, member.getPassword());
+            pstmt.setString(4, member.getName());
+            pstmt.setDate(5, java.sql.Date.valueOf(member.getBirthDate()));
+            pstmt.setString(6, member.getPhoneNumber());
+            pstmt.setDate(7, java.sql.Date.valueOf(member.getGradeSelectionDate()));
+            pstmt.setString(8, member.isAdult() ? "Y" : "N");
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+    }
 }

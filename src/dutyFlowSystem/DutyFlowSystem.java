@@ -8,6 +8,8 @@ import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
 import member.Member;
+import member.MemberService;
+import member.MemberSignupDTO;
 import order.Order;
 import order.OrderService;
 import order.dto.OrderDTO;
@@ -26,6 +28,10 @@ public class DutyFlowSystem {
 	
 	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
     private final OrderService orderService = new OrderService();
+    private final MemberService memberService = new MemberService();
+    
+    // 초기에 null로 설정, 로그인 성공 시 loginMemberId값 세팅
+    private Integer loginMemberId = null;
     
 	// 백그라운드에서 실행될 결제 Worker
 	private final PaymentWorker paymentWorker = new PaymentWorker();
@@ -49,6 +55,11 @@ public class DutyFlowSystem {
 	    if (paymentWorkerThread != null) {
 	        paymentWorkerThread.interrupt();
 	    }
+	}
+	
+	// 회원가입
+	public void signup(MemberSignupDTO dto) {
+	    memberService.signup(dto);
 	}
 	
 	// 회원 장바구니에 상품 추가
