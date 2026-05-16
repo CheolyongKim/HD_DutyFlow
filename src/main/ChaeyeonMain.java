@@ -15,6 +15,8 @@ import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
 import member.Member;
+import member.MemberService;
+import member.MemberSignupDTO;
 import order.Order;
 import order.OrderService;
 import order.dto.OrderDTO;
@@ -523,13 +525,80 @@ public class ChaeyeonMain {
 //			System.out.println("=> 결과: 중단 (" + e.getMessage() + ")");
 //		}
 
-		// ------------------------------------------------
-		// 테스트용 회원
-		// ------------------------------------------------
-		Member member = new Member();
-		member.setMemberId(1);
 
-		dutyFlowSystem.setMember(member);
+        MemberService memberService = new MemberService();
+
+        System.out.println("===== 회원가입 테스트 시작 =====");
+        System.out.println();
+
+        // =========================
+        // 1. 정상 회원가입
+        // =========================
+        System.out.println("===== 정상 회원가입 =====");
+
+        try {
+
+            MemberSignupDTO dto = new MemberSignupDTO(
+                    "testuser01",
+                    "1234",
+                    "김민준",
+                    LocalDate.of(1998, 5, 10),
+                    "01012345678"
+            );
+
+            memberService.signup(dto);
+
+            System.out.println("회원가입 성공");
+
+        } catch (Exception e) {
+            System.out.println("회원가입 실패 | reason = " + e.getMessage());
+        }
+
+        System.out.println();
+        
+
+        System.out.println();
+
+        // =========================
+        // 6. 정상 여권 등록
+        // =========================
+        System.out.println("===== 정상 여권 등록 =====");
+
+        try {
+
+            memberService.registerPassport(
+                    1,
+                    "M123A4567",
+                    LocalDate.of(2030, 12, 31)
+            );
+
+            System.out.println("여권 등록 성공");
+
+        } catch (Exception e) {
+            System.out.println("여권 등록 실패 | reason = " + e.getMessage());
+        }
+
+        System.out.println();
+
+        // =========================
+        // 10. 정상 로그인
+        // =========================
+        System.out.println("===== 정상 로그인 =====");
+
+        try {
+
+            int memberId = memberService.login(
+                    "testuser01",
+                    "1234"
+            );
+
+            System.out.println("로그인 성공 | memberId = " + memberId);
+
+        } catch (Exception e) {
+            System.out.println("로그인 실패 | reason = " + e.getMessage());
+        }
+
+        System.out.println();
 
 
 		// 2. 브랜드 시스템 리스트 생성 및 구현체 추가
@@ -578,11 +647,9 @@ public class ChaeyeonMain {
 			System.out.println();
 			System.out.println("✅ 주문 Queue 처리 완료");
 
+		} catch (BusinessException e) {
+			throw new BusinessException(ErrorCode.DATA_NOT_FOUND,e);
 		} catch (Exception e) {
-
-			System.out.println();
-			System.out.println("❌ 주문 처리 실패");
-
 			e.printStackTrace();
 		}
 

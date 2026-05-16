@@ -15,7 +15,6 @@ import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
 import flight.FlightBookDTO;
-import flight.FlightDTO;
 import flight.FlightService;
 import member.Member;
 import member.MemberService;
@@ -179,9 +178,8 @@ public class DutyFlowSystem {
 	    while (!orderQueue.isEmpty()) {
 	        try {
 	            Order order = orderQueue.poll();
-	            processOrder(order); // 여기서 insertOrder가 호출됨
+	            processOrder(order);
 	        } catch (Exception e) {
-	            System.err.println("❌ 주문 큐 처리 중 치명적 에러 발생! 프로세스를 중단합니다.");
 	            e.printStackTrace();
 	            break; // 👈 에러 나면 다음 루프 돌지 말고 즉시 멈추기!
 	        }
@@ -192,7 +190,7 @@ public class DutyFlowSystem {
 	 * 나의 전체 주문 내역을 조회합니다.
 	 */
 	public List<OrderDTO> getMyOrders() {
-		return orderService.getOrdersByMemberId(this.member.getMemberId());
+		return orderService.getOrdersByMemberId(getLoginMemberId());
 	}
 
 	/**
@@ -213,7 +211,7 @@ public class DutyFlowSystem {
 
 	        FlightBookDTO flightBookDto =
 	                flightService.getFlightBookByMemberId(
-	                        this.member.getMemberId()
+	                		getLoginMemberId()
 	                );
 
 	        reservationId =
@@ -231,7 +229,7 @@ public class DutyFlowSystem {
 
 	        List<BrandOrderRequestDTO> requests =
 	                orderService.placeOrder(
-	                        this.member.getMemberId(),
+	                		getLoginMemberId(),
 	                        reservationId,
 	                        orderDetails,
 	                        cardNumber
