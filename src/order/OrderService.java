@@ -103,78 +103,71 @@ public class OrderService {
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
-	public List<BrandOrderRequestDTO> placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems,
-			String cardNumber) {
 
-		if (cartItems == null || cartItems.isEmpty()) {
-			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
-		}
+    public List<BrandOrderRequestDTO> placeOrder(int memberId,
+                                                 int reservationId,
+                                                 List<OrderDTO> cartItems,
+                                                 String cardNumber) {
 
-		// 1. 규정 조회 (딱 한 번)
-		RegulationDTO generalReg = regulationDAO.getRegulationByCategoryId(CATEGORY_GENERAL);
-		RegulationDTO alcoholReg = regulationDAO.getRegulationByCategoryId(CATEGORY_ALCOHOL);
-		RegulationDTO perfumeReg = regulationDAO.getRegulationByCategoryId(CATEGORY_PERFUME);
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+        }
 
-		// 2. 면세 한도 확인
-		DutyCheckResult dutyResult = checkDutyFreeLimits(cartItems, alcoholReg, perfumeReg);
+        // 1. 규정 조회 (categoryName 기반)
+        RegulationDTO generalReg = regulationDAO.getByCategoryName("GENERAL");
+        RegulationDTO alcoholReg = regulationDAO.getByCategoryName("ALCOHOL");
+        RegulationDTO cosmeticsReg = regulationDAO.getByCategoryName("COSMETICS");
 
-		// 3. 면세 초과 안내
-		if (dutyResult.isExceeded()) {
-			System.out.println();
-			System.out.println("⚠ 면세 한도 초과");
-			System.out.println(dutyResult.getMessage());
-			System.out.println("예상 세금 = $" + dutyResult.getEstimatedTax());
-			System.out.println();
-			System.out.println("그래도 구매하시겠습니까? (Y/N)");
+        // 2. 면세 체크
+        DutyCheckResult dutyResult = checkDutyFreeLimits(cartItems, alcoholReg, cosmeticsReg);
 
-			Scanner sc = new Scanner(System.in); // TODO: sc swing
-			String answer = sc.nextLine();
+        if (dutyResult.isExceeded()) {
+            System.out.println("⚠ 면세 한도 초과");
+            System.out.println(dutyResult.getMessage());
+            System.out.println("예상 세금 = $" + dutyResult.getEstimatedTax());
+            System.out.println("그래도 구매하시겠습니까? (Y/N)");
 
-			if (!answer.equalsIgnoreCase("Y")) {
-				System.out.println("주문이 취소되었습니다.");
-				return Collections.emptyList();
-			}
-		}
+            Scanner sc = new Scanner(System.in);
+            String answer = sc.nextLine();
 
-		// 4. 주문 객체 생성
-		Order order = new Order();
-		order.setMemberId(memberId);
-		order.setReservationId(reservationId);
+            if (!answer.equalsIgnoreCase("Y")) {
+                System.out.println("주문이 취소되었습니다.");
+                return Collections.emptyList();
+            }
+        }
 
-		// [계산 로직] (단가 * 수량)에서 할인율(%) 적용
-		BigDecimal totalBeforeTax = cartItems.stream().map(item -> {
-			BigDecimal price = item.getDollarPrice();
-			BigDecimal discountRate = BigDecimal.valueOf(item.getDiscountPrice().doubleValue() / 100.0);
-			BigDecimal discountAmount = price.multiply(discountRate);
-			// 실구매가 = (단가 - 할인액) * 수량
-			return price.subtract(discountAmount).multiply(BigDecimal.valueOf(item.getQuantity()));
-		}).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 3. 주문 생성
+        Order order = new Order();
+        order.setMemberId(memberId);
+        order.setReservationId(reservationId);
 
-		order.setTotalPrice(totalBeforeTax); // 상품 할인 적용된 합계 세팅
-		order.setMemberId(memberId);
+        BigDecimal totalBeforeTax = cartItems.stream()
+                .map(item -> {
+                    BigDecimal price = item.getDollarPrice();
+                    BigDecimal discountRate = item.getDiscountPrice().divide(BigDecimal.valueOf(100));
+                    BigDecimal discounted = price.subtract(price.multiply(discountRate));
+                    return discounted.multiply(BigDecimal.valueOf(item.getQuantity()));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		// 5. 주문 저장
-		int orderId = orderDAO.insertOrder(order, cartItems);
+        order.setTotalPrice(totalBeforeTax);
 
-		// 6. 결제 프로세스 (조회한 규정 재사용)
-		try {
-			order(orderId, generalReg, alcoholReg, perfumeReg, cardNumber);
-			System.out.println("넘어가는 orderId = " + orderId);
-		} catch (BusinessException e) {
-			System.err.println("주문 생성 후 결제 단계 오류: " + e.getMessage());
-			throw e;
-		}
-		// 여기서 상품별 브랜드 name과, 차감 수량 적어주고 DTO 만들어서 리턴하면 되겠다.
+        // 4. 저장
+        int orderId = orderDAO.insertOrder(order, cartItems);
 
-		// 7. 브랜드 재고 차감 요청 DTO 생성
-		List<BrandOrderRequestDTO> brandRequests = cartItems.stream()
-				.map(item -> BrandOrderRequestDTO.builder().brandName(item.getBrandName())
-						.productName(item.getProductName()).orderAmount(item.getQuantity()).build())
-				.collect(Collectors.toList());
+        // 5. 결제
+        order(orderId, generalReg, alcoholReg, cosmeticsReg, cardNumber);
 
-		return brandRequests;
+        // 6. 브랜드 DTO 반환
+        return cartItems.stream()
+                .map(item -> BrandOrderRequestDTO.builder()
+                        .brandName(item.getBrandName())
+                        .productName(item.getProductName())
+                        .orderAmount(item.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+    }
 
-	}
 
 	/**
 	 * 최종 결제 승인

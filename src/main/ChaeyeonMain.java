@@ -29,7 +29,8 @@ public class ChaeyeonMain {
 
 		ProductService service = new ProductService();
 		OrderService orderService = new OrderService();
-		DutyFlowSystem dutyFlowSystem = new DutyFlowSystem();
+		List<BrandSystem> brandList;
+//		DutyFlowSystem dutyFlowSystem = new DutyFlowSystem(brandList);
 		/*
 		 * // product
 		 * -----------------------------------------------------------------------------
@@ -526,133 +527,224 @@ public class ChaeyeonMain {
 //		}
 
 
-        MemberService memberService = new MemberService();
+//        MemberService memberService = new MemberService();
+//
+//        System.out.println("===== 회원가입 테스트 시작 =====");
+//        System.out.println();
+//
+//        // =========================
+//        // 1. 정상 회원가입
+//        // =========================
+//        System.out.println("===== 정상 회원가입 =====");
+//
+//        try {
+//
+//            MemberSignupDTO dto = new MemberSignupDTO(
+//                    "testuser01",
+//                    "1234",
+//                    "김민준",
+//                    LocalDate.of(1998, 5, 10),
+//                    "01012345678"
+//            );
+//
+//            memberService.signup(dto);
+//
+//            System.out.println("회원가입 성공");
+//
+//        } catch (Exception e) {
+//            System.out.println("회원가입 실패 | reason = " + e.getMessage());
+//        }
+//
+//        System.out.println();
+//        
+//
+//        System.out.println();
+//
+//        // =========================
+//        // 6. 정상 여권 등록
+//        // =========================
+//        System.out.println("===== 정상 여권 등록 =====");
+//
+//        try {
+//
+//            memberService.registerPassport(
+//                    1,
+//                    "M123A4567",
+//                    LocalDate.of(2030, 12, 31)
+//            );
+//
+//            System.out.println("여권 등록 성공");
+//
+//        } catch (Exception e) {
+//            System.out.println("여권 등록 실패 | reason = " + e.getMessage());
+//        }
+//
+//        System.out.println();
+//
+//        // =========================
+//        // 10. 정상 로그인
+//        // =========================
+//        System.out.println("===== 정상 로그인 =====");
+//
+//        try {
+//
+//            int memberId = memberService.login(
+//                    "testuser01",
+//                    "1234"
+//            );
+//
+//            System.out.println("로그인 성공 | memberId = " + memberId);
+//
+//        } catch (Exception e) {
+//            System.out.println("로그인 실패 | reason = " + e.getMessage());
+//        }
+//
+//        System.out.println();
+//
+//
+//		// 2. 브랜드 시스템 리스트 생성 및 구현체 추가
+//
+//		// 중요: DB의 brandName과 일치하도록 이름을 지정하여 객체 생성 및 추가
+//		// 만약 BrandSystem이 인터페이스이고 개별 브랜드 클래스가 있다면 아래처럼 생성
+//		brandList.add(new BrandSystem("Johnnie Walker")); 
+//		brandList.add(new BrandSystem("Ballantines"));
+//
+//		// 3. DutyFlowSystem에 브랜드 리스트 주입
+//		dutyFlowSystem.setBrandList(brandList);
+//
+//		// ------------------------------------------------
+//		// 주문 상품 생성
+//		// ------------------------------------------------
+//		List<OrderDTO> cartItems = new ArrayList<>();
+//
+//		cartItems.add(OrderDTO.builder().productId(1).productName("조니워커 블루라벨").brandName("Johnnie Walker").categoryId(2)
+//				.capacity(750).quantity(2).dollarPrice(new BigDecimal("220")).discountPrice(BigDecimal.ZERO).build());
+//
+//		cartItems.add(OrderDTO.builder().productId(2).productName("샤넬 넘버5").brandName("Chanel").categoryId(4)
+//				.capacity(100).quantity(1).dollarPrice(new BigDecimal("150")).discountPrice(BigDecimal.ZERO).build());
+//
+//		// ------------------------------------------------
+//		// Queue에 들어갈 Order 생성
+//		// ------------------------------------------------
+//		Order order = new Order();
+//
+//		order.setOrderId(1);
+//		order.setMemberId(1);
+//		order.setReservationId(1);
+//
+//		// ------------------------------------------------
+//		// Queue 등록
+//		// ------------------------------------------------
+//		dutyFlowSystem.addOrderQueue(order);
+//
+//		// ------------------------------------------------
+//		// Queue 처리
+//		// ------------------------------------------------
+//		try {
+//
+//			dutyFlowSystem.processOrderQueue();
+//
+//			System.out.println();
+//			System.out.println("✅ 주문 Queue 처리 완료");
+//
+//		} catch (BusinessException e) {
+//			throw new BusinessException(ErrorCode.DATA_NOT_FOUND,e);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
-        System.out.println("===== 회원가입 테스트 시작 =====");
-        System.out.println();
-
-        // =========================
-        // 1. 정상 회원가입
-        // =========================
-        System.out.println("===== 정상 회원가입 =====");
-
-        try {
-
-            MemberSignupDTO dto = new MemberSignupDTO(
-                    "testuser01",
-                    "1234",
-                    "김민준",
-                    LocalDate.of(1998, 5, 10),
-                    "01012345678"
-            );
-
-            memberService.signup(dto);
-
-            System.out.println("회원가입 성공");
-
-        } catch (Exception e) {
-            System.out.println("회원가입 실패 | reason = " + e.getMessage());
-        }
-
-        System.out.println();
-        
-
-        System.out.println();
-
-        // =========================
-        // 6. 정상 여권 등록
-        // =========================
-        System.out.println("===== 정상 여권 등록 =====");
-
-        try {
-
-            memberService.registerPassport(
-                    1,
-                    "M123A4567",
-                    LocalDate.of(2030, 12, 31)
-            );
-
-            System.out.println("여권 등록 성공");
-
-        } catch (Exception e) {
-            System.out.println("여권 등록 실패 | reason = " + e.getMessage());
-        }
-
-        System.out.println();
-
-        // =========================
-        // 10. 정상 로그인
-        // =========================
-        System.out.println("===== 정상 로그인 =====");
-
-        try {
-
-            int memberId = memberService.login(
-                    "testuser01",
-                    "1234"
-            );
-
-            System.out.println("로그인 성공 | memberId = " + memberId);
-
-        } catch (Exception e) {
-            System.out.println("로그인 실패 | reason = " + e.getMessage());
-        }
-
-        System.out.println();
 
 
-		// 2. 브랜드 시스템 리스트 생성 및 구현체 추가
-		List<BrandSystem> brandList = new ArrayList<>();
+        // =====================================================
+        // 1. 테스트용 장바구니 생성
+        // =====================================================
+        List<OrderDTO> cartItems = new ArrayList<>();
 
-		// 중요: DB의 brandName과 일치하도록 이름을 지정하여 객체 생성 및 추가
-		// 만약 BrandSystem이 인터페이스이고 개별 브랜드 클래스가 있다면 아래처럼 생성
-		brandList.add(new BrandSystem("Johnnie Walker")); 
-		brandList.add(new BrandSystem("Ballantines"));
+        // 주류 (ALCOHOL)
+        cartItems.add(createItem(
+                1, // productId
+                2, // categoryId (ALCOHOL)
+                "조니워커 블루라벨",
+                "Johnnie Walker",
+                750,
+                220,
+                10,
+                1
+        ));
 
-		// 3. DutyFlowSystem에 브랜드 리스트 주입
-		dutyFlowSystem.setBrandList(brandList);
+        // 향수 (PERFUME)
+        cartItems.add(createItem(
+                3,
+                4, // PERFUME
+                "샤넬 넘버5",
+                "Chanel",
+                100,
+                120,
+                5,
+                2
+        ));
 
-		// ------------------------------------------------
-		// 주문 상품 생성
-		// ------------------------------------------------
-		List<OrderDTO> cartItems = new ArrayList<>();
+        // 일반상품 (GENERAL or ELECTRONICS 등)
+        cartItems.add(createItem(
+                5,
+                5,
+                "아이코스 일루마",
+                "IQOS",
+                1,
+                95,
+                0,
+                1
+        ));
 
-		cartItems.add(OrderDTO.builder().productId(1).productName("조니워커 블루라벨").brandName("Johnnie Walker").categoryId(2)
-				.capacity(750).quantity(2).dollarPrice(new BigDecimal("220")).discountPrice(BigDecimal.ZERO).build());
+        // =====================================================
+        // 2. 주문 실행
+        // =====================================================
+        int memberId = 1;
+        int reservationId = 1;
+        String cardNumber = "4111-1111-1111-1111";
 
-		cartItems.add(OrderDTO.builder().productId(2).productName("샤넬 넘버5").brandName("Chanel").categoryId(4)
-				.capacity(100).quantity(1).dollarPrice(new BigDecimal("150")).discountPrice(BigDecimal.ZERO).build());
+        System.out.println("========== ORDER START ==========");
 
-		// ------------------------------------------------
-		// Queue에 들어갈 Order 생성
-		// ------------------------------------------------
-		Order order = new Order();
+        List<?> result = orderService.placeOrder(
+                memberId,
+                reservationId,
+                cartItems,
+                cardNumber
+        );
 
-		order.setOrderId(1);
-		order.setMemberId(1);
-		order.setReservationId(1);
+        System.out.println("========== ORDER RESULT ==========");
+        System.out.println(result);
 
-		// ------------------------------------------------
-		// Queue 등록
-		// ------------------------------------------------
-		dutyFlowSystem.addOrderQueue(order);
+        System.out.println("========== ORDER END ==========");
+    }
 
-		// ------------------------------------------------
-		// Queue 처리
-		// ------------------------------------------------
-		try {
+    // =====================================================
+    // OrderDTO 생성 헬퍼
+    // =====================================================
+    private static OrderDTO createItem(
+            int productId,
+            int categoryId,
+            String productName,
+            String brandName,
+            int capacity,
+            double dollarPrice,
+            double discountRate,
+            int quantity
+    ) {
+        OrderDTO dto = new OrderDTO();
 
-			dutyFlowSystem.processOrderQueue();
+        dto.setProductId(productId);
+        dto.setCategoryId(categoryId);
+        dto.setProductName(productName);
+        dto.setBrandName(brandName);
+        dto.setCapacity(capacity);
+        dto.setDollarPrice(java.math.BigDecimal.valueOf(dollarPrice));
+        dto.setDiscountPrice(java.math.BigDecimal.valueOf(discountRate));
+        dto.setQuantity(quantity);
 
-			System.out.println();
-			System.out.println("✅ 주문 Queue 처리 완료");
-
-		} catch (BusinessException e) {
-			throw new BusinessException(ErrorCode.DATA_NOT_FOUND,e);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
+        return dto;
+    }
+		
+	
 
 }
