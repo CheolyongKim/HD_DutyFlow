@@ -24,6 +24,7 @@ import gui.member.MemberMainPanel;
 import gui.member.MemberPassportPanel;
 import gui.member.MemberSignupPanel;
 import gui.auth.AirportManagerLoginPanel;
+import gui.pickup.MLPQSimulationPanel;
 import gui.pickup.PickupListPanel;
 import gui.pickup.PickupMainPanel;
 import gui.pickup.PickupVerificationPanel;
@@ -96,5 +97,9 @@ public class MainFrame extends JFrame {
         PickupVerificationPanel verifyPanel = new PickupVerificationPanel(screenManager);
         verifyPanel.setPickUpSystem(pickUpSystem);
         screenManager.addScreen("PICKUP_VERIFY",     verifyPanel);
+        
+        MLPQSimulationPanel simPanel = new MLPQSimulationPanel(screenManager);
+        screenManager.addScreen("PICKUP_SIMULATION", simPanel);
+     
     }
 }

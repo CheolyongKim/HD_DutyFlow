@@ -97,6 +97,7 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
     /* ============================================================ */
 
     public MLPQSimulationPanel(ScreenManager screenManager) {
+    	this.context = new SimulationContext();
         this.screenManager = screenManager;
 
         setLayout(new BorderLayout());
