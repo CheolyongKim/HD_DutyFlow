@@ -125,6 +125,44 @@ public class PickUpSystem implements FlightObserver {
 			}
 		}
 	}
+	
+	private void processNoShow(PickUpTicket ticket) {
+		String name = ticket.getMember().getName();
+		String passportNum = ticket.getMember().getPassportNum();
+ 
+		try {
+			// 옵저버 해제
+			ticket.getAirplane().removeObserver(this);
+ 
+			// orderId 조회 (여권번호 + 예약번호 기반)
+			// ※ PickUpTicket에는 reservationId가 없으므로 PickUpDAO를 통해 조회
+			int orderId = this.pickUpDAO.getOrderIdForPickup(
+					passportNum,
+					0 // TODO: PickUpTicket에 reservationId 필드가 없어 임시값 — 아래 '한계' 참조
+			);
+ 
+			Order order = this.orderDAO.findOneOrderByOrderId(orderId);
+			if (order == null) {
+				System.out.println("   ⚠️ [NO_SHOW] " + name + " — 주문 조회 실패, 건너뜀");
+				return;
+			}
+ 
+			// PICKUP_RESERVED 상태일 때만 전이 (그 외 상태에서 noShow() 호출 시 예외 발생 방지)
+			if (!"PICKUP_RESERVED".equals(order.getStateName())) {
+				System.out.println("   ⚠️ [NO_SHOW] " + name + " — 상태가 " + order.getStateName() + "이므로 건너뜀");
+				return;
+			}
+ 
+			order.noShow();
+			this.orderDAO.update(order);
+			System.out.println("   🛫 [NO_SHOW] " + name + " 고객님 — 출국 시간 경과로 미수령(NO_SHOW) 처리 완료");
+ 
+		} catch (DataNotFoundException e) {
+			System.out.println("   ⚠️ [NO_SHOW] " + name + " — 주문 정보 조회 실패: " + e.getMessage());
+		} catch (Exception e) {
+			System.out.println("   ⚠️ [NO_SHOW] " + name + " — 처리 중 예외 발생: " + e.getMessage());
+		}
+	}
 
 	public void passTime() {
 		this.pq.passTime();
