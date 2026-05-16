@@ -24,15 +24,21 @@ import gui.common.Refreshable;
  *
  * 탭: 전체 조회 / 기간별 조회 / 멤버별 조회
  * 테이블: 고객명 | 항공편 | 출국시간 | 회원등급 | 주문ID | 상품상태 | 픽업가능시각 | 실제픽업
+ *
+ * [FIX] 기존에는 createTablePanel()이 3번 호출되면서 단일 tableModel 필드가
+ *       마지막 탭(멤버별 조회)의 모델로 덮어씌워져, 전체 조회 버튼을 눌러도
+ *       멤버별 조회 탭의 테이블에 데이터가 채워지는 버그가 있었음.
+ *       → 탭별로 독립된 DefaultTableModel(allTableModel / dateTableModel / memberTableModel)을 사용하도록 수정.
  */
 public class PickupListPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
     private final AirportManagerDao dao = new AirportManagerDao();
 
-    /* ── 테이블 ── */
-    private DefaultTableModel tableModel;
-    private JTable table;
+    /* ── 탭별 독립 테이블 모델 ── */
+    private DefaultTableModel allTableModel;
+    private DefaultTableModel dateTableModel;
+    private DefaultTableModel memberTableModel;
 
     /* ── 필터 필드 ── */
     private JTextField startDateField;
@@ -52,6 +58,12 @@ public class PickupListPanel extends JPanel implements Refreshable {
             DateTimeFormatter.ofPattern("yyyy-MM-dd (E)  HH:mm:ss");
     private static final DateTimeFormatter DT_FMT =
             DateTimeFormatter.ofPattern("MM-dd HH:mm");
+
+    /* ── 컬럼 헤더 (공통) ── */
+    private static final String[] COLUMNS = {
+            "고객명", "항공편", "출국시간", "회원등급",
+            "주문ID", "상태", "픽업가능시각", "실제픽업"
+    };
 
     /* ── 등급 색상 맵 ── */
     private static final Map<String, Color> GRADE_COLORS = new LinkedHashMap<>();
@@ -122,7 +134,7 @@ public class PickupListPanel extends JPanel implements Refreshable {
         // 탭 패널
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("맑은 고딕", Font.BOLD, 14));
-        tabs.addTab("전체 조회", createAllTab());
+        tabs.addTab("전체 조회",   createAllTab());
         tabs.addTab("기간별 조회", createDateRangeTab());
         tabs.addTab("멤버별 조회", createMemberTab());
         panel.add(tabs, BorderLayout.CENTER);
@@ -144,7 +156,8 @@ public class PickupListPanel extends JPanel implements Refreshable {
         top.add(searchBtn);
         tab.add(top, BorderLayout.NORTH);
 
-        tab.add(createTablePanel(), BorderLayout.CENTER);
+        allTableModel = createTableModel();
+        tab.add(createTablePanel(allTableModel), BorderLayout.CENTER);
         return tab;
     }
 
@@ -173,7 +186,8 @@ public class PickupListPanel extends JPanel implements Refreshable {
         form.add(searchBtn);
         tab.add(form, BorderLayout.NORTH);
 
-        tab.add(createTablePanel(), BorderLayout.CENTER);
+        dateTableModel = createTableModel();
+        tab.add(createTablePanel(dateTableModel), BorderLayout.CENTER);
         return tab;
     }
 
@@ -198,43 +212,43 @@ public class PickupListPanel extends JPanel implements Refreshable {
         form.add(searchBtn);
         tab.add(form, BorderLayout.NORTH);
 
-        tab.add(createTablePanel(), BorderLayout.CENTER);
+        memberTableModel = createTableModel();
+        tab.add(createTablePanel(memberTableModel), BorderLayout.CENTER);
         return tab;
     }
 
     /* ─────────────────── 테이블 ─────────────────── */
 
-    private JScrollPane createTablePanel() {
-        String[] cols = {
-                "고객명", "항공편", "출국시간", "회원등급",
-                "주문ID", "상태", "픽업가능시각", "실제픽업"
-        };
-
-        tableModel = new DefaultTableModel(cols, 0) {
+    /** 공통 컬럼 구조의 DefaultTableModel 생성 */
+    private DefaultTableModel createTableModel() {
+        return new DefaultTableModel(COLUMNS, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
+    }
 
-        table = new JTable(tableModel);
-        table.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
-        table.setRowHeight(32);
-        table.getTableHeader().setFont(new Font("맑은 고딕", Font.BOLD, 13));
-        table.getTableHeader().setBackground(new Color(0xE2E8F0));
-        table.setSelectionBackground(new Color(0xDBEAFE));
-        table.setGridColor(new Color(0xE5E7EB));
+    /** 지정된 모델로 JTable을 구성하고 JScrollPane에 담아 반환 */
+    private JScrollPane createTablePanel(DefaultTableModel model) {
+        JTable tbl = new JTable(model);
+        tbl.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
+        tbl.setRowHeight(32);
+        tbl.getTableHeader().setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        tbl.getTableHeader().setBackground(new Color(0xE2E8F0));
+        tbl.setSelectionBackground(new Color(0xDBEAFE));
+        tbl.setGridColor(new Color(0xE5E7EB));
 
         // 컬럼 폭
         int[] widths = {80, 70, 110, 80, 60, 120, 110, 110};
         for (int i = 0; i < widths.length; i++) {
-            table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+            tbl.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
 
         // 등급 칩 렌더러
-        table.getColumnModel().getColumn(3).setCellRenderer(new ChipRenderer(GRADE_COLORS));
+        tbl.getColumnModel().getColumn(3).setCellRenderer(new ChipRenderer(GRADE_COLORS));
 
         // 상태 칩 렌더러
-        table.getColumnModel().getColumn(5).setCellRenderer(new ChipRenderer(STATE_COLORS));
+        tbl.getColumnModel().getColumn(5).setCellRenderer(new ChipRenderer(STATE_COLORS));
 
-        JScrollPane sp = new JScrollPane(table);
+        JScrollPane sp = new JScrollPane(tbl);
         sp.setBorder(BorderFactory.createLineBorder(new Color(0xE2E8F0)));
         return sp;
     }
@@ -244,7 +258,7 @@ public class PickupListPanel extends JPanel implements Refreshable {
     private void loadAll() {
         try {
             List<PickUpListDTO> list = dao.getAllPickUpList();
-            fillTable(list);
+            fillTable(allTableModel, list);
         } catch (Exception ex) {
             showError("전체 조회 실패: " + ex.getMessage());
         }
@@ -255,7 +269,7 @@ public class PickupListPanel extends JPanel implements Refreshable {
             LocalDate start = LocalDate.parse(startDateField.getText().trim());
             LocalDate end   = LocalDate.parse(endDateField.getText().trim());
             List<PickUpListDTO> list = dao.getAllPickUpListByDateRange(start, end);
-            fillTable(list);
+            fillTable(dateTableModel, list);
         } catch (Exception ex) {
             showError("기간별 조회 실패: " + ex.getMessage());
         }
@@ -271,7 +285,7 @@ public class PickupListPanel extends JPanel implements Refreshable {
             m.setMemberId(memberId);
 
             List<PickUpListDTO> list = dao.getAllPickUpListByMember(m);
-            fillTable(list);
+            fillTable(memberTableModel, list);
         } catch (NumberFormatException ex) {
             showError("회원번호는 숫자로 입력하세요.");
         } catch (Exception ex) {
@@ -279,8 +293,8 @@ public class PickupListPanel extends JPanel implements Refreshable {
         }
     }
 
-    private void fillTable(List<PickUpListDTO> list) {
-        tableModel.setRowCount(0);
+    private void fillTable(DefaultTableModel targetModel, List<PickUpListDTO> list) {
+        targetModel.setRowCount(0);
 
         if (list == null || list.isEmpty()) {
             JOptionPane.showMessageDialog(this, "조회된 픽업 내역이 없습니다.",
@@ -289,7 +303,7 @@ public class PickupListPanel extends JPanel implements Refreshable {
         }
 
         for (PickUpListDTO dto : list) {
-            tableModel.addRow(new Object[]{
+            targetModel.addRow(new Object[]{
                     dto.getMemberName(),
                     dto.getFlightCode(),
                     dto.getDepartureAt() != null ? dto.getDepartureAt().format(DT_FMT) : "-",
@@ -374,6 +388,8 @@ public class PickupListPanel extends JPanel implements Refreshable {
 
     @Override
     public void refresh() {
-        if (tableModel != null) tableModel.setRowCount(0);
+        if (allTableModel != null)    allTableModel.setRowCount(0);
+        if (dateTableModel != null)   dateTableModel.setRowCount(0);
+        if (memberTableModel != null) memberTableModel.setRowCount(0);
     }
 }
