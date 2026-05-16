@@ -1,9 +1,12 @@
 package dutyFlowSystem;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Queue;
 
+import exception.ErrorCode;
+import exception.ValidationException;
 import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
@@ -62,29 +65,55 @@ public class DutyFlowSystem {
 	    memberService.signup(dto);
 	}
 	
+	// 로그인
+	public void login(String loginId, String password) {
+	    loginMemberId = memberService.login(loginId, password);
+	}
+
+	// 로그아웃
+	public void logout() {
+	    loginMemberId = null;
+	}
+
+	// 로그인된 회원의 memberId 반환
+	private int getLoginMemberId() {
+
+	    if (loginMemberId == null) {
+	        throw new ValidationException(ErrorCode.NOT_LOGGED_IN);
+	    }
+
+	    return loginMemberId;
+	}
+
+	// 여권 정보 등록
+	public void registerPassport(String passportNum, LocalDate passportExpiredDate) {
+
+	    memberService.registerPassport(getLoginMemberId(),passportNum,passportExpiredDate);
+	}
+	
 	// 회원 장바구니에 상품 추가
 	public void addToCart(Product p, int wishAmount) {
-		shoppingCartService.addToCart(member.getMemberId(), p, wishAmount);
+		shoppingCartService.addToCart(getLoginMemberId(), p, wishAmount);
 	}
 	
 	// 장바구니 내 특정 상품 수량 변경
 	public void updateQuantity(Product p, int newAmount) {
-		shoppingCartService.updateQuantity(member.getMemberId(), p, newAmount);
+		shoppingCartService.updateQuantity(getLoginMemberId(), p, newAmount);
 	}
 
 	// 장바구니 조회
 	public TotalCartDTO printCart() {
-	    return shoppingCartService.getCart(member.getMemberId());
+	    return shoppingCartService.getCart(getLoginMemberId());
 	}
 	
 	// 장바구니 비우기
 	public void deleteFromCart() {
-		shoppingCartService.flush(member.getMemberId());
+		shoppingCartService.flush(getLoginMemberId());
 	}
 	
 	// 장바구니 선택 상품 제거
 	public void deleteFromCart(List<Product> selectedProducts) { 
-		shoppingCartService.flush(member.getMemberId(), selectedProducts);
+		shoppingCartService.flush(getLoginMemberId(), selectedProducts);
 	}
 	
 	// 환율 서비스 및 스케줄러
