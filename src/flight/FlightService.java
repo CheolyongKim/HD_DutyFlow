@@ -20,8 +20,8 @@ public class FlightService {
         this.flightDAO = flightDAO;
     }
     
-    private void validateFlightCode(String flightCode) {
-        if (flightCode == null || flightCode.trim().isEmpty()) {
+    private void validateCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
             throw new ValidationException(ErrorCode.INVALID_INPUT);
         }
     }
@@ -29,7 +29,7 @@ public class FlightService {
     // 항공편 조회 (예약코드 기반)
     public Airplane getFlightInfo(String reservationCode) {
     	
-    	validateFlightCode(reservationCode);
+    	validateCode(reservationCode);
 
         FlightDTO flightDto = flightDAO.getFlightByReservationCode(reservationCode);
 
@@ -48,7 +48,7 @@ public class FlightService {
     // 예약 정보 조회 (회원Id, 항공편 코드 기반)
     public FlightBookDTO getBookByMemberAndFlight(int memberId, String flightCode) {
 
-    	validateFlightCode(flightCode);
+    	validateCode(flightCode);
     	
     	if (memberId <= 0) {
             throw new ValidationException(ErrorCode.INVALID_INPUT);
