@@ -1,19 +1,9 @@
 package gui.brand;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.math.BigDecimal;
 
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 
@@ -35,97 +25,353 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
     private JTextField purchaseAmountField;
     private JTextField deleteProductNameField;
 
+    private static final Color BG_COLOR = new Color(245, 246, 250);
+    private static final Color TITLE_COLOR = new Color(45, 52, 71);
+    private static final Color PRIMARY_COLOR = new Color(52, 152, 219);
+    private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
+    private static final Color DANGER_COLOR = new Color(231, 76, 60);
+    private static final Color SECONDARY_COLOR = new Color(149, 165, 166);
+
     public BrandProductManagePanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        setLayout(new BorderLayout(20, 20));
-        setBorder(new EmptyBorder(30, 50, 30, 50));
 
-        // 상단 타이틀
+        setLayout(new BorderLayout());
+        setBackground(BG_COLOR);
+        setBorder(new EmptyBorder(30, 40, 30, 40));
+
         JLabel titleLabel = new JLabel("상품 등록 및 관리", SwingConstants.CENTER);
         titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 28));
+        titleLabel.setForeground(TITLE_COLOR);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 25, 0));
+
         add(titleLabel, BorderLayout.NORTH);
 
-        // 중앙 폼 패널 (GridBagLayout 사용으로 정렬 최적화)
-        JPanel centerPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 30, 0));
+        centerPanel.setOpaque(false);
 
-        // --- 등록 폼 그룹 ---
-        JPanel registerGroup = new JPanel(new GridBagLayout());
-        registerGroup.setBorder(new TitledBorder(null, "신규 상품 정보", TitledBorder.LEADING, TitledBorder.TOP, new Font("맑은 고딕", Font.BOLD, 14), Color.BLUE));
+        JPanel registerPanel = createSectionPanel("신규 상품 등록");
+        JPanel deletePanel = createSectionPanel("상품 삭제");
 
-        categoryNameField = new JTextField(15);
-        productNameField = new JTextField(15);
-        capacityField = new JTextField(15);
-        priceUsdField = new JTextField(15);
-        priceKrwField = new JTextField(15);
-        thresholdField = new JTextField(15);
-        purchaseAmountField = new JTextField(15);
+        buildRegisterPanel(registerPanel);
+        buildDeletePanel(deletePanel);
 
-        addFormField(registerGroup, "카테고리명", categoryNameField, 0);
-        addFormField(registerGroup, "상품명", productNameField, 1);
-        addFormField(registerGroup, "용량 (ml)", capacityField, 2);
-        addFormField(registerGroup, "달러 가격 ($)", priceUsdField, 3);
-        addFormField(registerGroup, "원화 가격 (￦)", priceKrwField, 4);
-        addFormField(registerGroup, "재고 임계값", thresholdField, 5);
-        addFormField(registerGroup, "초기 발주 수량", purchaseAmountField, 6);
-
-        // --- 삭제 폼 그룹 ---
-        JPanel deleteGroup = new JPanel(new GridBagLayout());
-        deleteGroup.setBorder(new TitledBorder(null, "상품 삭제", TitledBorder.LEADING, TitledBorder.TOP, new Font("맑은 고딕", Font.BOLD, 14), Color.RED));
-
-        deleteProductNameField = new JTextField(15);
-        addFormField(deleteGroup, "삭제할 상품명", deleteProductNameField, 0);
-
-        // 메인 센터에 그룹들 배치
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1.0;
-        centerPanel.add(registerGroup, gbc);
-        gbc.gridy = 1;
-        centerPanel.add(deleteGroup, gbc);
+        centerPanel.add(registerPanel);
+        centerPanel.add(deletePanel);
 
         add(centerPanel, BorderLayout.CENTER);
 
-        // 하단 버튼 패널
-        JPanel buttonPanel = new JPanel();
-        JButton registerButton = new JButton("상품 등록");
-        JButton registerAndPurchaseButton = new JButton("등록 + 즉시 발주");
-        JButton deleteButton = new JButton("상품 삭제");
-        JButton backButton = new JButton("뒤로가기");
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        // 버튼 스타일 (선택 사항)
-        registerAndPurchaseButton.setBackground(new Color(230, 242, 255));
-        deleteButton.setForeground(Color.RED);
+        JButton backButton = createStyledButton("뒤로가기", SECONDARY_COLOR);
+        backButton.addActionListener(e -> screenManager.show("BRAND_MAIN"));
+
+        bottomPanel.add(backButton);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private void buildRegisterPanel(JPanel registerPanel) {
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setOpaque(false);
+
+        categoryNameField = new JTextField();
+        productNameField = new JTextField();
+        capacityField = new JTextField();
+        priceUsdField = new JTextField();
+        priceKrwField = new JTextField();
+        thresholdField = new JTextField();
+        purchaseAmountField = new JTextField();
+
+        addFormField(formPanel, "카테고리명", categoryNameField, 0);
+        addFormField(formPanel, "상품명", productNameField, 1);
+        addFormField(formPanel, "용량(ml)", capacityField, 2);
+        addFormField(formPanel, "달러 가격($)", priceUsdField, 3);
+        addFormField(formPanel, "원화 가격(원)", priceKrwField, 4);
+        addFormField(formPanel, "재고 임계값", thresholdField, 5);
+        addFormField(formPanel, "초기 발주 수량", purchaseAmountField, 6);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        JButton registerButton = createStyledButton("상품 등록", PRIMARY_COLOR);
+        JButton registerAndPurchaseButton = createStyledButton("등록 + 즉시 발주", SUCCESS_COLOR);
 
         registerButton.addActionListener(e -> registerNewProduct());
         registerAndPurchaseButton.addActionListener(e -> registerNewProductAndPurchase());
-        deleteButton.addActionListener(e -> deleteProduct());
-        backButton.addActionListener(e -> screenManager.show("BRAND_MAIN"));
 
         buttonPanel.add(registerButton);
         buttonPanel.add(registerAndPurchaseButton);
+
+        registerPanel.add(formPanel, BorderLayout.CENTER);
+        registerPanel.add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void buildDeletePanel(JPanel deletePanel) {
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setOpaque(false);
+
+        deleteProductNameField = new JTextField();
+
+        addFormField(formPanel, "삭제할 상품명", deleteProductNameField, 0);
+
+        JLabel helpLabel = new JLabel("<html><font color='gray'>* 로그인한 브랜드의 상품만 삭제할 수 있습니다.</font></html>");
+        helpLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+
+        GridBagConstraints helpGbc = new GridBagConstraints();
+        helpGbc.gridx = 0;
+        helpGbc.gridy = 1;
+        helpGbc.gridwidth = 2;
+        helpGbc.insets = new Insets(8, 10, 8, 10);
+        helpGbc.anchor = GridBagConstraints.WEST;
+        formPanel.add(helpLabel, helpGbc);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 1));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        JButton deleteButton = createStyledButton("상품 삭제", DANGER_COLOR);
+        deleteButton.addActionListener(e -> deleteProduct());
+
         buttonPanel.add(deleteButton);
-        buttonPanel.add(backButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+
+        deletePanel.add(formPanel, BorderLayout.CENTER);
+        deletePanel.add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createSectionPanel(String title) {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(Color.WHITE);
+
+        TitledBorder titledBorder = BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(210, 210, 210)),
+                title,
+                TitledBorder.LEFT,
+                TitledBorder.TOP,
+                new Font("맑은 고딕", Font.BOLD, 18),
+                TITLE_COLOR
+        );
+
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                titledBorder,
+                new EmptyBorder(25, 25, 25, 25)
+        ));
+
+        return panel;
     }
 
     private void addFormField(JPanel panel, String labelText, JTextField field, int row) {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = row;
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 10, 5, 5);
-        panel.add(new JLabel(labelText), gbc);
+        gbc.insets = new Insets(8, 10, 8, 10);
+
+        panel.add(label, gbc);
+
+        field.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+        field.setPreferredSize(new Dimension(180, 32));
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 10);
+
         panel.add(field, gbc);
     }
 
-    @Override
-    public void refresh() {
-        resetForm();
+    private JButton createStyledButton(String text, Color color) {
+        JButton btn = new JButton(text);
+
+        btn.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        btn.setBackground(color);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setPreferredSize(new Dimension(150, 42));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        return btn;
+    }
+
+    private BrandSystem getLoginBrandSystem() {
+        BrandSystem brandSystem = screenManager.getBrandSystem();
+
+        if (brandSystem == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "브랜드 관리자 로그인이 필요합니다.",
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            screenManager.show("BRAND_MANAGER_LOGIN");
+            return null;
+        }
+
+        return brandSystem;
+    }
+
+    private void registerNewProduct() {
+        try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
+            validateRegistrationFields(false);
+
+            brandSystem.registerNewProduct(
+                    categoryNameField.getText().trim(),
+                    productNameField.getText().trim(),
+                    Integer.parseInt(capacityField.getText().trim()),
+                    new BigDecimal(priceUsdField.getText().trim()),
+                    new BigDecimal(priceKrwField.getText().trim()),
+                    Integer.parseInt(thresholdField.getText().trim())
+            );
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "신규 상품이 성공적으로 등록되었습니다.",
+                    "등록 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            resetForm();
+
+        } catch (NumberFormatException e) {
+            showWarning("용량, 가격, 임계값은 숫자로 입력해주세요.");
+
+        } catch (DutyFreeException e) {
+            showWarning(e.getErrorCode().getMessage());
+
+        } catch (Exception e) {
+            showError("상품 등록 중 오류가 발생했습니다.");
+            e.printStackTrace();
+        }
+    }
+
+    private void registerNewProductAndPurchase() {
+        try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
+            validateRegistrationFields(true);
+
+            brandSystem.registerNewProductAndPurchase(
+                    categoryNameField.getText().trim(),
+                    productNameField.getText().trim(),
+                    Integer.parseInt(capacityField.getText().trim()),
+                    new BigDecimal(priceUsdField.getText().trim()),
+                    new BigDecimal(priceKrwField.getText().trim()),
+                    Integer.parseInt(thresholdField.getText().trim()),
+                    Integer.parseInt(purchaseAmountField.getText().trim())
+            );
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "상품 등록 및 발주 요청이 완료되었습니다.",
+                    "처리 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            resetForm();
+
+        } catch (NumberFormatException e) {
+            showWarning("용량, 가격, 임계값, 발주 수량은 숫자로 입력해주세요.");
+
+        } catch (DutyFreeException e) {
+            showWarning(e.getErrorCode().getMessage());
+
+        } catch (Exception e) {
+            showError("상품 등록 및 발주 요청 중 오류가 발생했습니다.");
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteProduct() {
+        try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
+            String productName = deleteProductNameField.getText().trim();
+
+            if (productName.isEmpty()) {
+                showWarning("삭제할 상품명을 입력하세요.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "'" + productName + "' 상품을 삭제하시겠습니까?",
+                    "삭제 확인",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            brandSystem.deleteProduct(productName);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "상품 삭제가 완료되었습니다.",
+                    "삭제 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            resetForm();
+
+        } catch (DutyFreeException e) {
+            showWarning(e.getErrorCode().getMessage());
+
+        } catch (Exception e) {
+            showError("상품 삭제 중 오류가 발생했습니다.");
+            e.printStackTrace();
+        }
+    }
+
+    private void validateRegistrationFields(boolean requirePurchaseAmount) {
+        if (isBlank(categoryNameField) ||
+                isBlank(productNameField) ||
+                isBlank(capacityField) ||
+                isBlank(priceUsdField) ||
+                isBlank(priceKrwField) ||
+                isBlank(thresholdField)) {
+
+            throw new IllegalArgumentException("신규 상품 등록 정보를 모두 입력해주세요.");
+        }
+
+        if (requirePurchaseAmount && isBlank(purchaseAmountField)) {
+            throw new IllegalArgumentException("발주 수량을 입력해주세요.");
+        }
+    }
+
+    private boolean isBlank(JTextField field) {
+        return field.getText() == null || field.getText().trim().isEmpty();
+    }
+
+    private void showWarning(String message) {
+        JOptionPane.showMessageDialog(this, message, "알림", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "오류", JOptionPane.ERROR_MESSAGE);
     }
 
     private void resetForm() {
@@ -139,104 +385,8 @@ public class BrandProductManagePanel extends JPanel implements Refreshable {
         deleteProductNameField.setText("");
     }
 
-    private void registerNewProduct() {
-        try {
-            BrandSystem brandSystem = getLoginBrandSystem();
-            if (brandSystem == null) return;
-
-            validateRegistrationFields();
-
-            brandSystem.registerNewProduct(
-                    categoryNameField.getText().trim(),
-                    productNameField.getText().trim(),
-                    Integer.parseInt(capacityField.getText().trim()),
-                    new BigDecimal(priceUsdField.getText().trim()),
-                    new BigDecimal(priceKrwField.getText().trim()),
-                    Integer.parseInt(thresholdField.getText().trim())
-            );
-
-            JOptionPane.showMessageDialog(this, "신규 상품이 성공적으로 등록되었습니다.");
-            resetForm();
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "수치 데이터(용량, 가격, 임계값)를 올바르게 입력해주세요.");
-        } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage(), "등록 실패", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    private void registerNewProductAndPurchase() {
-        try {
-            BrandSystem brandSystem = getLoginBrandSystem();
-            if (brandSystem == null) return;
-
-            validateRegistrationFields();
-            if (purchaseAmountField.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "발주 수량을 입력해주세요.");
-                return;
-            }
-
-            brandSystem.registerNewProductAndPurchase(
-                    categoryNameField.getText().trim(),
-                    productNameField.getText().trim(),
-                    Integer.parseInt(capacityField.getText().trim()),
-                    new BigDecimal(priceUsdField.getText().trim()),
-                    new BigDecimal(priceKrwField.getText().trim()),
-                    Integer.parseInt(thresholdField.getText().trim()),
-                    Integer.parseInt(purchaseAmountField.getText().trim())
-            );
-
-            JOptionPane.showMessageDialog(this, "상품 등록 및 발주 요청이 완료되었습니다.");
-            resetForm();
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "숫자 입력란을 다시 확인해주세요.");
-        } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage(), "실패", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "오류가 발생했습니다.");
-        }
-    }
-
-    private void deleteProduct() {
-        try {
-            BrandSystem brandSystem = getLoginBrandSystem();
-            if (brandSystem == null) return;
-
-            String productName = deleteProductNameField.getText().trim();
-            if (productName.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "삭제할 상품명을 입력하세요.");
-                return;
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                " 정말로 '" + productName + "' 상품을 삭제하시겠습니까?", "삭제 확인", JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                brandSystem.deleteProduct(productName);
-                JOptionPane.showMessageDialog(this, "상품 삭제가 완료되었습니다.");
-                resetForm();
-            }
-        } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage(), "삭제 실패", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "오류가 발생했습니다.");
-        }
-    }
-
-    private void validateRegistrationFields() {
-        if (categoryNameField.getText().trim().isEmpty() || productNameField.getText().trim().isEmpty()) {
-            throw new IllegalArgumentException("카테고리와 상품명은 필수 입력 항목입니다.");
-        }
-    }
-
-    private BrandSystem getLoginBrandSystem() {
-        BrandSystem brandSystem = screenManager.getBrandSystem();
-        if (brandSystem == null) {
-            JOptionPane.showMessageDialog(this, "브랜드 관리자 로그인이 필요합니다.");
-            screenManager.show("BRAND_MANAGER_LOGIN");
-            return null;
-        }
-        return brandSystem;
+    @Override
+    public void refresh() {
+        resetForm();
     }
 }

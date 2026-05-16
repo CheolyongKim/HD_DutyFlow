@@ -1,11 +1,11 @@
 package gui.brand;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.util.List;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.border.*;
+import javax.swing.table.*;
 
 import brandSystem.BrandSystem;
 import exception.DutyFreeException;
@@ -16,113 +16,143 @@ import stock.dto.StockProductDto;
 public class BrandStockPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
-
     private JTable stockTable;
     private DefaultTableModel tableModel;
     
-    // 요약 정보를 표시할 라벨들
     private JLabel totalCountLabel;
     private JLabel lowStockLabel;
     private JLabel outOfStockLabel;
+
+    // 테마 컬러
+    private static final Color PRIMARY_COLOR = new Color(0x2D6CDF);
+    private static final Color DANGER_COLOR = new Color(0xE74C3C);
+    private static final Color WARNING_COLOR = new Color(0xF39C12);
+    private static final Color BG_COLOR = new Color(0xF5F6FA);
 
     public BrandStockPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
 
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(20, 30, 20, 30));
+        setBackground(BG_COLOR);
+        setBorder(new EmptyBorder(30, 40, 30, 40));
 
-        // ── 상단 타이틀 및 요약 대시보드 ──
+        // ── 상단 영역 (타이틀 + 요약 카드) ──
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("내 브랜드 재고 현황", SwingConstants.LEFT);
+        JLabel titleLabel = new JLabel("내 브랜드 재고 현황");
         titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 28));
+        titleLabel.setForeground(new Color(0x2F3640));
         titleLabel.setBorder(new EmptyBorder(0, 0, 20, 0));
         northPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // 요약 카드 패널
         JPanel summaryPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        summaryPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+        summaryPanel.setOpaque(false);
+        summaryPanel.setPreferredSize(new Dimension(0, 100));
         
-        totalCountLabel = createSummaryCard(summaryPanel, "전체 상품", Color.GRAY);
-        lowStockLabel = createSummaryCard(summaryPanel, "재고 부족", new Color(0xE67E22));
-        outOfStockLabel = createSummaryCard(summaryPanel, "품절", new Color(0xE74C3C));
+        totalCountLabel = createSummaryCard(summaryPanel, "전체 상품", new Color(0x7F8C8D));
+        lowStockLabel = createSummaryCard(summaryPanel, "재고 부족", WARNING_COLOR);
+        outOfStockLabel = createSummaryCard(summaryPanel, "품절 항목", DANGER_COLOR);
         
         northPanel.add(summaryPanel, BorderLayout.CENTER);
         add(northPanel, BorderLayout.NORTH);
 
-        // ── 중앙 테이블 영역 ──
+        // ── 중앙 영역 (테이블) ──
         String[] columnNames = { "상품명", "카테고리", "용량", "가격($)", "가격(원)", "제조일자", "재고수량", "임계값", "상태" };
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
 
         stockTable = new JTable(tableModel);
-        stockTable.setRowHeight(30);
-        stockTable.getTableHeader().setFont(new Font("맑은 고딕", Font.BOLD, 14));
-        
-        // 상태에 따른 렌더링 설정 (재고 부족/품절 강조)
-        applyCustomRenderer();
+        setupTableUI();
 
         JScrollPane scrollPane = new JScrollPane(stockTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xDCDDE1)));
         add(scrollPane, BorderLayout.CENTER);
 
-        // ── 하단 버튼 영역 ──
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        // ── 하단 영역 (버튼) ──
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 20));
+        bottomPanel.setOpaque(false);
         
-        JButton refreshButton = new JButton("새로고침");
-        JButton backButton = new JButton("뒤로가기");
+        JButton refreshBtn = createStyledButton("새로고침", PRIMARY_COLOR);
+        JButton backBtn = createStyledButton("뒤로가기", new Color(0x6B7280));
 
-        refreshButton.setFont(new Font("맑은 고딕", Font.PLAIN, 16));
-        backButton.setFont(new Font("맑은 고딕", Font.PLAIN, 16));
+        refreshBtn.addActionListener(e -> loadStockData());
+        backBtn.addActionListener(e -> screenManager.show("BRAND_MAIN"));
 
-        refreshButton.addActionListener(e -> loadStockData());
-        backButton.addActionListener(e -> screenManager.show("BRAND_MAIN"));
-
-        bottomPanel.add(refreshButton);
-        bottomPanel.add(backButton);
+        bottomPanel.add(refreshBtn);
+        bottomPanel.add(backBtn);
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    private JLabel createSummaryCard(JPanel parent, String title, Color titleColor) {
+    private void setupTableUI() {
+        stockTable.setRowHeight(35);
+        stockTable.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+        stockTable.setGridColor(new Color(0xF1F2F6));
+        stockTable.setSelectionBackground(new Color(0xEBEDF0));
+        stockTable.setSelectionForeground(Color.BLACK);
+
+        JTableHeader header = stockTable.getTableHeader();
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setBackground(new Color(0x2F3640));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+
+        applyCustomRenderer();
+    }
+
+    private JLabel createSummaryCard(JPanel parent, String title, Color color) {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createLineBorder(new Color(0xEEEEEE), 1));
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0xDCDDE1), 1),
+            new EmptyBorder(15, 15, 15, 15)
+        ));
         
-        JLabel titleLbl = new JLabel(title, SwingConstants.CENTER);
+        JLabel titleLbl = new JLabel(title);
         titleLbl.setFont(new Font("맑은 고딕", Font.BOLD, 14));
-        titleLbl.setForeground(titleColor);
+        titleLbl.setForeground(color);
         
-        JLabel valueLbl = new JLabel("0", SwingConstants.CENTER);
-        valueLbl.setFont(new Font("맑은 고딕", Font.BOLD, 22));
+        JLabel valueLbl = new JLabel("0");
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        valueLbl.setHorizontalAlignment(SwingConstants.RIGHT);
         
         card.add(titleLbl, BorderLayout.NORTH);
-        card.add(valueLbl, BorderLayout.CENTER);
-        card.setBorder(BorderFactory.createCompoundBorder(card.getBorder(), new EmptyBorder(10,10,10,10)));
-        
+        card.add(valueLbl, BorderLayout.SOUTH);
         parent.add(card);
         return valueLbl;
+    }
+
+    private JButton createStyledButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setPreferredSize(new Dimension(130, 45));
+        btn.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bg);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        btn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { btn.setBackground(bg.darker()); }
+            public void mouseExited(MouseEvent e) { btn.setBackground(bg); }
+        });
+        return btn;
     }
 
     private void applyCustomRenderer() {
         stockTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                setHorizontalAlignment(SwingConstants.CENTER);
                 
-                String status = (String) table.getValueAt(row, 8); // '상태' 열
-                
-                if (isSelected) {
-                    c.setBackground(table.getSelectionBackground());
-                } else {
-                    if ("품절".equals(status)) {
-                        c.setBackground(new Color(0xFFE5E5)); // 연빨강
-                    } else if ("재고 부족".equals(status)) {
-                        c.setBackground(new Color(0xFFF4E5)); // 연주황
-                    } else {
-                        c.setBackground(Color.WHITE);
-                    }
+                String status = (String) table.getValueAt(row, 8);
+                if (!isSelected) {
+                    if ("품절".equals(status)) c.setBackground(new Color(0xFFF0F0));
+                    else if ("재고 부족".equals(status)) c.setBackground(new Color(0xFFFAF0));
+                    else c.setBackground(Color.WHITE);
                 }
                 return c;
             }
@@ -133,66 +163,32 @@ public class BrandStockPanel extends JPanel implements Refreshable {
         try {
             BrandSystem brandSystem = getLoginBrandSystem();
             if (brandSystem == null) return;
-
             tableModel.setRowCount(0);
             List<StockProductDto> stockList = brandSystem.getMyBrandStocks();
+            int lowStock = 0, outOfStock = 0;
 
-            int lowStockCount = 0;
-            int outOfStockCount = 0;
-
-            for (StockProductDto stock : stockList) {
-                int amount = stock.getAmount();
-                int thresholdValue = stock.getThresholdValue();
-                String status;
-
-                if (amount == 0) {
-                    status = "품절";
-                    outOfStockCount++;
-                } else if (amount <= thresholdValue) {
-                    status = "재고 부족";
-                    lowStockCount++;
-                } else {
-                    status = "판매중";
-                }
+            for (StockProductDto s : stockList) {
+                String status = "판매중";
+                if (s.getAmount() == 0) { status = "품절"; outOfStock++; }
+                else if (s.getAmount() <= s.getThresholdValue()) { status = "재고 부족"; lowStock++; }
 
                 tableModel.addRow(new Object[] {
-                        stock.getProductName(),
-                        stock.getCategory() != null ? stock.getCategory().getCategoryName() : "",
-                        stock.getCapacity(),
-                        stock.getPriceUsd(),
-                        stock.getPriceKrw(),
-                        stock.getManufacturedDate(),
-                        stock.getAmount(),
-                        stock.getThresholdValue(),
-                        status
+                    s.getProductName(), s.getCategory().getCategoryName(), s.getCapacity(),
+                    String.format("%.2f", s.getPriceUsd()), String.format("%,.0f", s.getPriceKrw()),
+                    s.getManufacturedDate(), s.getAmount(), s.getThresholdValue(), status
                 });
             }
-            
-            // 요약 정보 업데이트
             totalCountLabel.setText(String.valueOf(stockList.size()));
-            lowStockLabel.setText(String.valueOf(lowStockCount));
-            outOfStockLabel.setText(String.valueOf(outOfStockCount));
-
-        } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(this, e.getErrorCode().getMessage(), "알림", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "재고 데이터를 불러오는 중 오류가 발생했습니다.");
-            e.printStackTrace();
-        }
+            lowStockLabel.setText(String.valueOf(lowStock));
+            outOfStockLabel.setText(String.valueOf(outOfStock));
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     private BrandSystem getLoginBrandSystem() {
-        BrandSystem brandSystem = screenManager.getBrandSystem();
-        if (brandSystem == null) {
-            JOptionPane.showMessageDialog(this, "브랜드 관리자 로그인이 필요합니다.");
-            screenManager.show("BRAND_MANAGER_LOGIN");
-            return null;
-        }
-        return brandSystem;
+        BrandSystem bs = screenManager.getBrandSystem();
+        if (bs == null) screenManager.show("BRAND_MANAGER_LOGIN");
+        return bs;
     }
 
-    @Override
-    public void refresh() {
-        loadStockData();
-    }
+    @Override public void refresh() { loadStockData(); }
 }
