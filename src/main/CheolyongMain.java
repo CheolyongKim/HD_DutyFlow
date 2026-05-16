@@ -19,7 +19,11 @@ public class CheolyongMain {
 		try {
 			LocalDateTime baseTime = LocalDateTime.of(2026, 5, 1, 9, 30, 0, 0);
 			CurrentTime.curTime = baseTime;
-			PickUpSystem ps = new PickUpSystem(new AirportManagerService(new AirportManagerDao()));
+			flight.FlightDAO flightDAO = new flight.FlightDAO();
+			flight.FlightService flightService = new flight.FlightService(flightDAO);
+			AirportManagerService airportManagerService = new AirportManagerService(new AirportManagerDao());
+
+			PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
 			ps.loadOrders();
 
 			// ==========================================================

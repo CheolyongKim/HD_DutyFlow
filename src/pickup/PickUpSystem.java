@@ -11,10 +11,12 @@ import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
 import exception.DataNotFoundException;
+import exception.DutyFreeException;
 import exception.ErrorCode;
 import exception.ValidationException;
 import flight.FlightDAO;
 import flight.FlightObserver;
+import flight.FlightService;
 import member.Member;
 import order.Order;
 import order.OrderDAO;
@@ -35,10 +37,13 @@ public class PickUpSystem implements FlightObserver {
 	private static final int CALL_TIMEOUT_LIMIT = 10; // 기본 타임아웃 (10분)
 	private boolean isCounterOpen = false; // 창구 오픈 상태
 
-	public PickUpSystem(AirportManagerService airportManagerService) {
+	private final FlightService flightService;
+
+	public PickUpSystem(AirportManagerService airportManagerService, FlightService flightService) {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 		this.airportManagerService = airportManagerService;
+		this.flightService = flightService;
 	}
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
@@ -143,10 +148,7 @@ public class PickUpSystem implements FlightObserver {
 
 			// orderId 조회 (여권번호 + 예약번호 기반)
 			// ※ PickUpTicket에는 reservationId가 없으므로 PickUpDAO를 통해 조회
-			int orderId = this.pickUpDAO.getOrderIdForPickup(
-					passportNum,
-					ticket.getReservationId() 
-			);
+			int orderId = this.pickUpDAO.getOrderIdForPickup(passportNum, ticket.getReservationId());
 
 			Order order = this.orderDAO.findOneOrderByOrderId(orderId);
 			if (order == null) {
@@ -225,10 +227,15 @@ public class PickUpSystem implements FlightObserver {
 	}
 
 	// 큐에 번호표 뽑기 (뽑았는데 창구가 비어있으면 즉시 호출됨!)
-	public void appendQueue(String passportNum, int flightResNum) {
+	public void appendQueue(String passportNum, int flightResNum) throws DutyFreeException {
 		this.validateInfo(passportNum, flightResNum);
 		AppendQueueDTO aqdto = this.pickUpDAO.getAppendingInfo(passportNum, flightResNum);
-		Airplane airplane = new Airplane(0, aqdto.getFlightCode(), aqdto.getDepartureAt());
+
+		// 예약 유효성 검증
+		flightService.getBookByMemberAndFlight(aqdto.getMemberId(), aqdto.getFlightCode());
+
+		Airplane airplane = flightService.getFlightInfo(aqdto.getReservationCode());
+
 		airplane.registerObserver(this);
 
 		Member member = new Member(aqdto.getMemberId(), aqdto.getName(), passportNum, false, aqdto.getGrade());
@@ -241,7 +248,7 @@ public class PickUpSystem implements FlightObserver {
 	// DB에서 조건에 맞는 주문들을 메모리로 로드
 	public void loadOrders() {
 		System.out.println("SYSTEM: 인도장 시스템에 픽업 대기 중인 주문 목록을 로드합니다...");
-		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
+//		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
 		System.out.println("SYSTEM: 로드 완료 (총 " + this.orders.size() + "건의 대기 주문)");
 	}
 

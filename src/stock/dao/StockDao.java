@@ -9,32 +9,24 @@ import java.util.List;
 
 import category.Category;
 import common.OracleConnection;
+
+import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
+
 import stock.domain.Stock;
 import stock.dto.StockProductDto;
 
 public class StockDao {
 
     public List<StockProductDto> getAllStockByBrandName(String brandName) throws SystemException {
-
         List<StockProductDto> stockProductList = new ArrayList<>();
 
         String sql =
                 "SELECT " +
-                "    p.productId, " +
-                "    p.productName, " +
-                "    p.capacity, " +
-                "    p.priceUsd, " +
-                "    p.priceKrw, " +
-                "    p.thresholdValue, " +
-                "    b.brandName, " +
-                "    c.categoryId, " +
-                "    c.categoryName, " +
-                "    c.depth, " +
-                "    s.stockId, " +
-                "    s.amount, " +
-                "    s.manufacturedDate " +
+                "    p.productId, p.productName, p.capacity, p.priceUsd, p.priceKrw, p.thresholdValue, " +
+                "    c.categoryId, c.categoryName, c.depth, " +
+                "    s.stockId, s.amount, s.manufacturedDate " +
                 "FROM product p " +
                 "JOIN stock s ON p.productId = s.productId " +
                 "JOIN brand b ON p.brandId = b.brandId " +
@@ -48,7 +40,6 @@ public class StockDao {
             pstmt.setString(1, brandName);
 
             try (ResultSet rs = pstmt.executeQuery()) {
-
                 while (rs.next()) {
                     Category category = Category.builder()
                             .categoryId(rs.getInt("categoryId"))
@@ -59,7 +50,6 @@ public class StockDao {
                     StockProductDto dto = StockProductDto.builder()
                             .category(category)
                             .productName(rs.getString("productName"))
-                            .brandName(rs.getString("brandName"))
                             .capacity(rs.getInt("capacity"))
                             .priceUsd(rs.getBigDecimal("priceUsd"))
                             .priceKrw(rs.getBigDecimal("priceKrw"))
@@ -82,7 +72,6 @@ public class StockDao {
     }
 
     public List<Stock> findByProductIdOrderByManufacturedDate(int productId) throws SystemException {
-
         List<Stock> stockList = new ArrayList<>();
 
         String sql =
@@ -90,7 +79,7 @@ public class StockDao {
                 "FROM stock " +
                 "WHERE productId = ? " +
                 "  AND amount > 0 " +
-                "ORDER BY manufacturedDate ASC"; // 제조일자가 오래된 것 부터 -> 값이 작은 것부터 -> 오름차순 
+                "ORDER BY manufacturedDate ASC";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -120,13 +109,11 @@ public class StockDao {
     }
 
     public List<Stock> findByProductNameOrderByManufacturedDate(String productName) throws SystemException {
-
         int productId = findProductIdByProductName(productName);
         return findByProductIdOrderByManufacturedDate(productId);
     }
 
     public int getTotalAmountByProductId(int productId) throws SystemException {
-
         String sql =
                 "SELECT NVL(SUM(amount), 0) AS totalAmount " +
                 "FROM stock " +
@@ -151,13 +138,11 @@ public class StockDao {
     }
 
     public int getTotalAmountByProductName(String productName) throws SystemException {
-
         int productId = findProductIdByProductName(productName);
         return getTotalAmountByProductId(productId);
     }
 
     public int updateAmount(int stockId, int amount) throws SystemException {
-
         String sql =
                 "UPDATE stock " +
                 "SET amount = ? " +
@@ -177,17 +162,9 @@ public class StockDao {
     }
 
     public int insertStock(Stock stock) throws SystemException {
-
         String sql =
-                "INSERT INTO stock ( " +
-                "    productId, " +
-                "    manufacturedDate, " +
-                "    amount " +
-                ") VALUES ( " +
-                "    ?, " +
-                "    ?, " +
-                "    ? " +
-                ")";
+                "INSERT INTO stock (productId, manufacturedDate, amount) " +
+                "VALUES (?, ?, ?)";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -204,7 +181,6 @@ public class StockDao {
     }
 
     public int findProductIdByProductName(String productName) throws SystemException {
-
         String sql =
                 "SELECT productId " +
                 "FROM product " +
@@ -225,11 +201,13 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new SystemException(ErrorCode.DB_CONNECTION);
+        throw new DataNotFoundException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                new Exception("상품을 찾을 수 없습니다. 상품명: " + productName)
+        );
     }
-    
-    public int deleteZeroAmountStocks() throws SystemException {
 
+    public int deleteZeroAmountStocks() throws SystemException {
         String sql =
                 "DELETE FROM stock " +
                 "WHERE amount = 0";
@@ -243,9 +221,8 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
     }
-    
-    public int getThresholdValueByProductId(int productId) throws SystemException {
 
+    public int getThresholdValueByProductId(int productId) throws SystemException {
         String sql =
                 "SELECT thresholdValue " +
                 "FROM product " +
@@ -266,10 +243,13 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new SystemException(ErrorCode.DB_CONNECTION);
+        throw new DataNotFoundException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                new Exception("상품 임계값 정보를 찾을 수 없습니다. productId=" + productId)
+        );
     }
-    public String getBrandNameByProductId(int productId) throws SystemException {
 
+    public String getBrandNameByProductId(int productId) throws SystemException {
         String sql =
                 "SELECT b.brandName " +
                 "FROM product p " +
@@ -291,10 +271,13 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new SystemException(ErrorCode.DB_CONNECTION);
+        throw new DataNotFoundException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                new Exception("상품의 브랜드 정보를 찾을 수 없습니다. productId=" + productId)
+        );
     }
-    public String getBrandNameByProductName(String productName) throws SystemException {
 
+    public String getBrandNameByProductName(String productName) throws SystemException {
         String sql =
                 "SELECT b.brandName " +
                 "FROM product p " +
@@ -316,6 +299,9 @@ public class StockDao {
             throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
 
-        throw new SystemException(ErrorCode.DB_CONNECTION);
+        throw new DataNotFoundException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                new Exception("상품의 브랜드 정보를 찾을 수 없습니다. 상품명: " + productName)
+        );
     }
 }
