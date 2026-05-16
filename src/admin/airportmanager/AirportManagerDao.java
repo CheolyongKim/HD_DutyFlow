@@ -31,7 +31,7 @@ public class AirportManagerDao {
         try (Connection conn = OracleConnection.getConnection(); 
 				PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setLong(1, managerId);
+            pstmt.setInt(1, managerId);
             pstmt.setString(2, password);
  
             try (ResultSet rs = pstmt.executeQuery()) {
