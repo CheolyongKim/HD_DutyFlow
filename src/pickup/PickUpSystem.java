@@ -24,9 +24,7 @@ public class PickUpSystem implements FlightObserver {
 
 	public MLPQ pq;
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
-	
-	private final AirportManagerService airportManagerService = new AirportManagerService(new AirportManagerDao());
-
+	private final AirportManagerService airportManagerService;
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
 	private PickUpTicket currentTicket;
@@ -38,6 +36,10 @@ public class PickUpSystem implements FlightObserver {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
 	}
+
+	public PickUpSystem(AirportManagerService airportManagerService) {
+		this.airportManagerService = airportManagerService;
+    }
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
