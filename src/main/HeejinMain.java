@@ -39,7 +39,7 @@ public class HeejinMain {
 
         RegulationDAO regulationDAO = new RegulationDAO();
         
-        PickUpSystem pickUpSystem = new PickUpSystem();
+        PickUpSystem pickUpSystem = new PickUpSystem(new AirportManagerService(new AirportManagerDao()));
 
         // CategoryId (일반상품 - 1, 주류 - 2, 향수 - 3)
         RegulationDTO generalRegulationDTO = regulationDAO.getRegulationByCategoryId(1);
@@ -276,7 +276,7 @@ public class HeejinMain {
         // 인도장 관리자 특정회원 픽업 목록 
         // =========================
         System.out.println("\n=== 특정 회원 픽업 목록 ===");
-        Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null);
+        Member targetMember = new Member(3, null, null, false, null);
         pickUpSystem.printAllPickUpList(targetMember);
         
         

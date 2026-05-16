@@ -55,12 +55,12 @@ public class MLPQ {
 	}
 
 	public void enqueue(PickUpTicket ticket) {
-	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt())
-	            .getSeconds() / 60 < this.promotionThresholdMinutes) {
-	        this.aq.add(ticket);
-	    } else {
-	        this.bq.add(ticket);
-	    }
+		if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds()
+				/ 60 < this.promotionThresholdMinutes) {
+			this.aq.add(ticket);
+		} else {
+			this.bq.add(ticket);
+		}
 	}
 	
 	public int nextNum() {
@@ -151,6 +151,35 @@ public class MLPQ {
 	// bq 복사본
 	public List<PickUpTicket> getAllFromBq() {
 		return new ArrayList<>(this.bq);
+	}
+	
+	/**
+	 * AQ·BQ에서 출국 시간이 경과한(departureAt < now) 티켓 목록을 반환합니다.
+	 * 큐 자체를 변경하지 않으므로, 제거는 호출자가 removeExpiredTickets()로 별도 수행합니다.
+	 */
+	public List<PickUpTicket> getExpiredTickets(LocalDateTime now) {
+		List<PickUpTicket> expired = new ArrayList<>();
+ 
+		for (PickUpTicket ticket : this.aq) {
+			if (now.isAfter(ticket.getAirplane().getDepartureAt())) {
+				expired.add(ticket);
+			}
+		}
+		for (PickUpTicket ticket : this.bq) {
+			if (now.isAfter(ticket.getAirplane().getDepartureAt())) {
+				expired.add(ticket);
+			}
+		}
+ 
+		return expired;
+	}
+ 
+	/**
+	 * 전달받은 티켓들을 AQ·BQ에서 일괄 제거합니다.
+	 */
+	public void removeExpiredTickets(List<PickUpTicket> tickets) {
+		this.aq.removeAll(tickets);
+		this.bq.removeAll(tickets);
 	}
 
 	public void clearAll() {
