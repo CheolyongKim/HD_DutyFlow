@@ -55,12 +55,12 @@ public class MLPQ {
 	}
 
 	public void enqueue(PickUpTicket ticket) {
-	    if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt())
-	            .getSeconds() / 60 < this.promotionThresholdMinutes) {
-	        this.aq.add(ticket);
-	    } else {
-	        this.bq.add(ticket);
-	    }
+		if (Duration.between(CurrentTime.curTime, ticket.getAirplane().getDepartureAt()).getSeconds()
+				/ 60 < this.promotionThresholdMinutes) {
+			this.aq.add(ticket);
+		} else {
+			this.bq.add(ticket);
+		}
 	}
 	
 	public int nextNum() {
