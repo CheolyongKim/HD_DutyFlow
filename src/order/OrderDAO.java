@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -306,4 +308,72 @@ public class OrderDAO {
 			}
 		}
 	}
+
+	/**
+	 * 주문 번호(orderId)를 통해 해당 주문의 항공 예약 코드(reservationCode)를 조회합니다.
+	 * @param orderId 주문 ID
+	 * @return 항공 예약 코드 (없을 경우 null)
+	 */
+	public String findReservationCodeByOrderId(int orderId) {
+	    // orders 테이블의 reservationId를 사용하여 flightbook 테이블과 JOIN
+	    String sql = "SELECT fb.reservationCode " +
+	                 "FROM orders o " +
+	                 "JOIN flightbook fb ON o.reservationId = fb.reservationId " +
+	                 "WHERE o.orderId = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        
+	        pstmt.setInt(1, orderId);
+	        
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) {
+	                String resCode = rs.getString("reservationCode");
+	                System.out.println("[OrderDAO] 조회된 예약 코드: " + resCode + " (OrderId: " + orderId + ")");
+	                return resCode;
+	            }
+	        }
+	    } catch (SQLException e) {
+	        // 기존 ErrorCode 및 SystemException 구조 활용
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+
+	    System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
+	    return null;
+	}
+	
+    public List<Order> getPendingOrders(LocalDateTime simulatedNow) throws SystemException {
+        List<Order> orderList = new ArrayList<>();
+        
+        String sql = "SELECT O.orderId, O.reservationId, M.loginId, O.totalAmount, O.orderedAt "
+                   + "FROM Orders O "
+                   + "JOIN Pickup P ON O.orderId = P.orderId "
+                   + "JOIN Member M ON O.memberId = M.memberId "
+                   + "WHERE O.orderState = 'PICKUP_RESERVED' "
+                   + "AND P.pickedUpAt IS NULL "
+                   + "AND P.pickupAvailableAt BETWEEN ? AND ?";
+                   
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             
+            // 현재(시뮬레이션) 시간 기준으로 -3시간, +3시간 바인딩
+            pstmt.setTimestamp(1, Timestamp.valueOf(simulatedNow.minusHours(3)));
+            pstmt.setTimestamp(2, Timestamp.valueOf(simulatedNow.plusHours(3)));
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while(rs.next()) {
+                    Order order = new Order();
+                    order.setOrderId(rs.getInt("orderId")); 
+                    order.setReservationId(rs.getInt("reservationId"));
+                    order.setLoginId(rs.getString("loginId"));
+                    order.setTotalPrice(rs.getBigDecimal("totalAmount"));
+                    order.setOrderedAt(rs.getTimestamp("orderedAt").toLocalDateTime());
+                    orderList.add(order);
+                }
+            }
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+        return orderList;
+    }
 }
