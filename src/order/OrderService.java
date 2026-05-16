@@ -3,9 +3,12 @@ package order;
 import member.Member;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
+import brandSystem.dto.BrandOrderRequestDTO;
 import common.Grade;
 import exception.BusinessException;
 import exception.ErrorCode;
@@ -94,7 +97,7 @@ public class OrderService {
 	/**
 	 * 주문 생성 + 결제 프로세스 시작
 	 */
-	public int placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems, String cardNumber) {
+	public List<BrandOrderRequestDTO> placeOrder(int memberId, int reservationId, List<OrderDTO> cartItems, String cardNumber) {
 
 		if (cartItems == null || cartItems.isEmpty()) {
 			throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
@@ -122,7 +125,7 @@ public class OrderService {
 
 			if (!answer.equalsIgnoreCase("Y")) {
 				System.out.println("주문이 취소되었습니다.");
-				return -1;
+			    return Collections.emptyList();
 			}
 		}
 
@@ -154,8 +157,21 @@ public class OrderService {
 			System.err.println("주문 생성 후 결제 단계 오류: " + e.getMessage());
 			throw e;
 		}
+		// 여기서 상품별 브랜드 name과, 차감 수량 적어주고 DTO 만들어서 리턴하면 되겠다.
 		
-		return orderId;
+	    // 7. 브랜드 재고 차감 요청 DTO 생성
+		List<BrandOrderRequestDTO> brandRequests =
+		        cartItems.stream()
+		                .map(item -> BrandOrderRequestDTO.builder()
+		                        .brandName(item.getBrandName())
+		                        .productName(item.getProductName())
+		                        .orderAmount(item.getQuantity())
+		                        .build())
+		                .collect(Collectors.toList());
+		
+	    return brandRequests;
+		
+		
 	}
 
 	/**
@@ -224,6 +240,8 @@ public class OrderService {
 
 			// 7. 결제 완료 상태 변경
 			order.pay();
+			
+			// TODO: 재고 감소 메서드 위치
 
 			// 8. DB 반영
 			orderDAO.update(order);
@@ -232,9 +250,11 @@ public class OrderService {
 			System.out.println("✅ 결제 및 DB 반영 완료");
 
 		} catch (BusinessException e) {
-			throw e;
-		} catch (Exception e) {
 			throw new BusinessException(ErrorCode.PAYMENT_FAILED);
+		} catch (Exception e) {
+			    // 🔥 원래 터진 진짜 에러 원인(세금 계산 오류 등)을 콘솔에 출력!!
+			    System.err.println("❌ [시스템 에러 디버그] 결제 처리 중 내부 예외 발생:");
+			    e.printStackTrace(); 
 		}
 	}
 

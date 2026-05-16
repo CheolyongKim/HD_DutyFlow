@@ -1,16 +1,22 @@
 package main;
+
 import regulation.RegulationDTO;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import brandSystem.BrandSystem;
 import category.Category;
 import common.Currency;
+import dutyFlowSystem.DutyFlowSystem;
 import exception.BusinessException;
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.SystemException;
+import member.Member;
+import member.MemberService;
+import member.MemberSignupDTO;
 import order.Order;
 import order.OrderService;
 import order.dto.OrderDTO;
@@ -23,7 +29,7 @@ public class ChaeyeonMain {
 
 		ProductService service = new ProductService();
 		OrderService orderService = new OrderService();
-
+		DutyFlowSystem dutyFlowSystem = new DutyFlowSystem();
 		/*
 		 * // product
 		 * -----------------------------------------------------------------------------
@@ -437,109 +443,216 @@ public class ChaeyeonMain {
 //				.build();
 //	}
 
-/*
-		// =============================
-		// 비행기 예약 코드 검증
-		// =============================
-		// 3. 테스트용 규정 데이터 생성 (컴파일 에러 방지)
-		// ChaeyeonMain.java의 테스트 데이터 생성 부분 수정
-		RegulationDTO generalReg = RegulationDTO.builder()
-		        .regulationId(1)
-		        .categoryId(1) // "일반" 대신 ID 값 입력
-		        .limitCapacity(0)
-		        .overageRate(10)
-		        .establishedDate(LocalDate.now())
-		        .build();
+		/*
+		 * // ============================= // 비행기 예약 코드 검증 //
+		 * ============================= // 3. 테스트용 규정 데이터 생성 (컴파일 에러 방지) //
+		 * ChaeyeonMain.java의 테스트 데이터 생성 부분 수정 RegulationDTO generalReg =
+		 * RegulationDTO.builder() .regulationId(1) .categoryId(1) // "일반" 대신 ID 값 입력
+		 * .limitCapacity(0) .overageRate(10) .establishedDate(LocalDate.now())
+		 * .build();
+		 * 
+		 * RegulationDTO alcoholReg = RegulationDTO.builder() .regulationId(2)
+		 * .categoryId(2) .limitCapacity(2000) .overageRate(20)
+		 * .establishedDate(LocalDate.now()) .build(); RegulationDTO perfumeReg =
+		 * RegulationDTO.builder() .regulationId(3) .categoryId(4) .limitCapacity(60)
+		 * .overageRate(20) .establishedDate(LocalDate.now()) .build();
+		 * 
+		 * 
+		 * System.out.println("=== 항공편 예약 코드 검증 및 결제 테스트 ===\n");
+		 * 
+		 * try { // 시나리오: DB에 있는 orderId 1번을 대상으로 결제(order) 시도 // 이 과정에서 내부적으로
+		 * flightService.validateReservationCode()가 실행됨
+		 * System.out.println("[테스트 시작] 주문번호 1번에 대한 결제 승인 시도...");
+		 * 
+		 * orderService.order(1, generalReg, alcoholReg, perfumeReg);
+		 * 
+		 * System.out.println("\n✅ 테스트 결과: 성공 (결제 및 항공권 검증 완료)");
+		 * 
+		 * } catch (BusinessException e) {
+		 * System.err.println("\n❌ 테스트 결과: 실패 (비즈니스 로직 오류)");
+		 * System.err.println("에러 코드: " + e.getErrorCode()); System.err.println("메시지: "
+		 * + e.getMessage()); } catch (Exception e) {
+		 * System.err.println("\n❌ 테스트 결과: 시스템 오류 발생"); e.printStackTrace(); }
+		 * 
+		 */
 
-		RegulationDTO alcoholReg = RegulationDTO.builder()
-		        .regulationId(2)
-		        .categoryId(2)
-		        .limitCapacity(2000)
-		        .overageRate(20)
-		        .establishedDate(LocalDate.now())
-		        .build();
-		RegulationDTO perfumeReg = RegulationDTO.builder()
-		        .regulationId(3)
-		        .categoryId(4)
-		        .limitCapacity(60)
-		        .overageRate(20)
-		        .establishedDate(LocalDate.now())
-		        .build();
+//		// 1. 테스트용 면세 규정 설정 (DB 조회 대신 직접 생성)
+//		RegulationDTO generalReg = new RegulationDTO(1, 1, 0, LocalDate.now(), 10); // 일반 10%
+//		RegulationDTO alcoholReg = new RegulationDTO(2, 2, 2000, LocalDate.now(), 20); // 주류 2000ml 한도
+//		RegulationDTO perfumeReg = new RegulationDTO(3, 4, 100, LocalDate.now(), 15); // 향수 100ml 한도
+//
+//		System.out.println("========= [면세점 주문 시스템 종합 테스트] =========\n");
+//
+//		// [시나리오 1] 정상 결제 (이미 DB에 있는 OrderId 1번 사용)
+//		// 전제조건: DB orders 테이블 1번의 reservationId가 유효한 코드를 가져와야 함
+//		try {
+//			System.out.println("--- [CASE 1] 정상 항공권 & 한도 내 구매 ---");
+//			orderService.order(1, generalReg, alcoholReg, perfumeReg, "4111-1111-1111-1111");
+//			System.out.println("=> 결과: 성공 (PAID 업데이트 완료)");
+//		} catch (BusinessException e) {
+//			System.out.println("=> 결과: 실패 (" + e.getMessage() + ")");
+//		}
+//
+//		System.out.println("\n-------------------------------------------");
+//
+//		// [시나리오 2] 항공권 예약 번호가 잘못된 경우 (정규식 위반 등)
+//		// 테스트 방법: DB에서 특정 주문의 reservationId를 정규식에 안 맞는 값으로 바꾸고 실행
+//		try {
+//			System.out.println("--- [CASE 2] 유효하지 않은 예약 코드 (형식 오류) ---");
+//			// 만약 999번 주문이 있고 코드가 'INVALID-123' 이라면
+//			orderService.order(999, generalReg, alcoholReg, perfumeReg, "4111-1111-1111-1111");
+//		} catch (BusinessException e) {
+//			System.out.println("=> 결과: 예상된 실패 (" + e.getErrorCode().getMessage() + ")");
+//		}
+//
+//		System.out.println("\n-------------------------------------------");
+//
+//		// [시나리오 3] 새 주문 생성부터 결제까지 전체 프로세스 (placeOrder 테스트)
+//		try {
+//			System.out.println("--- [CASE 3] 장바구니 생성 -> 주문 -> 결제 통합 ---");
+//
+//			List<OrderDTO> cart = new ArrayList<>();
+//			// 주류 한도 초과 시뮬레이션 (750ml * 3병 = 2250ml > 2000ml)
+//			cart.add(OrderDTO.builder().productId(1).productName("조니워커 블루").categoryId(2).capacity(750).quantity(3)
+//					.dollarPrice(new BigDecimal("200")).discountPrice(new BigDecimal("0")) // 기본 상품 할인율 0%
+//					.build());
+//
+//			// memberId: 1, reservationId: 1로 새 주문 생성
+//			int newOrderId = orderService.placeOrder(1, 1, cart, "4111-1111-1111-1111");
+//			System.out.println("=> 결과: 새 주문 생성 및 결제 완료 (ID: " + newOrderId + ")");
+//
+//		} catch (BusinessException e) {
+//			System.out.println("=> 결과: 중단 (" + e.getMessage() + ")");
+//		}
 
 
-        System.out.println("=== 항공편 예약 코드 검증 및 결제 테스트 ===\n");
+        MemberService memberService = new MemberService();
+
+        System.out.println("===== 회원가입 테스트 시작 =====");
+        System.out.println();
+
+        // =========================
+        // 1. 정상 회원가입
+        // =========================
+        System.out.println("===== 정상 회원가입 =====");
 
         try {
-            // 시나리오: DB에 있는 orderId 1번을 대상으로 결제(order) 시도
-            // 이 과정에서 내부적으로 flightService.validateReservationCode()가 실행됨
-            System.out.println("[테스트 시작] 주문번호 1번에 대한 결제 승인 시도...");
-            
-            orderService.order(1, generalReg, alcoholReg, perfumeReg);
-            
-            System.out.println("\n✅ 테스트 결과: 성공 (결제 및 항공권 검증 완료)");
 
-        } catch (BusinessException e) {
-            System.err.println("\n❌ 테스트 결과: 실패 (비즈니스 로직 오류)");
-            System.err.println("에러 코드: " + e.getErrorCode());
-            System.err.println("메시지: " + e.getMessage());
+            MemberSignupDTO dto = new MemberSignupDTO(
+                    "testuser01",
+                    "1234",
+                    "김민준",
+                    LocalDate.of(1998, 5, 10),
+                    "01012345678"
+            );
+
+            memberService.signup(dto);
+
+            System.out.println("회원가입 성공");
+
         } catch (Exception e) {
-            System.err.println("\n❌ 테스트 결과: 시스템 오류 발생");
-            e.printStackTrace();
+            System.out.println("회원가입 실패 | reason = " + e.getMessage());
         }
-    
-	*/
-		
-		// 1. 테스트용 면세 규정 설정 (DB 조회 대신 직접 생성)
-        RegulationDTO generalReg = new RegulationDTO(1, 1, 0, LocalDate.now(), 10);    // 일반 10%
-        RegulationDTO alcoholReg = new RegulationDTO(2, 2, 2000, LocalDate.now(), 20); // 주류 2000ml 한도
-        RegulationDTO perfumeReg = new RegulationDTO(3, 4, 100, LocalDate.now(), 15);  // 향수 100ml 한도
 
-        System.out.println("========= [면세점 주문 시스템 종합 테스트] =========\n");
+        System.out.println();
+        
 
-        // [시나리오 1] 정상 결제 (이미 DB에 있는 OrderId 1번 사용)
-        // 전제조건: DB orders 테이블 1번의 reservationId가 유효한 코드를 가져와야 함
+        System.out.println();
+
+        // =========================
+        // 6. 정상 여권 등록
+        // =========================
+        System.out.println("===== 정상 여권 등록 =====");
+
         try {
-            System.out.println("--- [CASE 1] 정상 항공권 & 한도 내 구매 ---");
-            orderService.order(1, generalReg, alcoholReg, perfumeReg,"4111-1111-1111-1111");
-            System.out.println("=> 결과: 성공 (PAID 업데이트 완료)");
-        } catch (BusinessException e) {
-            System.out.println("=> 결과: 실패 (" + e.getMessage() + ")");
+
+            memberService.registerPassport(
+                    1,
+                    "M123A4567",
+                    LocalDate.of(2030, 12, 31)
+            );
+
+            System.out.println("여권 등록 성공");
+
+        } catch (Exception e) {
+            System.out.println("여권 등록 실패 | reason = " + e.getMessage());
         }
 
-        System.out.println("\n-------------------------------------------");
+        System.out.println();
 
-        // [시나리오 2] 항공권 예약 번호가 잘못된 경우 (정규식 위반 등)
-        // 테스트 방법: DB에서 특정 주문의 reservationId를 정규식에 안 맞는 값으로 바꾸고 실행
+        // =========================
+        // 10. 정상 로그인
+        // =========================
+        System.out.println("===== 정상 로그인 =====");
+
         try {
-            System.out.println("--- [CASE 2] 유효하지 않은 예약 코드 (형식 오류) ---");
-            // 만약 999번 주문이 있고 코드가 'INVALID-123' 이라면
-            orderService.order(999, generalReg, alcoholReg, perfumeReg,"4111-1111-1111-1111");
-        } catch (BusinessException e) {
-            System.out.println("=> 결과: 예상된 실패 (" + e.getErrorCode().getMessage() + ")");
+
+            int memberId = memberService.login(
+                    "testuser01",
+                    "1234"
+            );
+
+            System.out.println("로그인 성공 | memberId = " + memberId);
+
+        } catch (Exception e) {
+            System.out.println("로그인 실패 | reason = " + e.getMessage());
         }
 
-        System.out.println("\n-------------------------------------------");
+        System.out.println();
 
-        // [시나리오 3] 새 주문 생성부터 결제까지 전체 프로세스 (placeOrder 테스트)
-        try {
-            System.out.println("--- [CASE 3] 장바구니 생성 -> 주문 -> 결제 통합 ---");
-            
-            List<OrderDTO> cart = new ArrayList<>();
-            // 주류 한도 초과 시뮬레이션 (750ml * 3병 = 2250ml > 2000ml)
-            cart.add(OrderDTO.builder()
-                    .productId(1).productName("조니워커 블루")
-                    .categoryId(2).capacity(750).quantity(3)
-                    .dollarPrice(new BigDecimal("200"))
-                    .discountPrice(new BigDecimal("0")) // 기본 상품 할인율 0%
-                    .build());
 
-            // memberId: 1, reservationId: 1로 새 주문 생성
-            int newOrderId = orderService.placeOrder(1, 1, cart,"4111-1111-1111-1111");
-            System.out.println("=> 결과: 새 주문 생성 및 결제 완료 (ID: " + newOrderId + ")");
-            
-        } catch (BusinessException e) {
-            System.out.println("=> 결과: 중단 (" + e.getMessage() + ")");
-        }
-    }
-		
+		// 2. 브랜드 시스템 리스트 생성 및 구현체 추가
+		List<BrandSystem> brandList = new ArrayList<>();
+
+		// 중요: DB의 brandName과 일치하도록 이름을 지정하여 객체 생성 및 추가
+		// 만약 BrandSystem이 인터페이스이고 개별 브랜드 클래스가 있다면 아래처럼 생성
+		brandList.add(new BrandSystem("Johnnie Walker")); 
+		brandList.add(new BrandSystem("Ballantines"));
+
+		// 3. DutyFlowSystem에 브랜드 리스트 주입
+		dutyFlowSystem.setBrandList(brandList);
+
+		// ------------------------------------------------
+		// 주문 상품 생성
+		// ------------------------------------------------
+		List<OrderDTO> cartItems = new ArrayList<>();
+
+		cartItems.add(OrderDTO.builder().productId(1).productName("조니워커 블루라벨").brandName("Johnnie Walker").categoryId(2)
+				.capacity(750).quantity(2).dollarPrice(new BigDecimal("220")).discountPrice(BigDecimal.ZERO).build());
+
+		cartItems.add(OrderDTO.builder().productId(2).productName("샤넬 넘버5").brandName("Chanel").categoryId(4)
+				.capacity(100).quantity(1).dollarPrice(new BigDecimal("150")).discountPrice(BigDecimal.ZERO).build());
+
+		// ------------------------------------------------
+		// Queue에 들어갈 Order 생성
+		// ------------------------------------------------
+		Order order = new Order();
+
+		order.setOrderId(1);
+		order.setMemberId(1);
+		order.setReservationId(1);
+
+		// ------------------------------------------------
+		// Queue 등록
+		// ------------------------------------------------
+		dutyFlowSystem.addOrderQueue(order);
+
+		// ------------------------------------------------
+		// Queue 처리
+		// ------------------------------------------------
+		try {
+
+			dutyFlowSystem.processOrderQueue();
+
+			System.out.println();
+			System.out.println("✅ 주문 Queue 처리 완료");
+
+		} catch (BusinessException e) {
+			throw new BusinessException(ErrorCode.DATA_NOT_FOUND,e);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+
+	}
+
+}
