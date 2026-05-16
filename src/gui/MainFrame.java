@@ -54,7 +54,6 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("HOME", new HomePanel(screenManager));
         screenManager.addScreen("LOGIN_SELECT", new LoginSelectPanel(screenManager));
         screenManager.addScreen("BRAND_MANAGER_LOGIN", new BrandManagerLoginPanel(screenManager));
-        screenManager.addScreen("AIRPORT_MANAGER_LOGIN", new AirportManagerLoginPanel(screenManager));
 
         screenManager.addScreen("BRAND_MAIN", new BrandMainPanel(screenManager));
         screenManager.addScreen("BRAND_STOCK", new BrandStockPanel(screenManager));
@@ -70,6 +69,10 @@ public class MainFrame extends JFrame {
         FlightService flightService = new FlightService(flightDAO);
         AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
         pickUpSystem = new PickUpSystem(airportManagerService, flightService);
+        // -- 인도장 시스템 로그인 --
+        AirportManagerLoginPanel loginPanel = new AirportManagerLoginPanel(screenManager);
+        loginPanel.setPickUpSystem(pickUpSystem);
+        screenManager.addScreen("AIRPORT_MANAGER_LOGIN", loginPanel);
         
         // ── 인도장 GUI 패널 등록 ──
         screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
