@@ -157,16 +157,7 @@ public class OrderDAO {
 	 */
 	public List<OrderDTO> findOrdersByBrandName(String brandName) {
 
-	    String sql =
-	            "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, " +
-	            "       d.productId, d.quantity, d.discountPrice, d.dollarPrice, " +
-	            "       p.productName, p.capacity, p.categoryId, " +
-	            "       c.categoryName " +
-	            "FROM orders o " +
-	            "JOIN orderdetail d ON o.orderId = d.orderId " +
-	            "JOIN product p ON d.productId = p.productId " +
-	            "JOIN brand b ON p.brandId = b.brandId " +
-	            "JOIN category c ON p.categoryId = c.categoryId " +
+	    String sql = baseSql +
 	            "WHERE b.brandName = ? " +
 	            "ORDER BY o.orderedAt DESC";
 
@@ -186,6 +177,7 @@ public class OrderDAO {
 	        }
 
 	    } catch (SQLException e) {
+	    	e.printStackTrace();
 	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
 	    }
 	}
