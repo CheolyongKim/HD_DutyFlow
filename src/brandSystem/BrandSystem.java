@@ -232,10 +232,6 @@ public class BrandSystem implements StockObserver {
         System.out.println();
     }
 
-    public void logout() {
-        System.out.println("[" + brandName + "] 브랜드 시스템 로그아웃");
-    }
-
     private void validateMyBrandProduct(String productName) {
         validateRequiredText(productName);
 
