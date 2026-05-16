@@ -67,6 +67,24 @@ public class OrderService {
 		}
 		return orders;
 	}
+	
+	/**
+	 * 브랜드명으로 주문/판매 내역 조회
+	 */
+	public List<OrderDTO> getOrdersByBrandName(String brandName) {
+
+	    if (brandName == null || brandName.trim().isEmpty()) {
+	        throw new BusinessException(ErrorCode.INVALID_INPUT);
+	    }
+
+	    List<OrderDTO> orders = orderDAO.findOrdersByBrandName(brandName);
+
+	    if (orders == null || orders.isEmpty()) {
+	        throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+	    }
+
+	    return orders;
+	}
 
 	// -------------------------------------------------------
 	// 주문 생성 + 결제

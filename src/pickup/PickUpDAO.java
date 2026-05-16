@@ -61,7 +61,7 @@ public class PickUpDAO {
 	public AppendQueueDTO getAppendingInfo(String passportNum, int flightResNum) {
 		AppendQueueDTO aqdto = null;
 
-		String sql = "" + "SELECT F.flightCode, F.departureAt, F.isDelayed, M.memberId, M.grade, M.name \n"
+		String sql = "" + "SELECT F.flightCode, F.departureAt, F.isDelayed, B.reservationCode, M.memberId, M.grade, M.name \n"
 				+ "FROM Flight F \n" + "JOIN FlightBook B ON F.flightId = B.flightId \n"
 				+ "JOIN Member M ON B.memberId = M.memberId \n" + "WHERE M.passportNumber = ? AND B.reservationId = ?";
 
@@ -74,7 +74,8 @@ public class PickUpDAO {
 				if (rs.next()) {
 					aqdto = AppendQueueDTO.builder().flightCode(rs.getString("flightCode"))
 							.departureAt(rs.getObject("departureAt", LocalDateTime.class))
-							.isDelayed(rs.getInt("isDelayed")).memberId(rs.getInt("memberId"))
+							.isDelayed(rs.getInt("isDelayed")).reservationCode(rs.getString("reservationCode"))
+							.memberId(rs.getInt("memberId"))
 							.grade(Grade.valueOf(rs.getString("grade").toUpperCase())).name(rs.getString("name"))
 							.build();
 				} else {

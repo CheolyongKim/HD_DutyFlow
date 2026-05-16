@@ -2,16 +2,26 @@ package main;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import common.CurrentTime;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
+
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
 import exception.ValidationException;
+
+import flight.FlightDAO;
+import flight.FlightService;
+
 import member.Member;
 import order.Order;
 import pickup.PickUpSystem;
@@ -66,7 +76,6 @@ public class HeejinMain {
         // 케이스 3. 주류 초과
         // =========================
         System.out.println("\n===== 케이스 3: 일반상품 500달러 + 주류 5리터 (주류 초과 : 3 * 0.70 = 2.10달러) =====");
-
         Order order3 = new Order();
         order3.setTotalPrice(new BigDecimal("500"));
         order3.setTotalAlcohol(5);
@@ -191,8 +200,54 @@ public class HeejinMain {
             System.out.println("catch됨: " + e3.getMessage());
         }
 
-       
+        System.out.println("테스트 완료 - DB에서 SystemLog 테이블 확인");
         
+        // ------------------------- Flight Delay Queue Test --------------------------
+        FlightDAO flightDAO = new FlightDAO();
+        FlightService flightService = new FlightService(flightDAO);
+
+        AirportManagerService airportManagerService = new AirportManagerService();
+        
+        System.out.println("\n=== 항공편 지연 테스트 =====");
+
+        // 현재 시각 설정
+        CurrentTime.curTime =
+        	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
+        
+        PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
+
+        // 번호표 발급 (AQ/BQ 들어감)
+        ps.appendQueue("M11111111", 1); // 이급박
+        ps.appendQueue("M22222222", 2); // 박지각
+        ps.appendQueue("M33333333", 3); // 김철용
+        ps.appendQueue("M44444444", 4); // 오블랙
+
+        System.out.println("\n--- [시나리오] AQ 사람의 항공편 지연 ---");
+
+        System.out.println("\n[ PickUpSystem ] 지연 전 대기열 상태");
+        ps.printCurrentQueue();
+
+        // 박지각 항공편 지연
+        System.out.println("\n[ PickUpSystem ] 박지각의 OZ1015 항공편이 14:00으로 지연되었습니다.");
+
+        ps.delayFlight(
+            "OZ1015",
+            LocalDateTime.of(2026, 5, 1, 14, 0, 0)
+        );
+
+        System.out.println("\n[ PickUpSystem ] 지연 후 대기열 상태");
+        ps.printCurrentQueue();
+
+        System.out.println(
+            "\n 출국 임박이라 AQ에 있던 박지각이 "
+            + "14:00으로 밀리면서 AQ에서 "
+            + "BQ 우선순위 규칙으로 재배치됨."
+        );
+
+        // 창구 오픈
+        System.out.println("\n[ PickUpSystem ] 카운터 오픈");
+        ps.openCounter();
+      
         //--------------------- AirportManager ------------------------
         
         // =========================
@@ -262,8 +317,6 @@ public class HeejinMain {
             System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
         }
         
-        
-        
     }
     
     
@@ -275,13 +328,21 @@ public class HeejinMain {
                                         RegulationDTO perfumeRegulationDTO) {
     	
     	if (order == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        }
+    	    throw new BusinessException(ErrorCode.INVALID_INPUT);
+    	}
+
+    	if (order.getTotalPrice() == null) {
+    	    throw new BusinessException(ErrorCode.INVALID_PRODUCT_PRICE);
+    	}
 
         List<TaxStrategy> strategies = new ArrayList<>();
 
-        // 일반상품은 항상 포함
-        strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        // 일반상품은 한도 초과 시에만 추가
+        BigDecimal limit = BigDecimal.valueOf(generalRegulationDTO.getLimitCapacity());
+
+        if (order.getTotalPrice().compareTo(limit) > 0) {
+            strategies.add(new GeneralTaxStrategy(generalRegulationDTO));
+        }
 
         // 주류 한도 초과 시에만 추가
         if (order.getTotalAlcohol() > alcoholRegulationDTO.getLimitCapacity()) {
@@ -291,6 +352,10 @@ public class HeejinMain {
         // 향수 한도 초과 시에만 추가
         if (order.getTotalPerfume() > perfumeRegulationDTO.getLimitCapacity()) {
             strategies.add(new PerfumeTaxStrategy(perfumeRegulationDTO));
+        }
+
+        if (strategies.isEmpty()) {
+            return BigDecimal.ZERO;
         }
 
         TaxCalculator calculator = new TaxCalculator(strategies);
