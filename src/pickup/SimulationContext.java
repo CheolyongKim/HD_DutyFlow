@@ -11,125 +11,137 @@ import airplane.Airplane;
 
 public class SimulationContext {
 
-    public MLPQ pq; // 
-    private PickUpTicket currentTicket; // 
-    private boolean isCounterOpen = false; // [cite: 127]
+    public MLPQ pq; 
+    private PickUpTicket currentTicket; 
+    private boolean isCounterOpen = false; 
 
     // 현재 시나리오에 등장하는 가상 데이터 (조회용)
-    private List<Member> members = new ArrayList<>(); // [cite: 127]
-    private List<Airplane> flights = new ArrayList<>(); // [cite: 128]
-
+    private List<Member> members = new ArrayList<>(); 
+    private List<Airplane> flights = new ArrayList<>(); 
+    
     public SimulationContext() {
-        this.pq = new MLPQ(); // [cite: 128]
-        this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy()); // [cite: 128]
+        this.pq = new MLPQ();
+        this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy()); 
     }
 
     public void loadScenario(int scenarioNum) {
         // 1) 이전 데이터 완전 초기화
-        resetAll(); // [cite: 129]
+        resetAll(); 
         
         // 2) 시나리오별 가상 데이터 생성
-        loadDefaultPassengers(); // 기본적으로 공통 데이터를 로드합니다[cite: 133].
+        loadDefaultPassengers(); // 기본적으로 공통 데이터를 로드합니다
         
-        switch (scenarioNum) { // [cite: 130]
+        switch (scenarioNum) {
             case 1: 
-                // 시나리오 1: 정상 호출 [cite: 130]
+                // 시나리오 1: 정상 호출 
                 break;
             case 2:
             case 3:
-                // 시나리오 2, 3: 호출 후 미도착 / 노쇼 처리 [cite: 131, 174]
-                openCounter(); // 이미 한 명 호출된 상태로 세팅 [cite: 174]
+                // 시나리오 2, 3: 호출 후 미도착 / 노쇼 처리 
+                openCounter(); // 이미 한 명 호출된 상태로 세팅 
                 break;
             // 기타 시나리오(4~7)에 대한 추가 로딩이 필요하다면 여기에 작성
         }
     }
 
     public void resetAll() {
-        pq.clearAll(); // [cite: 131]
-        members.clear(); // [cite: 131]
-        flights.clear(); // [cite: 132]
-        currentTicket = null; // [cite: 132]
-        isCounterOpen = false; // [cite: 132]
+        pq.clearAll(); 
+        members.clear(); 
+        flights.clear(); 
+        currentTicket = null; 
+        isCounterOpen = false; 
     }
 
     private void loadDefaultPassengers() {
-        LocalDateTime now = CurrentTime.curTime; // [cite: 133]
+        LocalDateTime now = CurrentTime.curTime; 
         
-        // 가상 멤버 생성 (경량 생성자 사용) [cite: 134]
-        Member m1 = new Member(1, "김민준", "M12345678", true, Grade.GOLD); // [cite: 134]
-        Member m2 = new Member(2, "박서연", "M23456789", true, Grade.PRESTIGE); // [cite: 135]
-        Member m3 = new Member(3, "이도윤", "M34567890", true, Grade.SILVER); // [cite: 135]
-        Member m4 = new Member(4, "최수아", "M45678901", true, Grade.BLACK); // [cite: 136]
-        Member m5 = new Member(5, "정하준", "M56789012", true, Grade.SILVER); // [cite: 136]
-        Member m6 = new Member(6, "강지우", "M67890123", true, Grade.GOLD); // [cite: 137]
+        // 가상 멤버 생성 (경량 생성자 사용) 
+        Member m1 = new Member(1, "이급박", "M11111111", true, Grade.GOLD); 
+        Member m2 = new Member(2, "박지각", "M22222222", true, Grade.SILVER);
+        Member m3 = new Member(3, "김철용", "M33333333", true, Grade.SILVER);
+        Member m4 = new Member(4, "오블랙", "M44444444", true, Grade.BLACK);
+        Member m5 = new Member(5, "최골드", "M55555555", true, Grade.GOLD);
+        Member m6 = new Member(6, "유실버", "M66666666", true, Grade.SILVER);
+        Member m7 = new Member(7, "약블랙", "M77777777", true, Grade.BLACK);
+        Member m8 = new Member(8, "중블랙", "M88888888", true, Grade.BLACK);
+        Member m9 = new Member(9, "강부자", "M99999999", true, Grade.PRESTIGE);
+        Member m10 = new Member(10, "구민", "M00000000", true, Grade.SILVER);
 
-        members.addAll(List.of(m1, m2, m3, m4, m5, m6)); // [cite: 137]
+        members.addAll(List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10));
 
         // 가상 항공편 생성 [cite: 138]
-        Airplane a1 = new Airplane(1, "KE081", now.plusHours(1).plusMinutes(30)); // [cite: 138]
-        Airplane a2 = new Airplane(2, "OZ102", now.plusMinutes(25));   // 출국 임박 -> AQ행 [cite: 139]
-        Airplane a3 = new Airplane(3, "KE651", now.plusHours(2)); // [cite: 139]
-        Airplane a4 = new Airplane(4, "OZ541", now.plusMinutes(20));   // 출국 임박 -> AQ행 [cite: 140]
-        Airplane a5 = new Airplane(5, "KE305", now.plusHours(1)); // [cite: 140]
-        Airplane a6 = new Airplane(6, "OZ773", now.plusHours(3)); // [cite: 141]
+        Airplane a1 = new Airplane(1, "KE1025", now.plusMinutes(25));
+        Airplane a2 = new Airplane(2, "OZ1015", now.plusMinutes(15));   
+        Airplane a3 = new Airplane(3, "7C1050", now.plusHours(50));
+        Airplane a4 = new Airplane(4, "KE1090", now.plusMinutes(90));  
+        Airplane a5 = new Airplane(5, "OZ1100", now.plusHours(100)); 
+        Airplane a6 = new Airplane(6, "LJ1080", now.plusHours(80)); 
+        Airplane a7 = new Airplane(7, "KE1120", now.plusHours(120)); 
+        Airplane a8 = new Airplane(8, "OZ1160", now.plusHours(160)); 
+        Airplane a9 = new Airplane(9, "KE1150", now.plusHours(150)); 
+        Airplane a10 = new Airplane(10, "TW1030", now.plusHours(30)); 
 
-        flights.addAll(List.of(a1, a2, a3, a4, a5, a6)); // [cite: 141]
+        flights.addAll(List.of(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)); 
 
-        // 번호표 발행 및 큐 삽입 [cite: 142]
-        pq.enqueue(new PickUpTicket(m1, a1, pq.nextNum(), 0)); // [cite: 142]
-        pq.enqueue(new PickUpTicket(m2, a2, pq.nextNum(), 0)); // [cite: 143]
-        pq.enqueue(new PickUpTicket(m3, a3, pq.nextNum(), 0)); // [cite: 143]
-        pq.enqueue(new PickUpTicket(m4, a4, pq.nextNum(), 0)); // [cite: 143]
-        pq.enqueue(new PickUpTicket(m5, a5, pq.nextNum(), 0)); // [cite: 143]
-        pq.enqueue(new PickUpTicket(m6, a6, pq.nextNum(), 0)); // [cite: 144]
+        // 번호표 발행 및 큐 삽입 
+        pq.enqueue(new PickUpTicket(m1, a1, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m2, a2, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m3, a3, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m4, a4, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m5, a5, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m6, a6, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m7, a7, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m8, a8, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m9, a9, pq.nextNum(), 0));
+        pq.enqueue(new PickUpTicket(m10, a10, pq.nextNum(), 0));
     }
 
     // 창구 오픈 (= 다음 고객 호출)
     public void openCounter() {
-        this.isCounterOpen = true; // [cite: 144]
-        tryCallNextCustomer(); // [cite: 145]
+        this.isCounterOpen = true; 
+        tryCallNextCustomer(); 
     }
 
     private void tryCallNextCustomer() {
-        if (isCounterOpen && currentTicket == null && pq.size() > 0) { // [cite: 145]
-            currentTicket = pq.pop(); // [cite: 145]
+        if (isCounterOpen && currentTicket == null && pq.size() > 0) { 
+            currentTicket = pq.pop();
         }
     }
 
     public PickUpTicket getCurrentTicket() {
-        return currentTicket; // [cite: 146]
+        return currentTicket; 
     }
 
     public void clearCurrentTicket() {
-        currentTicket = null; // [cite: 147]
-        tryCallNextCustomer(); // 비우면 자동으로 다음 사람 호출 [cite: 147]
+        currentTicket = null; 
+        tryCallNextCustomer(); // 비우면 자동으로 다음 사람 호출 
     }
 
     // 항공 지연 - DB 없는 버전 [cite: 148]
     public void delayFlight(String flightCode, LocalDateTime newTime) {
-        for (PickUpTicket t : pq.getAllFromAq()) { // [cite: 148]
-            if (t.getAirplane().getFlightCode().equals(flightCode)) { // [cite: 148]
-                t.getAirplane().setDepartureAt(newTime); // [cite: 148]
-                return; // [cite: 148]
+        for (PickUpTicket t : pq.getAllFromAq()) { 
+            if (t.getAirplane().getFlightCode().equals(flightCode)) { 
+                t.getAirplane().setDepartureAt(newTime); 
+                return; 
             }
         }
-        for (PickUpTicket t : pq.getAllFromBq()) { // [cite: 149]
-            if (t.getAirplane().getFlightCode().equals(flightCode)) { // [cite: 149]
-                t.getAirplane().setDepartureAt(newTime); // [cite: 149]
-                return; // [cite: 149]
+        for (PickUpTicket t : pq.getAllFromBq()) { 
+            if (t.getAirplane().getFlightCode().equals(flightCode)) { 
+                t.getAirplane().setDepartureAt(newTime); 
+                return; 
             }
         }
     }
 
-    // 재정렬 (PickUpSystem.rescheduledPq()와 동일) [cite: 150]
+    // 재정렬 (PickUpSystem.rescheduledPq()와 동일) 
     public void rescheduledPq() {
-        if (pq.size() == 0) return; // [cite: 151]
-        List<PickUpTicket> all = new ArrayList<>(); // [cite: 151]
-        all.addAll(pq.getAllFromAq()); // [cite: 151]
-        all.addAll(pq.getAllFromBq()); // [cite: 152]
-        pq.clearAll(); // [cite: 152]
-        for (PickUpTicket t : all) { // [cite: 152]
-            pq.enqueue(t); // [cite: 152]
+        if (pq.size() == 0) return; 
+        List<PickUpTicket> all = new ArrayList<>(); 
+        all.addAll(pq.getAllFromAq());
+        all.addAll(pq.getAllFromBq()); 
+        pq.clearAll(); 
+        for (PickUpTicket t : all) { 
+            pq.enqueue(t); 
         }
     }
 }

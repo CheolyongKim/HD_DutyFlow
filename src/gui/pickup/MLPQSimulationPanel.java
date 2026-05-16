@@ -628,14 +628,14 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
         InputMap im  = getInputMap(WHEN_IN_FOCUSED_WINDOW);
         ActionMap am = getActionMap();
 
-        // Space → +1분
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "stepFwd");
+        // 오른쪽키 → +1분
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, 0), "stepFwd");
         am.put("stepFwd", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { stepForward(); }
         });
 
-        // BackSpace → -1분
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "stepBack");
+        // 왼쪽키 → -1분
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, 0), "stepBack");
         am.put("stepBack", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { stepBackward(); }
         });
