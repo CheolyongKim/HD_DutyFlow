@@ -54,4 +54,37 @@ public class RegulationDAO {
         }
 		return null;
 	}
+
+	public RegulationDTO getByCategoryName(String categoryName) {
+
+	    String sql =
+	        "SELECT r.regulationId, r.categoryId, r.limitCapacity, r.establishedDate, r.overageRate " +
+	        "FROM Regulation r " +
+	        "JOIN Category c ON r.categoryId = c.categoryId " +
+	        "WHERE c.categoryName = ?";
+
+	    try (Connection conn = OracleConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setString(1, categoryName);
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+
+	            if (rs.next()) {
+	                return RegulationDTO.builder()
+	                        .regulationId(rs.getInt("regulationId"))
+	                        .categoryId(rs.getInt("categoryId"))
+	                        .limitCapacity(rs.getInt("limitCapacity"))
+	                        .establishedDate(rs.getDate("establishedDate").toLocalDate())
+	                        .overageRate(rs.getInt("overageRate"))
+	                        .build();
+	            }
+	        }
+
+	    } catch (Exception e) {
+	        throw new RuntimeException("Regulation 조회 실패: " + categoryName, e);
+	    }
+
+	    return null;
+	}
 }

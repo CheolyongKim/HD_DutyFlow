@@ -56,7 +56,6 @@ public class DutyFlowSystem {
 		this.brandList = brandList;
 	}
 	
-	
 	// PaymentWorker 실행
 	// DutyFlowSystem 시작 시 백그라운드에서 Queue 감시 시작
 	public void startPaymentWorker() {
