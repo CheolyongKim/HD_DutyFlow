@@ -1,12 +1,20 @@
 package dutyFlowSystem;
 
 import java.math.BigDecimal;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import brandSystem.BrandSystem;
+import brandSystem.dto.BrandOrderRequestDTO;
+import exception.BusinessException;
+import exception.ErrorCode;
 import exchangeRate.ExchangeRate;
 import exchangeRate.ExchangeRateScheduler;
 import exchangeRate.ExchangeRateService;
+import flight.FlightBookDTO;
+import flight.FlightDTO;
+import flight.FlightService;
 import member.Member;
 import order.Order;
 import order.OrderService;
@@ -17,15 +25,19 @@ import shoppingCart.ShoppingCartService;
 import shoppingCart.dto.TotalCartDTO;
 
 public class DutyFlowSystem {
+
 	
 	private Member member = new Member();
 	private List<Member> members;
-	private Queue<Order> orderQueue;
-	// private List<BrandSystemDao> brandRepository;
+	private Queue<Order> orderQueue = new LinkedList<>();
+	private List<BrandSystem> brandList;
+	public String cardNumber = "4111-1111-1111-1111"; // 추후 Swing 입력 값
+
 	// private TaxCalculator taxCalculator;
-	
+
 	private final ShoppingCartService shoppingCartService = new ShoppingCartService();
-    private final OrderService orderService = new OrderService();
+	private final OrderService orderService = new OrderService();
+	private final FlightService flightService = new FlightService();;
     
 	// 백그라운드에서 실행될 결제 Worker
 	private final PaymentWorker paymentWorker = new PaymentWorker();
@@ -36,26 +48,26 @@ public class DutyFlowSystem {
 	// PaymentWorker 실행
 	// DutyFlowSystem 시작 시 백그라운드에서 Queue 감시 시작
 	public void startPaymentWorker() {
-	    paymentWorkerThread = new Thread(paymentWorker);
-	    paymentWorkerThread.start();
+		paymentWorkerThread = new Thread(paymentWorker);
+		paymentWorkerThread.start();
 	}
 
 	// PaymentWorker 종료
 	// DutyFlowSystem 종료 시 Worker도 함께 종료
 	public void stopPaymentWorker() {
-	    paymentWorker.stop();
+		paymentWorker.stop();
 
-	    // sleep 상태의 Worker를 즉시 깨워 종료 처리
-	    if (paymentWorkerThread != null) {
-	        paymentWorkerThread.interrupt();
-	    }
+		// sleep 상태의 Worker를 즉시 깨워 종료 처리
+		if (paymentWorkerThread != null) {
+			paymentWorkerThread.interrupt();
+		}
 	}
-	
+
 	// 회원 장바구니에 상품 추가
 	public void addToCart(Product p, int wishAmount) {
 		shoppingCartService.addToCart(member.getMemberId(), p, wishAmount);
 	}
-	
+
 	// 장바구니 내 특정 상품 수량 변경
 	public void updateQuantity(Product p, int newAmount) {
 		shoppingCartService.updateQuantity(member.getMemberId(), p, newAmount);
@@ -63,19 +75,19 @@ public class DutyFlowSystem {
 
 	// 장바구니 조회
 	public TotalCartDTO printCart() {
-	    return shoppingCartService.getCart(member.getMemberId());
+		return shoppingCartService.getCart(member.getMemberId());
 	}
-	
+
 	// 장바구니 비우기
 	public void deleteFromCart() {
 		shoppingCartService.flush(member.getMemberId());
 	}
-	
+
 	// 장바구니 선택 상품 제거
-	public void deleteFromCart(List<Product> selectedProducts) { 
+	public void deleteFromCart(List<Product> selectedProducts) {
 		shoppingCartService.flush(member.getMemberId(), selectedProducts);
 	}
-	
+
 	// 환율 서비스 및 스케줄러
 	private final ExchangeRateService exchangeRateService = new ExchangeRateService();
 
@@ -91,90 +103,197 @@ public class DutyFlowSystem {
 	public void stopExchangeRateScheduler() {
 		exchangeRateScheduler.stop();
 	}
-	
+
 	// 오늘 환율 조회
 	public BigDecimal getTodayExchangeRate() {
-	    return exchangeRateService.getTodayExchangeRate();
+		return exchangeRateService.getTodayExchangeRate();
 	}
 
 	// 최근 일주일 환율 조회
 	public List<ExchangeRate> getWeeklyExchangeRates() {
-	    return exchangeRateService.getWeeklyExchangeRates();
+		return exchangeRateService.getWeeklyExchangeRates();
 	}
 
 	// 최근 한 달 환율 조회
 	public List<ExchangeRate> getMonthlyExchangeRates() {
-	    return exchangeRateService.getMonthlyExchangeRates();
+		return exchangeRateService.getMonthlyExchangeRates();
+	}
+
+	// -------------------------------------------------------
+	// 주문(Order) 관련 서비스 위임 메서드
+	// -------------------------------------------------------
+
+	/**
+	 * 장바구니 상품들을 실제 주문으로 생성하고 결제 프로세스를 시작합니다.
+	 * 
+	 * @param reservationId 항공편 예약 ID
+	 * @param cartItems     주문할 상품 리스트
+	 * @param cardNumber    결제 카드 번호
+	 * @return 생성된 주문 ID (orderId)
+	 */
+
+	public void addOrderQueue(Order order) {
+		orderQueue.offer(order);
+	}
+
+	public void processOrderQueue() {
+	    while (!orderQueue.isEmpty()) {
+	        try {
+	            Order order = orderQueue.poll();
+	            processOrder(order); // 여기서 insertOrder가 호출됨
+	        } catch (Exception e) {
+	            System.err.println("❌ 주문 큐 처리 중 치명적 에러 발생! 프로세스를 중단합니다.");
+	            e.printStackTrace();
+	            break; // 👈 에러 나면 다음 루프 돌지 말고 즉시 멈추기!
+	        }
+	    }
+	}
+
+	/**
+	 * 나의 전체 주문 내역을 조회합니다.
+	 */
+	public List<OrderDTO> getMyOrders() {
+		return orderService.getOrdersByMemberId(this.member.getMemberId());
+	}
+
+	/**
+	 * 특정 주문의 상세 상품 정보를 조회합니다.
+	 */
+	public List<OrderDTO> getOrderDetails(int orderId) {
+		return orderService.getOrdersByOrderId(orderId);
+	}
+
+	private void processOrder(Order order) {
+
+	    int reservationId;
+	    List<OrderDTO> orderDetails;
+
+	    try {
+	        orderDetails =
+	                getOrderDetails(order.getOrderId());
+
+	        FlightBookDTO flightBookDto =
+	                flightService.getFlightBookByMemberId(
+	                        this.member.getMemberId()
+	                );
+
+	        reservationId =
+	                flightBookDto.getReservationId();
+
+	    } catch (BusinessException e) {
+
+	        throw new BusinessException(
+	                ErrorCode.DATA_NOT_FOUND,
+	                e
+	        );
+	    }
+
+	    try {
+
+	        List<BrandOrderRequestDTO> requests =
+	                orderService.placeOrder(
+	                        this.member.getMemberId(),
+	                        reservationId,
+	                        orderDetails,
+	                        cardNumber
+	                );
+
+	        for (BrandOrderRequestDTO request : requests) {
+	            BrandSystem brandSystem =
+	                    findBrandSystem(request.getBrandName());
+
+	            if (brandSystem == null) {
+
+	                throw new BusinessException(
+	                        ErrorCode.DATA_NOT_FOUND
+	                );
+	            }
+
+	            brandSystem.receiveOrder(
+	                    request.getProductName(),
+	                    request.getOrderAmount()
+	            );
+	        }
+
+	    } catch (BusinessException e) {
+
+	        throw new BusinessException(
+	                ErrorCode.DATA_NOT_FOUND,
+	                e
+	        );
+	    }
 	}
 	
-	// -------------------------------------------------------
-    // 주문(Order) 관련 서비스 위임 메서드
-    // -------------------------------------------------------
+	private BrandSystem findBrandSystem(String brandName) {
 
-    /**
-     * 장바구니 상품들을 실제 주문으로 생성하고 결제 프로세스를 시작합니다.
-     * @param reservationId 항공편 예약 ID
-     * @param cartItems 주문할 상품 리스트
-     * @param cardNumber 결제 카드 번호
-     * @return 생성된 주문 ID (orderId)
-     */
-    public int placeOrder(int reservationId, List<OrderDTO> cartItems, String cardNumber) {
-        // 현재 시스템의 로그인된 회원(member)의 ID를 사용하여 주문 요청
-        return orderService.placeOrder(this.member.getMemberId(), reservationId, cartItems, cardNumber);
-    }
+	    if (brandList == null || brandName == null) {
+	        throw new BusinessException(ErrorCode.NOT_FOUNT_BRAND);
+	    }
 
-    /**
-     * 나의 전체 주문 내역을 조회합니다.
-     */
-    public List<OrderDTO> getMyOrders() {
-        return orderService.getOrdersByMemberId(this.member.getMemberId());
-    }
+	    String target = normalize(brandName);
 
-    /**
-     * 특정 주문의 상세 상품 정보를 조회합니다.
-     */
-    public List<OrderDTO> getOrderDetails(int orderId) {
-        return orderService.getOrdersByOrderId(orderId);
-    }
+	    for (BrandSystem brandSystem : brandList) {
 
-    /**
-     * 상품 수령을 위한 픽업 예약을 수행합니다. (PAID 상태여야 함)
-     */
-    public void reservePickup(int orderId) {
-        orderService.reservePickup(orderId);
-    }
+	        String candidate = normalize(brandSystem.getBrandName());
 
-    /**
-     * 공항 등에서 상품 인도(수령) 완료 처리를 합니다.
-     */
-    public void completePickup(int orderId) {
-        orderService.completePickup(orderId);
-    }
+	        if (candidate.equals(target)) {
+	            return brandSystem;
+	        }
+	    }
 
-    /**
-     * 주문을 취소합니다. (결제 완료 전/후 상태에 따라 내부 로직 실행)
-     */
-    public void cancelOrder(int orderId) {
-        orderService.cancelOrder(orderId);
-    }
+	    throw new BusinessException(ErrorCode.NOT_FOUNT_BRAND);
+	}
 
-    /**
-     * 고객이 지정된 시간에 상품을 수령하지 않았을 때 미수령 처리를 합니다.
-     */
-    public void markNoShow(int orderId) {
-        orderService.markNoShow(orderId);
-    }
-
-    // -------------------------------------------------------
-    // 관리자(Admin) 기능을 위한 메서드 (필요 시)
-    // -------------------------------------------------------
-
-    /**
-     * [관리자용] 시스템의 모든 주문 목록을 조회합니다.
-     */
-    public List<OrderDTO> getAllOrders() {
-        return orderService.getAllOrders();
-    }
+	private String normalize(String value) {
+	    return value
+	            .trim()
+	            .replaceAll("\\s+", "")   // 모든 공백 제거
+	            .toLowerCase();
+	}
 	
+	/**
+	 * 상품 수령을 위한 픽업 예약을 수행합니다. (PAID 상태여야 함)
+	 */
+	public void reservePickup(int orderId) {
+		orderService.reservePickup(orderId);
+	}
+
+	/**
+	 * 공항 등에서 상품 인도(수령) 완료 처리를 합니다.
+	 */
+	public void completePickup(int orderId) {
+		orderService.completePickup(orderId);
+	}
+
+	/**
+	 * 주문을 취소합니다. (결제 완료 전/후 상태에 따라 내부 로직 실행)
+	 */
+	public void cancelOrder(int orderId) {
+		orderService.cancelOrder(orderId);
+	}
+
+	/**
+	 * 고객이 지정된 시간에 상품을 수령하지 않았을 때 미수령 처리를 합니다.
+	 */
+	public void markNoShow(int orderId) {
+		orderService.markNoShow(orderId);
+	}
+
+	// -------------------------------------------------------
+	// 관리자(Admin) 기능을 위한 메서드 (필요 시)
+	// -------------------------------------------------------
+
+	/**
+	 * [관리자용] 시스템의 모든 주문 목록을 조회합니다.
+	 */
+	public List<OrderDTO> getAllOrders() {
+		return orderService.getAllOrders();
+	}
+	public void setMember(Member member) {
+	    this.member = member;
+	}
+	public void setBrandList(List<BrandSystem> brandList) {
+	    this.brandList = brandList;
+	}
 	
 }

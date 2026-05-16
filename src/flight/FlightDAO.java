@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDateTime;
 
 import common.OracleConnection;
@@ -108,7 +110,51 @@ public class FlightDAO {
 
 		return null;
 	}
+	
+	// 회원 ID로 항공 정보 조회
+	// 회원 ID로 FlightBook 정보 조회
+	public List<FlightBookDTO> getFlightBookByMemberId(int memberId) {
 
+	    String sql =
+	            "SELECT b.reservationId, b.memberId, b.flightId, b.reservationCode, " +
+	            "       f.flightCode, f.departureAt, f.isDelayed " +
+	            "FROM FlightBook b " +
+	            "JOIN Flight f ON b.flightId = f.flightId " +
+	            "WHERE b.memberId = ? " +
+	            "ORDER BY f.departureAt DESC";
+
+	    List<FlightBookDTO> flightList = new ArrayList<>();
+
+	    try (
+	            Connection conn = OracleConnection.getConnection();
+	            PreparedStatement pstmt = conn.prepareStatement(sql)
+	    ) {
+
+	        pstmt.setInt(1, memberId);
+
+	        try (ResultSet rs = pstmt.executeQuery()) {
+
+	            while (rs.next()) {
+
+	                FlightBookDTO dto = FlightBookDTO.builder()
+	                        .reservationId(rs.getInt("reservationId"))
+	                        .memberId(rs.getInt("memberId"))
+	                        .flightId(rs.getInt("flightId"))
+	                        .reservationCode(rs.getString("reservationCode"))
+	                        .build();
+
+	                flightList.add(dto);
+	            }
+	        }
+
+	        return flightList;
+
+	    } catch (SQLException e) {
+
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    }
+	}
+	
 	// 지연 시각 업데이트 (항공편코드 + 지연 시)
 	public void updateDelayedFlight(String flightCode, LocalDateTime newDepartureAt) {
 

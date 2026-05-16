@@ -1,6 +1,7 @@
 package order;
 
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,6 +15,8 @@ import common.OracleConnection;
 import common.OrderStatus;
 import exception.ErrorCode;
 import exception.SystemException;
+import oracle.jdbc.OraclePreparedStatement;
+import oracle.jdbc.OracleTypes;
 import order.dto.OrderDTO;
 import order.state.CanceledState;
 import order.state.NoShowState;
@@ -25,10 +28,12 @@ import order.state.VerifiedState;
 
 public class OrderDAO {
 
-	private final String baseSql = "SELECT o.orderId, o.memberId, o.reservationId, o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, "
+	private final String baseSql = "SELECT o.orderId, o.memberId, o.reservationId, "
+			+ "o.exchangeDate, o.orderedAt, o.orderState, o.totalAmount, "
 			+ "d.productId, d.quantity, d.discountPrice, d.dollarPrice, " + "p.productName, p.capacity, p.categoryId, "
-			+ "c.categoryName " + "FROM orders o " + "JOIN orderdetail d ON o.orderId = d.orderId "
-			+ "JOIN product p ON d.productid = p.productid " + "JOIN category c ON p.categoryid = c.categoryid ";
+			+ "b.brandName, " + "c.categoryName " + "FROM orders o " + "JOIN orderdetail d ON o.orderId = d.orderId "
+			+ "JOIN product p ON d.productid = p.productid " + "JOIN brand b ON p.brandId = b.brandId "
+			+ "JOIN category c ON p.categoryid = c.categoryid ";
 
 	/**
 	 * 빌더 패턴을 사용하여 Order 객체 매핑
@@ -42,29 +47,28 @@ public class OrderDAO {
 				.orderState(rs.getString("orderState")).totalAmount(rs.getBigDecimal("totalAmount"))
 				.productId(rs.getInt("productId")).quantity(rs.getInt("quantity"))
 				.discountPrice(rs.getBigDecimal("discountPrice")).dollarPrice(rs.getBigDecimal("dollarPrice"))
-				.productName(rs.getString("productName")).categoryId(rs.getInt("categoryId"))
-				.categoryName(rs.getString("categoryName")).capacity(rs.getInt("capacity")).build();
+				.productName(rs.getString("productName")).brandName(rs.getString("brandName")) // 추가
+				.categoryId(rs.getInt("categoryId")).categoryName(rs.getString("categoryName"))
+				.capacity(rs.getInt("capacity")).build();
 	}
 
 	/**
 	 * 주문 상태 및 최종 결제 금액 업데이트
 	 */
 	public void update(Order order) {
-	    String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
-	    String stateName = order.getState().name();
-	    
-	    System.out.println("[Debug] DB Update 시도 - OrderId: " + order.getOrderId() 
-	                       + ", StateName: " + stateName);
+		String sql = "UPDATE orders SET orderState = ?, totalAmount = ? WHERE orderId = ?";
+		String stateName = order.getState().name();
 
-	    try (Connection conn = OracleConnection.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-	        pstmt.setString(1, stateName);
-	        pstmt.setBigDecimal(2, order.getTotalPrice());
-	        pstmt.setInt(3, order.getOrderId());
-	        pstmt.executeUpdate();
-	    } catch (SQLException e) {
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
+		System.out.println("[Debug] DB Update 시도 - OrderId: " + order.getOrderId() + ", StateName: " + stateName);
+
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			pstmt.setString(1, stateName);
+			pstmt.setBigDecimal(2, order.getTotalPrice());
+			pstmt.setInt(3, order.getOrderId());
+			pstmt.executeUpdate();
+		} catch (SQLException e) {
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
 	}
 
 	/**
@@ -266,118 +270,138 @@ public class OrderDAO {
 		}
 	}
 
-	public int insertOrder(Order order, List<OrderDTO> items) {
-
-		String orderSql = "INSERT INTO Orders "
-				+ "(memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " + "VALUES (?, ?, "
-				+ "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " + "SYSDATE, 'ORDERED', ?)";
-
-		String detailSql = "INSERT INTO OrderDetail " + "(productId, orderId, quantity, discountPrice, dollarPrice) "
-				+ "VALUES (?, ?, ?, ?, ?)";
-
-		Connection conn = null;
-
-		try {
-			conn = OracleConnection.getConnection();
-
-			// 트랜잭션 시작
-			conn.setAutoCommit(false);
-
-			int orderId = 0;
-
-			// 1. Orders insert
-			try (PreparedStatement pstmt = conn.prepareStatement(orderSql, new String[] { "orderId" })) {
-
-				pstmt.setInt(1, order.getMemberId());
-				pstmt.setInt(2, order.getReservationId());
-				pstmt.setBigDecimal(3, order.getTotalPrice());
-
-				pstmt.executeUpdate();
-
-				try (ResultSet rs = pstmt.getGeneratedKeys()) {
-					if (rs.next()) {
-						orderId = rs.getInt(1);
-					}
-				}
-			}
-
-			// 2. OrderDetail insert
-			try (PreparedStatement pstmt = conn.prepareStatement(detailSql)) {
-
-				for (OrderDTO item : items) {
-
-					pstmt.setInt(1, item.getProductId());
-					pstmt.setInt(2, orderId);
-					pstmt.setInt(3, item.getQuantity());
-
-					pstmt.setBigDecimal(4, item.getDiscountPrice() != null ? item.getDiscountPrice() : BigDecimal.ZERO);
-
-					pstmt.setBigDecimal(5, item.getDollarPrice());
-
-					pstmt.addBatch();
-				}
-
-				pstmt.executeBatch();
-			}
-
-			// 커밋
-			conn.commit();
-
-			return orderId;
-
-		} catch (SQLException e) {
-
-			try {
-				if (conn != null)
-					conn.rollback();
-			} catch (SQLException rollbackEx) {
-				rollbackEx.printStackTrace();
-			}
-
-			throw new SystemException(ErrorCode.DB_CONNECTION, e);
-
-		} finally {
-
-			try {
-				if (conn != null)
-					conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
+	
 	/**
 	 * 주문 번호(orderId)를 통해 해당 주문의 항공 예약 코드(reservationCode)를 조회합니다.
+	 * 
 	 * @param orderId 주문 ID
 	 * @return 항공 예약 코드 (없을 경우 null)
 	 */
 	public String findReservationCodeByOrderId(int orderId) {
-	    // orders 테이블의 reservationId를 사용하여 flightbook 테이블과 JOIN
-	    String sql = "SELECT fb.reservationCode " +
-	                 "FROM orders o " +
-	                 "JOIN flightbook fb ON o.reservationId = fb.reservationId " +
-	                 "WHERE o.orderId = ?";
+		// orders 테이블의 reservationId를 사용하여 flightbook 테이블과 JOIN
+		String sql = "SELECT fb.reservationCode " + "FROM orders o "
+				+ "JOIN flightbook fb ON o.reservationId = fb.reservationId " + "WHERE o.orderId = ?";
 
-	    try (Connection conn = OracleConnection.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-	        
-	        pstmt.setInt(1, orderId);
-	        
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            if (rs.next()) {
-	                String resCode = rs.getString("reservationCode");
-	                System.out.println("[OrderDAO] 조회된 예약 코드: " + resCode + " (OrderId: " + orderId + ")");
-	                return resCode;
+		try (Connection conn = OracleConnection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+			pstmt.setInt(1, orderId);
+
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) {
+					String resCode = rs.getString("reservationCode");
+					System.out.println("[OrderDAO] 조회된 예약 코드: " + resCode + " (OrderId: " + orderId + ")");
+					return resCode;
+				}
+			}
+		} catch (SQLException e) {
+			// 기존 ErrorCode 및 SystemException 구조 활용
+			throw new SystemException(ErrorCode.DB_CONNECTION, e);
+		}
+
+		System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
+		return null;
+	}
+	
+	public int insertOrder(Order order, List<OrderDTO> items) {
+
+	    // 물음표(?) 총 4개: memberId(1), reservationId(2), totalAmount(3), RETURNING(4)
+	    String orderSql =
+	            "INSERT INTO Orders " +
+	            "(orderId, memberId, reservationId, exchangeDate, orderedAt, orderState, totalAmount) " +
+	            "VALUES (order_seq.NEXTVAL, ?, ?, " +
+	            "(SELECT exchangeDate FROM ExchangeRate WHERE isLatest='Y'), " +
+	            "SYSDATE, 'ORDERED', ?) " +
+	            "RETURNING orderId INTO ?";
+
+	    // 물음표(?) 총 5개: productId(1), orderId(2), quantity(3), discountPrice(4), dollarPrice(5)
+	    String detailSql =
+	            "INSERT INTO OrderDetail " +
+	            "(productId, orderId, quantity, discountPrice, dollarPrice) " +
+	            "VALUES (?, ?, ?, ?, ?)";
+
+	    Connection conn = null;
+
+	    try {
+	        conn = OracleConnection.getConnection();
+	        conn.setAutoCommit(false); // 트랜잭션 시작
+
+	        int orderId = -1;
+
+	        // ------------------------------------------------
+	        // 1. Orders insert (OraclePreparedStatement 캐스팅 사용)
+	        // ------------------------------------------------
+	        try (PreparedStatement pstmt = conn.prepareStatement(orderSql)) {
+	            OraclePreparedStatement opstmt = (OraclePreparedStatement) pstmt;
+
+	            // 💡 [중요] 쿼리문 안의 물음표 순서와 번호를 완벽하게 일치시켰습니다.
+	            opstmt.setInt(1, order.getMemberId());         // 1번째 ? : memberId
+	            opstmt.setInt(2, order.getReservationId());    // 2번째 ? : reservationId
+	            opstmt.setBigDecimal(3, order.getTotalPrice());   // 3번째 ? : totalAmount
+
+	            // 🔥 4번째 ? : RETURNING INTO 자리에 발급될 정수형(INTEGER) 키 등록 (ORA-17003 해결)
+	            opstmt.registerReturnParameter(4, OracleTypes.INTEGER); 
+
+	            opstmt.executeUpdate();
+
+	            // Oracle 드라이버 규격에 맞춰 생성된 orderId 수령
+	            try (ResultSet rset = opstmt.getReturnResultSet()) {
+	                if (rset.next()) {
+	                    orderId = rset.getInt(1);
+	                }
 	            }
 	        }
-	    } catch (SQLException e) {
-	        // 기존 ErrorCode 및 SystemException 구조 활용
-	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
-	    }
 
-	    System.out.println("[OrderDAO] 해당 주문에 연결된 예약 코드를 찾을 수 없습니다. (OrderId: " + orderId + ")");
-	    return null;
+	        // 만약 정상적으로 orderId를 발급받지 못했다면 강제 예외 발생
+	        if (orderId == -1) {
+	            throw new SQLException("Orders 테이블 insert 후 생성된 orderId를 가져오지 못했습니다.");
+	        }
+
+	        // ------------------------------------------------
+	        // 2. OrderDetail insert (batch 처리)
+	        // ------------------------------------------------
+	        try (PreparedStatement pstmt = conn.prepareStatement(detailSql)) {
+
+	            for (OrderDTO item : items) {
+	                // 💡 1번부터 5번까지 순서대로 누락 없이 바인딩
+	                pstmt.setInt(1, item.getProductId());
+	                pstmt.setInt(2, orderId); // 위에서 시퀀스로 발급받은 ID 연동
+	                pstmt.setInt(3, item.getQuantity());
+	                pstmt.setBigDecimal(4,
+	                        item.getDiscountPrice() != null
+	                                ? item.getDiscountPrice()
+	                                : BigDecimal.ZERO
+	                );
+	                pstmt.setBigDecimal(5, item.getDollarPrice());
+
+	                pstmt.addBatch();
+	            }
+
+	            pstmt.executeBatch();
+	        }
+
+	        conn.commit(); // 모든 insert가 성공하면 안전하게 최종 커밋
+	        return orderId;
+
+	    } catch (SQLException e) {
+	        // 🔥 [중요] 중간에 에러가 터지면 커넥션을 확실하게 롤백하여 DB 데이터 독점을 방지합니다.
+	        if (conn != null) {
+	            try {
+	                conn.rollback();
+	            } catch (SQLException ex) {
+	                ex.printStackTrace();
+	            }
+	        }
+	        throw new SystemException(ErrorCode.DB_CONNECTION, e);
+	    } finally {
+	        // 커넥션 자원 반납
+	        if (conn != null) {
+	            try { 
+	                conn.close(); 
+	            } catch (SQLException e) { 
+	                e.printStackTrace(); 
+	            }
+	        }
+	    }
 	}
 	
     public List<Order> getPendingOrders(LocalDateTime simulatedNow) throws SystemException {
@@ -414,4 +438,5 @@ public class OrderDAO {
         }
         return orderList;
     }
+	
 }
