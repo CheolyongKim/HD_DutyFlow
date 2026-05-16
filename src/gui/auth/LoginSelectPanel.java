@@ -38,9 +38,8 @@ public class LoginSelectPanel extends JPanel {
 
         brandLoginButton.addActionListener(e -> screenManager.show("BRAND_MANAGER_LOGIN"));
         
-        dutyFreeManagerLoginButton.addActionListener(e -> {
-            System.out.println("[면세 시스템 관리자 로그인] 아직 구현 전입니다.");
-        });
+        dutyFreeManagerLoginButton.addActionListener(
+        	    e -> screenManager.show("AIRPORT_MANAGER_LOGIN"));
 
         backButton.addActionListener(e -> screenManager.show("HOME"));
 

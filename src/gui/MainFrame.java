@@ -15,6 +15,8 @@ import gui.brand.BrandPurchaseHistoryPanel;
 import gui.brand.BrandPurchasePanel;
 import gui.brand.BrandStockPanel;
 import gui.home.HomePanel;
+import gui.auth.AirportManagerLoginPanel;
+import gui.pickup.PickupMainPanel;
 
 public class MainFrame extends JFrame {
 
@@ -45,6 +47,7 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("HOME", new HomePanel(screenManager));
         screenManager.addScreen("LOGIN_SELECT", new LoginSelectPanel(screenManager));
         screenManager.addScreen("BRAND_MANAGER_LOGIN", new BrandManagerLoginPanel(screenManager));
+        screenManager.addScreen("AIRPORT_MANAGER_LOGIN", new AirportManagerLoginPanel(screenManager));
 
         screenManager.addScreen("BRAND_MAIN", new BrandMainPanel(screenManager));
         screenManager.addScreen("BRAND_STOCK", new BrandStockPanel(screenManager));
@@ -53,5 +56,8 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("BRAND_PRODUCT_MANAGE", new BrandProductManagePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE", new BrandPurchasePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE_HISTORY", new BrandPurchaseHistoryPanel(screenManager));
+        
+        // ── 인도장 GUI 패널 등록 ──
+        screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
     }
 }
