@@ -1,4 +1,4 @@
-package gui.pickup;
+package gui.auth;
 
 import java.awt.*;
 import java.awt.event.*;
