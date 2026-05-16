@@ -73,9 +73,12 @@ public class MainFrame extends JFrame {
         AirportManagerLoginPanel loginPanel = new AirportManagerLoginPanel(screenManager);
         loginPanel.setPickUpSystem(pickUpSystem);
         screenManager.addScreen("AIRPORT_MANAGER_LOGIN", loginPanel);
+        // -- 인도장 시스템 로그인 의존성 생성 --
+        PickupMainPanel mainPanel = new PickupMainPanel(screenManager);
+        mainPanel.setPickUpSystem(pickUpSystem);
+        screenManager.addScreen("PICKUP_MAIN", mainPanel);
         
         // ── 인도장 GUI 패널 등록 ──
-        screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
         screenManager.addScreen("PICKUP_LIST",       new PickupListPanel(screenManager));
     }
 }
