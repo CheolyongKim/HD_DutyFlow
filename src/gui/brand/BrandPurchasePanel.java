@@ -18,15 +18,13 @@ import gui.common.Refreshable;
 public class BrandPurchasePanel extends JPanel {
 
     private final ScreenManager screenManager;
-    private final BrandSystem brandSystem;
 
     private JTextField productNameField;
     private JTextField amountField;
     private JTextField cancelPurchaseIdField;
 
-    public BrandPurchasePanel(ScreenManager screenManager, BrandSystem brandSystem) {
+    public BrandPurchasePanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        this.brandSystem = brandSystem;
 
         setLayout(new GridLayout(8, 2, 10, 10));
 
@@ -69,6 +67,8 @@ public class BrandPurchasePanel extends JPanel {
 
     private void requestPurchase() {
         try {
+        	BrandSystem brandSystem = screenManager.getBrandSystem();
+
             String productName = productNameField.getText();
             int amount = Integer.parseInt(amountField.getText());
 
@@ -95,6 +95,8 @@ public class BrandPurchasePanel extends JPanel {
 
     private void cancelPurchase() {
         try {
+        	BrandSystem brandSystem = screenManager.getBrandSystem();
+
             int purchaseId = Integer.parseInt(cancelPurchaseIdField.getText());
 
             brandSystem.cancelPurchase(purchaseId);

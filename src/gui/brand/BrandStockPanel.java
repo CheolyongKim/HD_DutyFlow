@@ -22,14 +22,12 @@ import stock.dto.StockProductDto;
 public class BrandStockPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
-    private final BrandSystem brandSystem;
 
     private JTable stockTable;
     private DefaultTableModel tableModel;
 
-    public BrandStockPanel(ScreenManager screenManager, BrandSystem brandSystem) {
+    public BrandStockPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
-        this.brandSystem = brandSystem;
 
         setLayout(new BorderLayout());
 
@@ -72,11 +70,18 @@ public class BrandStockPanel extends JPanel implements Refreshable {
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        loadStockData();
+        // 여기서 loadStockData()를 바로 호출하지 않는 게 좋음
+        // 아직 로그인 전이면 BrandSystem이 null일 수 있음
     }
 
     private void loadStockData() {
         try {
+            BrandSystem brandSystem = getLoginBrandSystem();
+
+            if (brandSystem == null) {
+                return;
+            }
+
             tableModel.setRowCount(0);
 
             List<StockProductDto> stockList = brandSystem.getMyBrandStocks();
@@ -97,7 +102,7 @@ public class BrandStockPanel extends JPanel implements Refreshable {
 
                 tableModel.addRow(new Object[] {
                         stock.getProductName(),
-                        stock.getCategory().getCategoryName(),
+                        stock.getCategory() != null ? stock.getCategory().getCategoryName() : "",
                         stock.getCapacity(),
                         stock.getPriceUsd(),
                         stock.getPriceKrw(),
@@ -108,7 +113,7 @@ public class BrandStockPanel extends JPanel implements Refreshable {
                 });
             }
 
-        }  catch (DutyFreeException e) {
+        } catch (DutyFreeException e) {
             JOptionPane.showMessageDialog(
                     this,
                     e.getErrorCode().getMessage(),
@@ -121,9 +126,21 @@ public class BrandStockPanel extends JPanel implements Refreshable {
             e.printStackTrace();
         }
     }
+
+    private BrandSystem getLoginBrandSystem() {
+        BrandSystem brandSystem = screenManager.getBrandSystem();
+
+        if (brandSystem == null) {
+            JOptionPane.showMessageDialog(this, "브랜드 관리자 로그인이 필요합니다.");
+            screenManager.show("BRAND_MANAGER_LOGIN");
+            return null;
+        }
+
+        return brandSystem;
+    }
+
     @Override
     public void refresh() {
-    	loadStockData();
+        loadStockData();
     }
-    
 }

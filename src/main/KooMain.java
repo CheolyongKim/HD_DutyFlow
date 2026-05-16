@@ -2,22 +2,24 @@ package main;
 
 import javax.swing.SwingUtilities;
 
-import brandSystem.BrandSystem;
 import gui.MainFrame;
 import stock.scheduler.StockCleanupScheduler;
 import stock.scheduler.StockPurchaseScheduler;
+import stock.service.StockPurchaseService;
+import stock.service.StockService;
 
 public class KooMain {
 
     public static void main(String[] args) {
 
-        BrandSystem brandSystem = new BrandSystem("Brand_01");
+        StockService stockService = new StockService();
+        StockPurchaseService purchaseService = new StockPurchaseService();
 
         StockPurchaseScheduler purchaseScheduler =
-                new StockPurchaseScheduler(brandSystem.getPurchaseService());
+                new StockPurchaseScheduler(purchaseService);
 
         StockCleanupScheduler cleanupScheduler =
-                new StockCleanupScheduler(brandSystem.getStockService());
+                new StockCleanupScheduler(stockService);
 
         purchaseScheduler.start();
         cleanupScheduler.start();
@@ -28,6 +30,6 @@ public class KooMain {
             System.out.println("===== 스케줄러 종료 =====");
         }));
 
-        SwingUtilities.invokeLater(() -> new MainFrame(brandSystem));
+        SwingUtilities.invokeLater(() -> new MainFrame());
     }
 }
