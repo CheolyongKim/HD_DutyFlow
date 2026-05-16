@@ -1,11 +1,13 @@
 package flight;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import airplane.Airplane;
-import exception.BusinessException;
+
+import exception.DataNotFoundException;
 import exception.ErrorCode;
+import exception.ValidationException;
+import exception.BusinessException;
 
 public class FlightService {
 
@@ -17,35 +19,60 @@ public class FlightService {
     public FlightService(FlightDAO flightDAO) {
         this.flightDAO = flightDAO;
     }
+    
+    private void validateCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    }
  
     // 항공편 조회 (예약코드 기반)
     public Airplane getFlightInfo(String reservationCode) {
+    	
+    	validateCode(reservationCode);
 
-        FlightDTO dto = flightDAO.getFlightByReservationCode(reservationCode);
+        FlightDTO flightDto = flightDAO.getFlightByReservationCode(reservationCode);
 
-        if (dto == null) {
-            System.out.println("[FlightService] 항공편 없음");
-            return null;
+        if (flightDto == null) {
+            throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
         }
 
         return new Airplane(
-                dto.getFlightId(),
-                dto.getFlightCode(),
-                dto.getDepartureAt()
+        		flightDto.getFlightId(),
+        		flightDto.getFlightCode(),
+        		flightDto.getDepartureAt()
         );
     }
     
-    // 지연 정보 처리
+  
+    // 예약 정보 조회 (회원Id, 항공편 코드 기반)
+    public FlightBookDTO getBookByMemberAndFlight(int memberId, String flightCode) {
+
+    	validateCode(flightCode);
+    	
+    	if (memberId <= 0) {
+            throw new ValidationException(ErrorCode.INVALID_INPUT);
+        }
+    	
+        FlightBookDTO flightBookDto = flightDAO.getBookByMemberAndFlight(memberId, flightCode);
+
+        if (flightBookDto == null) {
+            throw new DataNotFoundException(ErrorCode.DATA_NOT_FOUND);
+        }
+
+        return flightBookDto;
+    }
+    
+
+
+    // 항공편 지연 정보 업데이트 
     public void updateDelayedFlight(String flightCode, LocalDateTime newDepartureAt) {
 
         if (flightCode == null || newDepartureAt == null) {
-            System.out.println("[FlightService] 잘못된 입력값");
-            return;
+        	throw new ValidationException(ErrorCode.INVALID_INPUT);
         }
 
         flightDAO.updateDelayedFlight(flightCode, newDepartureAt);
-
-        System.out.println("[FlightService] 지연 업데이트 " + flightCode + " -> " + newDepartureAt);
     }
     
     /**
