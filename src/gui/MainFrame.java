@@ -15,6 +15,7 @@ import gui.brand.BrandPurchaseHistoryPanel;
 import gui.brand.BrandPurchasePanel;
 import gui.brand.BrandStockPanel;
 import gui.home.HomePanel;
+import gui.pickup.PickupMainPanel;
 
 public class MainFrame extends JFrame {
 
@@ -53,5 +54,8 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("BRAND_PRODUCT_MANAGE", new BrandProductManagePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE", new BrandPurchasePanel(screenManager));
         screenManager.addScreen("BRAND_PURCHASE_HISTORY", new BrandPurchaseHistoryPanel(screenManager));
+        
+        // ── 인도장 GUI 패널 등록 ──
+        screenManager.addScreen("PICKUP_MAIN",       new PickupMainPanel(screenManager));
     }
 }
