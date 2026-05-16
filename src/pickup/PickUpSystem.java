@@ -1,9 +1,12 @@
 package pickup;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import admin.airportmanager.AirportManagerDao;
+import admin.airportmanager.AirportManagerService;
 import airplane.Airplane;
 import common.CurrentTime;
 import exception.BusinessException;
@@ -23,6 +26,7 @@ public class PickUpSystem implements FlightObserver {
 
 	public MLPQ pq;
 	private final PickUpDAO pickUpDAO = new PickUpDAO();
+	private final AirportManagerService airportManagerService;
 	private final OrderDAO orderDAO = new OrderDAO();
 	private List<Order> orders; // loadOrders()를 통해 채워질 주문 목록
 	private PickUpTicket currentTicket;
@@ -32,11 +36,13 @@ public class PickUpSystem implements FlightObserver {
 	
 	private final FlightService flightService;
 
-	public PickUpSystem(FlightService flightService) {
-		this.flightService = flightService;
+
+	public PickUpSystem(AirportManagerService airportManagerService, FlightService flightService) {
 		this.pq = new MLPQ();
 		this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
-	}
+		this.airportManagerService = airportManagerService;
+    this.flightService = flightService;
+    }
 
 	// 이제 가상 시계(pickedUpAt)를 함께 받습니다.
 	public void updateOrderState(OrderUpdateDTO oud, LocalDateTime pickedUpAt) {
@@ -167,18 +173,17 @@ public class PickUpSystem implements FlightObserver {
 			
 			airplane.registerObserver(this);
 			
-			this.pq.enqueue(airplane, new Member(
-					aqdto.getMemberId(), null, null, aqdto.getName(), null, null, 
-					passportNum, null, false, aqdto.getGrade(), null, null
-			));
-			
-			this.tryCallNextCustomer(); 
-		} 
+	    Member member = new Member(aqdto.getMemberId(), aqdto.getName(), passportNum, false, aqdto.getGrade());
+	    PickUpTicket ticket = new PickUpTicket(member, airplane, this.pq.nextNum());
+
+	    this.pq.enqueue(ticket);
+	    this.tryCallNextCustomer();
+	}
 
 	// DB에서 조건에 맞는 주문들을 메모리로 로드
 	public void loadOrders() {
 		System.out.println("SYSTEM: 인도장 시스템에 픽업 대기 중인 주문 목록을 로드합니다...");
-		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
+//		this.orders = this.orderDAO.getPendingOrders(CurrentTime.curTime);
 		System.out.println("SYSTEM: 로드 완료 (총 " + this.orders.size() + "건의 대기 주문)");
 	}
 
@@ -229,7 +234,7 @@ public class PickUpSystem implements FlightObserver {
 
 	    // 🔧 기존 티켓 객체를 그대로 재삽입 → ticketIssueTime, ticketNum 보존
 	    for (PickUpTicket ticket : allTickets) {
-	        pq.requeue(ticket);
+	        pq.enqueue(ticket);
 	    }
 
 	    System.out.println("[PickUpSystem] 재정렬 완료 || 현재 대기 수: " + pq.size());
@@ -284,4 +289,31 @@ public class PickUpSystem implements FlightObserver {
 
 		System.out.println("[PickUpSystem] 해당 항공편 없음 ");
 	}
+	
+	// 로그인 
+	public void login(int managerId, String password) {
+        airportManagerService.login(managerId, password); 
+    }
+	
+	// 로그아웃 
+	public void logout() {
+        airportManagerService.logout(); 
+    }
+	
+	// 전체 픽업 목록
+	public void printAllPickUpList() {
+        airportManagerService.printAllPickUpList(); 
+    }
+	
+	// 특정 회원 픽업 목록
+	public void printAllPickUpList(Member member) {
+		airportManagerService.printAllPickUpList(member);
+	}
+	
+	// 기간별 픽업 목록 
+	public void printAllPickUpList(LocalDate start, LocalDate end) {
+        airportManagerService.printAllPickUpList(start, end);
+    }
+	
+	
 }

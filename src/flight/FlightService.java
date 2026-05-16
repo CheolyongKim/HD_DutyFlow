@@ -3,14 +3,19 @@ package flight;
 import java.time.LocalDateTime;
 
 import airplane.Airplane;
+
 import exception.DataNotFoundException;
 import exception.ErrorCode;
 import exception.ValidationException;
+import exception.BusinessException;
 
 public class FlightService {
 
     private final FlightDAO flightDAO;
 
+    //비행기 예약 번호의 정규식
+    private static final String RESV_CODE_REGEX = "^RESV-[A-Z]{2}\\d{3}-\\d{3}$";
+    
     public FlightService(FlightDAO flightDAO) {
         this.flightDAO = flightDAO;
     }
@@ -39,7 +44,7 @@ public class FlightService {
         );
     }
     
-    
+  
     // 예약 정보 조회 (회원Id, 항공편 코드 기반)
     public FlightBookDTO getBookByMemberAndFlight(int memberId, String flightCode) {
 
@@ -69,4 +74,23 @@ public class FlightService {
 
         flightDAO.updateDelayedFlight(flightCode, newDepartureAt);
     }
+    
+    /**
+     * 예약 코드 유효성 검증 (정규식 + DB 존재 여부)
+     */
+    public void validateReservationCode(String reservationCode) {
+        // 1. 형식 검증 (정규식)
+        if (reservationCode == null || !reservationCode.matches(RESV_CODE_REGEX)) {
+            System.out.println("[FlightService] 유효하지 않은 예약 코드 형식: " + reservationCode);
+            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+        }
+
+        // 2. DB 존재 여부 검증
+        FlightDTO flight = flightDAO.getFlightByReservationCode(reservationCode);
+        if (flight == null) {
+            System.out.println("[FlightService] 존재하지 않는 예약 코드: " + reservationCode);
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND); 
+        }
+    }
+    
 }
