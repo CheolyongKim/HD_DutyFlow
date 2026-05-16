@@ -14,7 +14,7 @@ import java.util.List;
 
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
-
+import admin.airportmanager.dto.PickUpListDTO;
 import exception.BusinessException;
 import exception.ErrorCode;
 import exception.SystemException;
@@ -208,119 +208,177 @@ public class HeejinMain {
         FlightService flightService = new FlightService(flightDAO);
         AirportManagerService airportManagerService = new AirportManagerService(airportManagerDao);
         
-        PickUpSystem pickUpSystem = new PickUpSystem(airportManagerService,flightService);
+        PickUpSystem pickUpSystem = new PickUpSystem(airportManagerService, flightService);
 
         
-        System.out.println("\n=== 항공편 지연 테스트 =====");
-
-        // 현재 시각 설정
-        CurrentTime.curTime =
-        	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
-        
-        PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
-
-        // 번호표 발급 (AQ/BQ 들어감)
-        ps.appendQueue("M11111111", 1); // 이급박
-        ps.appendQueue("M22222222", 2); // 박지각
-        ps.appendQueue("M33333333", 3); // 김철용
-        ps.appendQueue("M44444444", 4); // 오블랙
-
-        System.out.println("\n--- [시나리오] AQ 사람의 항공편 지연 ---");
-
-        System.out.println("\n[ PickUpSystem ] 지연 전 대기열 상태");
-        ps.printCurrentQueue();
-
-        // 박지각 항공편 지연
-        System.out.println("\n[ PickUpSystem ] 박지각의 OZ1015 항공편이 14:00으로 지연되었습니다.");
-
-        ps.delayFlight(
-            "OZ1015",
-            LocalDateTime.of(2026, 5, 1, 14, 0, 0)
-        );
-
-        System.out.println("\n[ PickUpSystem ] 지연 후 대기열 상태");
-        ps.printCurrentQueue();
-
-        System.out.println(
-            "\n 출국 임박이라 AQ에 있던 박지각이 "
-            + "14:00으로 밀리면서 AQ에서 "
-            + "BQ 우선순위 규칙으로 재배치됨."
-        );
-
-        // 창구 오픈
-        System.out.println("\n[ PickUpSystem ] 카운터 오픈");
-        ps.openCounter();
+//        System.out.println("\n=== 항공편 지연 테스트 =====");
+//
+//        // 현재 시각 설정
+//        CurrentTime.curTime =
+//        	    LocalDateTime.of(2026, 5, 1, 9, 30, 0);
+//        
+//        PickUpSystem ps = new PickUpSystem(airportManagerService, flightService);
+//
+//        // 번호표 발급 (AQ/BQ 들어감)
+//        ps.appendQueue("M11111111", 1); // 이급박
+//        ps.appendQueue("M22222222", 2); // 박지각
+//        ps.appendQueue("M33333333", 3); // 김철용
+//        ps.appendQueue("M44444444", 4); // 오블랙
+//
+//        System.out.println("\n--- [시나리오] AQ 사람의 항공편 지연 ---");
+//
+//        System.out.println("\n[ PickUpSystem ] 지연 전 대기열 상태");
+//        ps.printCurrentQueue();
+//
+//        // 박지각 항공편 지연
+//        System.out.println("\n[ PickUpSystem ] 박지각의 OZ1015 항공편이 14:00으로 지연되었습니다.");
+//
+//        ps.delayFlight(
+//            "OZ1015",
+//            LocalDateTime.of(2026, 5, 1, 14, 0, 0)
+//        );
+//
+//        System.out.println("\n[ PickUpSystem ] 지연 후 대기열 상태");
+//        ps.printCurrentQueue();
+//
+//        System.out.println(
+//            "\n 출국 임박이라 AQ에 있던 박지각이 "
+//            + "14:00으로 밀리면서 AQ에서 "
+//            + "BQ 우선순위 규칙으로 재배치됨."
+//        );
+//
+//        // 창구 오픈
+//        System.out.println("\n[ PickUpSystem ] 카운터 오픈");
+//        ps.openCounter();
       
         //--------------------- AirportManager ------------------------
         
         // =========================
-        // 인도장 관리자 로그인 
+        // 인도장 관리자 테스트 
         // =========================
         
-        System.out.println("\n===== 로그인 실패 테스트 ===");
+     // =========================
+        // 1. 로그인 실패 - 잘못된 비밀번호
+        // =========================
+        System.out.println("\n[1] 로그인 실패 - 잘못된 비밀번호");
         try {
-        	pickUpSystem.login(100, "wrongPW");
+            pickUpSystem.login(100, "wrongPW");
         } catch (BusinessException e) {
-            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
         }
-        
-        System.out.println("\n===== 로그인 성공 테스트 ===");
+ 
+        // =========================
+        // 2. 로그인 실패 - 존재하지 않는 관리자 ID
+        // =========================
+        System.out.println("\n[2] 로그인 실패 - 존재하지 않는 관리자 ID");
+        try {
+            pickUpSystem.login(9999, "airport1234");
+        } catch (BusinessException e) {
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
+        }
+ 
+        // =========================
+        // 3. 로그인 성공
+        // =========================
+        System.out.println("\n[3] 로그인 성공");
         pickUpSystem.login(100, "airport1234");
-       
-        
+ 
         // =========================
-        // 인도장 관리자 전체픽업목록 조회 
+        // 4. 중복 로그인 시도
         // =========================
-        System.out.println("\n===== 전체 픽업 목록 =====");
-        pickUpSystem.printAllPickUpList();
-        
-        
+        System.out.println("\n[4] 중복 로그인 시도");
+        try {
+            pickUpSystem.login(100, "airport1234");
+        } catch (BusinessException e) {
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
+        }
+ 
         // =========================
-        // 인도장 관리자 특정회원 픽업 목록 
+        // 5. 전체 픽업 목록 조회
         // =========================
-        System.out.println("\n=== 특정 회원 픽업 목록 ===");
+        System.out.println("\n[5] 전체 픽업 목록 조회");
+        List<PickUpListDTO> allList = pickUpSystem.getAllPickUpList();
+        printPickUpList(allList);
+ 
+        // =========================
+        // 6. 특정 회원 픽업 목록 조회
+        // =========================
+        System.out.println("\n[6] 특정 회원(memberId=3) 픽업 목록 조회");
         Member targetMember = new Member(3, null, null, null, null, null, null, null, false, null, null, null);
-
-        pickUpSystem.printAllPickUpList(targetMember);
-        
-        
+        List<PickUpListDTO> memberList = pickUpSystem.getAllPickUpListByMember(targetMember);
+        printPickUpList(memberList);
+ 
         // =========================
-        // 인도장 관리자 기간별 픽업 목록 
+        // 7. 기간별 픽업 목록 조회
         // =========================
-        System.out.println("\n=== 기간별 픽업 목록 ===");
-        pickUpSystem.printAllPickUpList(
+        System.out.println("\n[7] 기간별 픽업 목록 조회 (2025-01-01 ~ 2025-12-31)");
+        List<PickUpListDTO> dateList = pickUpSystem.getAllPickUpListByDateRange(
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 12, 31)
         );
-        
+        printPickUpList(dateList);
+ 
         // =========================
-        // 인도장 관리자 중복 로그인 시도
+        // 8. 잘못된 기간 조회 (start > end)
         // =========================
-        System.out.println("\n=== 중복 로그인 시도 ===");
+        System.out.println("\n[8] 잘못된 기간 조회 (start > end)");
         try {
-        	pickUpSystem.login(100, "airport1234");
+            pickUpSystem.getAllPickUpListByDateRange(
+                LocalDate.of(2025, 12, 31),
+                LocalDate.of(2025, 1, 1)
+            );
         } catch (BusinessException e) {
-            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
         }
-        
-        
+ 
         // =========================
-        // 인도장 관리자 로그아웃  
+        // 9. 로그아웃
         // =========================
-        System.out.println("\n=== 로그아웃 ===");
+        System.out.println("\n[9] 로그아웃");
         pickUpSystem.logout();
-        
+ 
         // =========================
-        // 로그아웃 후 재조회 시도
+        // 10. 로그아웃 후 조회 시도
         // =========================
-      
-        System.out.println("\n=== 로그아웃 후 조회 시도 ===");
+        System.out.println("\n[10] 로그아웃 후 조회 시도");
         try {
-        	pickUpSystem.printAllPickUpList();
+            pickUpSystem.getAllPickUpList();
         } catch (BusinessException e) {
-            System.out.println("[예외 정상] " + e.getErrorCode().getMessage());
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
         }
+ 
+        // =========================
+        // 11. 로그아웃 후 로그아웃 재시도
+        // =========================
+        System.out.println("\n[11] 로그아웃 상태에서 로그아웃 재시도");
+        try {
+            pickUpSystem.logout();
+        } catch (BusinessException e) {
+            System.out.println("  → [예외 정상] " + e.getErrorCode().getMessage());
+        }
+ 
         
+    }
+    
+    private static void printPickUpList(List<PickUpListDTO> list) {
+        if (list.isEmpty()) {
+            System.out.println("  조회된 픽업 내역이 없습니다.");
+            return;
+        }
+        int no = 1;
+        for (PickUpListDTO dto : list) {
+            System.out.printf(
+                "  [%d] 픽업ID:%-4d | 회원:%-10s | 항공편:%-8s | 픽업가능:%-20s | 상태:%-15s | 실제픽업:%s%n",
+                no++,
+                dto.getPickupId(),
+                dto.getMemberName(),
+                dto.getFlightCode(),
+                dto.getPickupAvailableAt(),
+                dto.getOrderState(),
+                dto.getPickedUpAt() != null ? dto.getPickedUpAt().toString() : "미완료"
+            );
+        }
+        System.out.println("  총 " + list.size() + "건");
     }
     
     

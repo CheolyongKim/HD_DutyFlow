@@ -2,22 +2,28 @@ package admin.airportmanager;
 
 import java.time.LocalDateTime;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import admin.manager.Manager;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@ToString
-public class AirportManager {
-	private int managerId;
-	private LocalDateTime shiftTime;
-	
-	private String managerName;
-    private String managerType;
-    private String password;
+@ToString(callSuper = true)
+public class AirportManager extends Manager {
+
+    private LocalDateTime shiftTime;
+
+    public AirportManager() {
+        super();
+    }
+
+    public AirportManager(int managerId, String managerName, String managerType,
+                          String password, LocalDateTime shiftTime) {
+        super(managerId, managerName, managerType, password);
+        this.shiftTime = shiftTime;
+    }
+
+    @Override
+    public boolean authenticate(String inputPassword) {
+        return getPassword() != null && getPassword().equals(inputPassword);
+    }
 }

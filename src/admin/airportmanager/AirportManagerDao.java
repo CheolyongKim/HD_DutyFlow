@@ -18,33 +18,34 @@ import member.Member;
 
 public class AirportManagerDao {
 	
-	public AirportManagerLoginDto getLoginInfo(int managerId, String password) {
-       
+	public AirportManager findById(int managerId) {
         String sql =
-            " SELECT mg.managerId, mg.managerName, mg.managerType " 
-            		+ " FROM   Manager mg " 
-            		+ " JOIN   AirportManager am ON mg.managerId = am.managerId " 
-            		+ " WHERE  mg.managerId  = ?  " 
-            		+ " AND  mg.password   = ?  " 
-            		+ " AND  mg.managerType = 'AIRPORT' ";
+            " SELECT mg.managerId, mg.managerName, mg.managerType, mg.password, am.shiftTime " 
+            + " FROM   Manager mg " 
+            + " JOIN   AirportManager am ON mg.managerId = am.managerId " 
+            + " WHERE  mg.managerId  = ?  " 
+            + " AND    mg.managerType = 'AIRPORT' ";
  
         try (Connection conn = OracleConnection.getConnection(); 
-				PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, managerId);
-            pstmt.setString(2, password);
  
             try (ResultSet rs = pstmt.executeQuery()) {
+            	
                 if (rs.next()) {
-                    return AirportManagerLoginDto.builder()
-                        .managerId(rs.getInt("managerId"))
-                        .managerName(rs.getString("managerName"))
-                        .managerType(rs.getString("managerType"))
-                        .build();
+                	
+                    return new AirportManager(
+                        rs.getInt("managerId"),
+                        rs.getString("managerName"),
+                        rs.getString("managerType"),
+                        rs.getString("password"),
+                        rs.getTimestamp("shiftTime") != null ? rs.getTimestamp("shiftTime").toLocalDateTime() : null
+                    );
                 }
             }
         } catch (SQLException e) {
-        	throw new SystemException(ErrorCode.DB_CONNECTION, e);
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
         }
         return null; 
     }
