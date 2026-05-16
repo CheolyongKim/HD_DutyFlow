@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 @Getter
 @AllArgsConstructor
 public class CartItemDTO {
-    private final int productId;     
+    private final int productId;
     private final String productName;
+    private final int categoryId;   // ← 추가
+    private final int capacity;     // ← 추가
     private final int quantity;
     private final BigDecimal dollarPrice;
     private final BigDecimal wonPrice;
