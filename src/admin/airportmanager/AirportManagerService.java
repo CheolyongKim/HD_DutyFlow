@@ -36,7 +36,7 @@ public class AirportManagerService {
  
 		// 로그인 성공
 		this.airportManagerLoginDto = result;
-		System.out.println("[로그인] 안녕하세요, " + result.getManagerName() + result.getManagerType()+ " 관리자님");
+		System.out.println("[로그인] 안녕하세요, " + result.getManagerName() + " " + result.getManagerType() + " 관리자님");
 	}
 	
 	// 로그아웃 
