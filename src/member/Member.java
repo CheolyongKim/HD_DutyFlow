@@ -4,12 +4,14 @@ import java.time.LocalDate;
 
 import common.Grade;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import shoppingCart.ShoppingCart;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @Data
 public class Member {
 	private int memberId;
