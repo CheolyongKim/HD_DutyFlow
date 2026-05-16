@@ -6,11 +6,13 @@ import java.time.Period;
 import common.Grade;
 import exception.ErrorCode;
 import exception.ValidationException;
-import member.MemberSignupDTO;
+import membership.MembershipService;
 
 public class MemberService {
 
     private final MemberDAO memberDAO = new MemberDAO();
+    
+    private final MembershipService membershipService = new MembershipService();
 
     // 회원가입
     public void signup(MemberSignupDTO dto) {
@@ -132,7 +134,26 @@ public class MemberService {
         if (member == null) {
             throw new ValidationException(ErrorCode.INVALID_LOGIN_CREDENTIAL);
         }
+        
+        validatePassportNotExpired(member);
+
+        membershipService.updateMembershipGradeIfExpired(member.getMemberId());
 
         return member.getMemberId();
+    }
+    
+    // 여권 만료 검증
+    private void validatePassportNotExpired(Member member) {
+
+        LocalDate passportExpiredDate = member.getPassportExpiredDate();
+
+        if (passportExpiredDate == null) {
+            return;
+        }
+
+        // 만료됐을 경우 예외 발생
+        if (!passportExpiredDate.isAfter(LocalDate.now())) {
+            throw new ValidationException(ErrorCode.EXPIRED_PASSPORT);
+        }
     }
 }
