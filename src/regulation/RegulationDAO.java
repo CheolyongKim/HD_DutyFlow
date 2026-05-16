@@ -11,33 +11,85 @@ import exception.SystemException;
 
 public class RegulationDAO {
 
-	public RegulationDTO getRegulationByCategoryId(int categoryId) {
-		String sql = "SELECT regulationId, categoryId, limitCapacity, establishedDate, overageRate "
-				+ "FROM Regulation WHERE categoryId = ?";
+	// categoryId로 규정 조회 
+    public RegulationDTO getRegulationByCategoryId(int categoryId) {
 
-		try (Connection conn = OracleConnection.getConnection();
-				PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        String sql =
+                "SELECT regulationId, categoryId, limitCapacity, establishedDate, overageRate " +
+                "FROM Regulation " +
+                "WHERE categoryId = ?";
 
-			pstmt.setInt(1, categoryId);
+        try (
+                Connection conn = OracleConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
 
-			try (ResultSet rs = pstmt.executeQuery()) {
-				if (rs.next()) {
-					return mapRow(rs);
-				}
-			}
-		} catch (SQLException e) {
-			throw new SystemException(ErrorCode.DB_CONNECTION, e);
-		}
-		return null;
-	}
+            pstmt.setInt(1, categoryId);
 
-	private RegulationDTO mapRow(ResultSet rs) throws SQLException {
-		return RegulationDTO.builder()
-				.regulationId(rs.getInt("regulationId"))
-				.categoryId(rs.getInt("categoryId"))
-				.limitCapacity(rs.getInt("limitCapacity"))
-				.establishedDate(rs.getDate("establishedDate").toLocalDate())
-				.overageRate(rs.getInt("overageRate"))
-				.build();
-	}
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                if (rs.next()) {
+
+                    return RegulationDTO.builder()
+                            .regulationId(rs.getInt("regulationId"))
+                            .categoryId(rs.getInt("categoryId"))
+                            .limitCapacity(rs.getInt("limitCapacity"))
+                            .establishedDate(
+                                    rs.getDate("establishedDate") != null
+                                            ? rs.getDate("establishedDate").toLocalDate()
+                                            : null
+                            )
+                            .overageRate(rs.getInt("overageRate"))
+                            .build();
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        return null;
+    }
+
+    // categoryName으로 규정 조회
+    public RegulationDTO getByCategoryName(String categoryName) {
+
+        String sql =
+                "SELECT r.regulationId, r.categoryId, r.limitCapacity, " +
+                "r.establishedDate, r.overageRate " +
+                "FROM Regulation r " +
+                "JOIN Category c ON r.categoryId = c.categoryId " +
+                "WHERE c.categoryName = ?";
+
+        try (
+                Connection conn = OracleConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+
+            pstmt.setString(1, categoryName);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                if (rs.next()) {
+
+                    return RegulationDTO.builder()
+                            .regulationId(rs.getInt("regulationId"))
+                            .categoryId(rs.getInt("categoryId"))
+                            .limitCapacity(rs.getInt("limitCapacity"))
+                            .establishedDate(
+                                    rs.getDate("establishedDate") != null
+                                            ? rs.getDate("establishedDate").toLocalDate()
+                                            : null
+                            )
+                            .overageRate(rs.getInt("overageRate"))
+                            .build();
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new SystemException(ErrorCode.DB_CONNECTION, e);
+        }
+
+        return null;
+    }
 }

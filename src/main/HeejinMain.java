@@ -153,17 +153,24 @@ public class HeejinMain {
 
         System.out.println("\n===== 예외 케이스 5: overageRate 0 =====");
         try {
-            RegulationDTO badReg = new RegulationDTO();
-            badReg.setLimitCapacity(800);
-            badReg.setOverageRate(0);
+
+            RegulationDTO badReg = RegulationDTO.builder()
+                    .limitCapacity(800)
+                    .overageRate(0)
+                    .build();
+
             Order badOrder = new Order();
             badOrder.setTotalPrice(new BigDecimal("1000"));
             badOrder.setTotalAlcohol(0);
             badOrder.setTotalPerfume(0);
+
             new GeneralTaxStrategy(badReg).calculateTax(badOrder);
+
         } catch (BusinessException e) {
-            System.out.println("예외 발생: " + e.getErrorCode().getCode()
-                             + " / " + e.getErrorCode().getMessage());
+            System.out.println("예외 발생: "
+                    + e.getErrorCode().getCode()
+                    + " / "
+                    + e.getErrorCode().getMessage());
         }
 
       //-------------------------SystemLog--------------------------
