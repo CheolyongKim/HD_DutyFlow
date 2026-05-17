@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import brandSystem.BrandSystem;
@@ -20,6 +21,7 @@ import flight.FlightService;
 import member.Member;
 import member.MemberService;
 import member.MemberSignupDTO;
+import order.DutyCheckResult;
 import order.Order;
 import order.OrderService;
 import order.dto.OrderDTO;
@@ -205,65 +207,47 @@ public class DutyFlowSystem {
 	}
 
 	private void processOrder(Order order) {
-
 	    int reservationId;
 	    List<OrderDTO> orderDetails;
 
 	    try {
-	        orderDetails =
-	                getOrderDetails(order.getOrderId());
-
-	        FlightBookDTO flightBookDto =
-	                flightService.getFlightBookByMemberId(
-	                		getLoginMemberId()
-	                );
-
-	        reservationId =
-	                flightBookDto.getReservationId();
-
+	        orderDetails = getOrderDetails(order.getOrderId());
+	        FlightBookDTO flightBookDto = flightService.getFlightBookByMemberId(getLoginMemberId());
+	        reservationId = flightBookDto.getReservationId();
 	    } catch (BusinessException e) {
-
-	        throw new BusinessException(
-	                ErrorCode.DATA_NOT_FOUND,
-	                e
-	        );
+	        throw new BusinessException(ErrorCode.DATA_NOT_FOUND, e);
 	    }
 
 	    try {
+	        // 면세 한도 체크 - Service에서 결과만 받아서 UI 처리는 여기서
+	        DutyCheckResult dutyResult = orderService.checkDuty(orderDetails);
 
+	        if (dutyResult.isExceeded()) {
+	            System.out.println("⚠ 면세 한도 초과");
+	            System.out.println(dutyResult.getMessage());
+	            System.out.println("예상 세금 = $" + dutyResult.getEstimatedTax());
+	            System.out.println("그래도 구매하시겠습니까? (Y/N)");
+
+	            // TODO: 여기 Swing  연결하시면 됩니다
+	            Scanner sc = new Scanner(System.in);
+	            String answer = sc.nextLine();
+	            if (!answer.equalsIgnoreCase("Y")) {
+	                System.out.println("주문이 취소되었습니다.");
+	                return;
+	            }
+	        }
+
+	        // 면세 초과 없거나 사용자가 Y 입력 시 결제 확정
 	        List<BrandOrderRequestDTO> requests =
-	                orderService.placeOrder(
-	                		order,
-	                		order.getOrderId(),
-	                		getLoginMemberId(),
-	                        reservationId,
-	                        orderDetails,
-	                        cardNumber
-	                );
+	                orderService.confirmOrder(getLoginMemberId(), reservationId, orderDetails, cardNumber);
 
 	        for (BrandOrderRequestDTO request : requests) {
-	            BrandSystem brandSystem =
-	                    findBrandSystem(request.getBrandName());
-
-	            if (brandSystem == null) {
-
-	                throw new BusinessException(
-	                        ErrorCode.DATA_NOT_FOUND
-	                );
-	            }
-
-	            brandSystem.receiveOrder(
-	                    request.getProductName(),
-	                    request.getOrderAmount()
-	            );
+	            BrandSystem brandSystem = findBrandSystem(request.getBrandName());
+	            brandSystem.receiveOrder(request.getProductName(), request.getOrderAmount());
 	        }
 
 	    } catch (BusinessException e) {
-
-	        throw new BusinessException(
-	                ErrorCode.DATA_NOT_FOUND,
-	                e
-	        );
+	        throw new BusinessException(ErrorCode.DATA_NOT_FOUND, e);
 	    }
 	}
 	
