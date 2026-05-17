@@ -13,6 +13,7 @@ import flight.FlightDAO;
 import flight.FlightService;
 import gui.auth.*;
 import gui.brand.*;
+import gui.exchangerate.ExchangeRatePanel;
 import gui.home.HomePanel;
 import gui.member.*;
 import gui.pickup.*;
@@ -90,7 +91,19 @@ public class MainFrame extends JFrame {
         screenManager.addScreen("MEMBER_SIGNUP", new MemberSignupPanel(screenManager));
         screenManager.addScreen("MEMBER_MAIN", new MemberMainPanel(screenManager));
         screenManager.addScreen("MEMBER_PASSPORT", new MemberPassportPanel(screenManager));
-      
+        screenManager.addScreen("MEMBER_PRODUCT_LIST", new MemberProductListPanel(screenManager));
+        screenManager.addScreen("MEMBER_PRODUCT_DETAIL", new MemberProductDetailPanel(screenManager));
+        screenManager.addScreen("MEMBER_CART", new MemberCartPanel(screenManager));
+        screenManager.addScreen("MEMBER_ORDER_HISTORY", new MemberOrderHistoryPanel(screenManager));
+        screenManager.addScreen("MEMBER_ORDER_DETAIL", new MemberOrderDetailPanel(screenManager));
+        screenManager.addScreen(
+                "MEMBER_EXCHANGE_RATE",
+                new ExchangeRatePanel(screenManager)
+        );        
+        screenManager.addScreen("MEMBER_PAYMENT_QUEUE", new MemberPaymentQueuePanel(screenManager));
+        screenManager.addScreen("MEMBER_PICKUP_RESERVATION", new MemberPickupReservationPanel(screenManager));
+        
+        
         // ── 인도장 시스템 의존성 설정 ──
         FlightDAO flightDAO = new FlightDAO();
         AirportManagerDao airportManagerDao = new AirportManagerDao();

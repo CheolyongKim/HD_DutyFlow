@@ -246,9 +246,7 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
                         product.getPriceUsd(),
                         product.getPriceKrw(),
                         BigDecimal.valueOf(product.getDiscountRate()),
-                        product.isHasEvent() ? "Y" : "N",
-                        product.getFinalPriceUsd(),
-                        product.getFinalPriceKrw(),
+//                        product.isHasEvent() ? "Y" : "N",
                         product.getThresholdValue()
                 });
             }

@@ -8,6 +8,8 @@ import javax.swing.JPanel;
 
 import brandSystem.BrandSystem;
 import gui.common.Refreshable;
+import gui.fakedata.FakeOrder;
+import gui.fakedata.FakeProduct;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,6 +26,9 @@ public class ScreenManager {
 
     private BrandSystem brandSystem;
     private Integer loginMemberId;
+    private FakeProduct selectedProduct;
+    private FakeOrder selectedOrder;
+
 	
     public ScreenManager(CardLayout cardLayout, JPanel mainPanel) {
         this.cardLayout = cardLayout;

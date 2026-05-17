@@ -1,5 +1,6 @@
 package gui.fakedata;
 
+
 import java.math.BigDecimal;
 
 public class FakeCartItem {
@@ -20,15 +21,19 @@ public class FakeCartItem {
         return quantity;
     }
 
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
     public void addQuantity(int amount) {
         this.quantity += amount;
     }
 
-    public BigDecimal getLineTotalKrw() {
-        return product.getPriceKrw().multiply(BigDecimal.valueOf(quantity));
+    public BigDecimal getTotalUsd() {
+        return product.getFinalPriceUsd().multiply(BigDecimal.valueOf(quantity));
     }
 
-    public BigDecimal getLineTotalUsd() {
-        return product.getPriceUsd().multiply(BigDecimal.valueOf(quantity));
+    public BigDecimal getTotalKrw() {
+        return product.getFinalPriceKrw().multiply(BigDecimal.valueOf(quantity));
     }
 }
