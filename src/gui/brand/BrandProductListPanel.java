@@ -229,13 +229,13 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
 
             tableModel.setRowCount(0);
 
-            List<Product> products = brandSystem.getProductsByBrandName();
+            List<ProductDTO> products = brandSystem.getProductsByBrandName();
 
 
             if (products == null || products.isEmpty()) {
                 return;
             }
-            for (Product product : products) {
+            for (ProductDTO product : products) {
                 tableModel.addRow(new Object[] {
                         product.getProductName(),
                         product.getBrandName(),
@@ -246,7 +246,9 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
                         product.getPriceUsd(),
                         product.getPriceKrw(),
                         BigDecimal.valueOf(product.getDiscountRate()),
-//                        product.isHasEvent() ? "Y" : "N",
+                        product.isHasEvent() ? "Y" : "N",
+                        product.getFinalPriceUsd(),
+                        product.getFinalPriceKrw(),
                         product.getThresholdValue()
                 });
             }

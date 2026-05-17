@@ -340,7 +340,7 @@ public class ProductDAO {
         }
     }
 
-    public List<Product> getProductsByBrandName(String brandName) throws SystemException {
+    public List<ProductDTO> getProductsByBrandName(String brandName) throws SystemException {
 
         String sql = baseSql + "WHERE b.brandName = ?";
 
@@ -350,10 +350,10 @@ public class ProductDAO {
             pstmt.setString(1, brandName);
 
             try (ResultSet rs = pstmt.executeQuery()) {
-                List<Product> productList = new ArrayList<>();
+                List<ProductDTO> productList = new ArrayList<>();
 
                 while (rs.next()) {
-                    productList.add(mapProduct(rs));
+                    productList.add(mapProductDto(rs));
                 }
 
                 return productList;

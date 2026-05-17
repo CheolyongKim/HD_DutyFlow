@@ -61,7 +61,7 @@ public class ProductService {
         return productDAO.getProductsFilterByPrice(minPrice, maxPrice, currency);
     }
 
-    public List<Product> getProductsByBrandName(String brandName) {
+    public List<ProductDTO> getProductsByBrandName(String brandName) {
 
         validateBrandName(brandName);
 
