@@ -118,7 +118,7 @@ public class MemberPaymentQueuePanel extends JPanel implements Refreshable {
 
         logArea = new JTextArea();
         logArea.setEditable(false);
-        logArea.setFont(new Font("Consolas", Font.PLAIN, 14));
+        logArea.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
         logArea.setText("[INFO] 결제 Queue Worker 대기 중...\n");
 
         panel.add(subTitle, BorderLayout.NORTH);

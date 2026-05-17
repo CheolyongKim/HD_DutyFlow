@@ -1,13 +1,14 @@
 package gui.member;
 
 import java.awt.*;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import gui.fakedata.FakeMemberStore;
-import gui.fakedata.FakeProduct;
+import product.dto.ProductDTO;
 
 public class MemberProductDetailPanel extends JPanel implements Refreshable {
 
@@ -18,7 +19,7 @@ public class MemberProductDetailPanel extends JPanel implements Refreshable {
     private JLabel categoryLabel;
     private JLabel capacityLabel;
     private JLabel priceLabel;
-    private JLabel stockLabel;
+    private JLabel eventLabel;
     private JLabel descriptionLabel;
     private JSpinner quantitySpinner;
 
@@ -55,7 +56,7 @@ public class MemberProductDetailPanel extends JPanel implements Refreshable {
         categoryLabel = new JLabel();
         capacityLabel = new JLabel();
         priceLabel = new JLabel();
-        stockLabel = new JLabel();
+        eventLabel = new JLabel();
         descriptionLabel = new JLabel();
 
         addInfoRow(infoPanel, "상품명", nameLabel);
@@ -63,7 +64,7 @@ public class MemberProductDetailPanel extends JPanel implements Refreshable {
         addInfoRow(infoPanel, "카테고리", categoryLabel);
         addInfoRow(infoPanel, "용량", capacityLabel);
         addInfoRow(infoPanel, "최종 가격", priceLabel);
-        addInfoRow(infoPanel, "현재 재고", stockLabel);
+        addInfoRow(infoPanel, "행사 여부", eventLabel);
         addInfoRow(infoPanel, "상품 설명", descriptionLabel);
 
         centerPanel.add(imageLabel, BorderLayout.WEST);
@@ -104,43 +105,105 @@ public class MemberProductDetailPanel extends JPanel implements Refreshable {
     }
 
     private void loadProduct() {
-        FakeProduct product = screenManager.getSelectedProduct();
+        try {
+            ProductDTO selectedProduct = screenManager.getSelectedProduct();
 
-        if (product == null) {
-            JOptionPane.showMessageDialog(this, "선택된 상품이 없습니다.");
-            screenManager.show("MEMBER_PRODUCT_LIST");
-            return;
+            if (selectedProduct == null) {
+                JOptionPane.showMessageDialog(this, "선택된 상품이 없습니다.");
+                screenManager.show("MEMBER_PRODUCT_LIST");
+                return;
+            }
+
+            ProductDTO product = screenManager.getDutyFlowSystem()
+                    .getProductDetail(selectedProduct.getProductId());
+
+            nameLabel.setText(product.getProductName());
+            brandLabel.setText(product.getBrandName());
+            categoryLabel.setText(
+                    product.getCategory() != null
+                            ? product.getCategory().getCategoryName()
+                            : "-"
+            );
+            capacityLabel.setText(product.getCapacity() + "ml");
+            priceLabel.setText(
+                    "$" + product.getFinalPriceUsd()
+                            + " / "
+                            + product.getFinalPriceKrw()
+                            + "원"
+            );
+            eventLabel.setText(product.isHasEvent()
+                    ? "행사중 (" + product.getDiscountRate() + "% 할인)"
+                    : "일반 상품"
+            );
+            descriptionLabel.setText(
+                    "<html>"
+                            + product.getProductName()
+                            + "은(는) "
+                            + product.getBrandName()
+                            + " 브랜드의 면세 상품입니다."
+                            + "</html>"
+            );
+
+            screenManager.setSelectedProduct(product);
+            quantitySpinner.setValue(1);
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "상품 상세 정보를 불러오는 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
-
-        nameLabel.setText(product.getProductName());
-        brandLabel.setText(product.getBrandName());
-        categoryLabel.setText(product.getCategoryName());
-        capacityLabel.setText(product.getCapacity() + "ml");
-        priceLabel.setText("$" + product.getFinalPriceUsd() + " / " + product.getFinalPriceKrw() + "원");
-        stockLabel.setText(product.getStockAmount() + "개");
-        descriptionLabel.setText("<html>" + product.getDescription() + "</html>");
-
-        quantitySpinner.setValue(1);
     }
 
     private void addToCart() {
-        FakeProduct product = screenManager.getSelectedProduct();
+        try {
+            ProductDTO product = screenManager.getSelectedProduct();
 
-        if (product == null) {
-            JOptionPane.showMessageDialog(this, "선택된 상품이 없습니다.");
-            return;
+            if (product == null) {
+                JOptionPane.showMessageDialog(this, "선택된 상품이 없습니다.");
+                return;
+            }
+
+            int quantity = (int) quantitySpinner.getValue();
+
+            screenManager.getDutyFlowSystem()
+                    .addToCart(product.getProductId(), quantity);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "장바구니에 담았습니다.",
+                    "장바구니 담기 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "장바구니 담기 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
-
-        if (product.getStockAmount() <= 0) {
-            JOptionPane.showMessageDialog(this, "품절 상품은 장바구니에 담을 수 없습니다.");
-            return;
-        }
-
-        int quantity = (int) quantitySpinner.getValue();
-
-        FakeMemberStore.addToCart(product, quantity);
-
-        JOptionPane.showMessageDialog(this, "장바구니에 담았습니다.");
     }
 
     private JButton createStyledButton(String text, Color color) {

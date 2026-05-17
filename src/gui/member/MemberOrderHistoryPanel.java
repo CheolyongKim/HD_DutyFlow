@@ -7,10 +7,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import gui.fakedata.FakeMemberStore;
-import gui.fakedata.FakeOrder;
+import order.dto.OrderDTO;
 
 public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
 
@@ -18,7 +18,7 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
 
     private JTable orderTable;
     private DefaultTableModel tableModel;
-    private List<FakeOrder> orders;
+    private List<OrderDTO> orders;
 
     public MemberOrderHistoryPanel(ScreenManager screenManager) {
         this.screenManager = screenManager;
@@ -34,7 +34,7 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
         add(titleLabel, BorderLayout.NORTH);
 
         String[] columns = {
-                "주문번호", "주문일시", "금액($)", "금액(원)", "상태"
+                "주문번호", "주문일시", "금액", "상태"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
@@ -46,6 +46,7 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
 
         orderTable = new JTable(tableModel);
         orderTable.setRowHeight(30);
+        orderTable.setAutoCreateRowSorter(true);
 
         add(new JScrollPane(orderTable), BorderLayout.CENTER);
 
@@ -71,22 +72,44 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
     }
 
     private void loadOrders() {
-        tableModel.setRowCount(0);
+        try {
+            tableModel.setRowCount(0);
 
-        orders = FakeMemberStore.getOrders();
+            orders = screenManager.getDutyFlowSystem().getMyOrders();
 
-        for (FakeOrder order : orders) {
-            tableModel.addRow(new Object[]{
-                    order.getOrderId(),
-                    order.getOrderedAt(),
-                    order.getTotalUsd(),
-                    order.getTotalKrw(),
-                    order.getStatus()
-            });
+            if (orders == null || orders.isEmpty()) {
+                return;
+            }
+
+            for (OrderDTO order : orders) {
+                tableModel.addRow(new Object[] {
+                        order.getOrderId(),
+                        order.getOrderedAt(),
+                        order.getTotalAmount(),
+                        order.getOrderState()
+                });
+            }
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "주문 내역 조회 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
-    private FakeOrder getSelectedOrder() {
+    private OrderDTO getSelectedOrder() {
         int selectedRow = orderTable.getSelectedRow();
 
         if (selectedRow == -1) {
@@ -95,52 +118,85 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
 
         int modelRow = orderTable.convertRowIndexToModel(selectedRow);
 
+        if (orders == null || modelRow < 0 || modelRow >= orders.size()) {
+            return null;
+        }
+
         return orders.get(modelRow);
     }
 
     private void showDetail() {
-        FakeOrder order = getSelectedOrder();
+        OrderDTO order = getSelectedOrder();
 
         if (order == null) {
             JOptionPane.showMessageDialog(this, "주문을 선택해주세요.");
             return;
         }
 
-        screenManager.setSelectedOrder(order);
+        screenManager.setSelectedOrderId(order.getOrderId());
         screenManager.show("MEMBER_ORDER_DETAIL");
     }
 
     private void reservePickup() {
-        FakeOrder order = getSelectedOrder();
+        OrderDTO order = getSelectedOrder();
 
         if (order == null) {
             JOptionPane.showMessageDialog(this, "픽업 예약할 주문을 선택해주세요.");
             return;
         }
 
-        order.setStatus("PICKUP_RESERVED");
-        JOptionPane.showMessageDialog(this, "픽업 예약이 완료되었습니다.");
-        loadOrders();
+        screenManager.setSelectedOrderId(order.getOrderId());
+        screenManager.show("MEMBER_PICKUP_RESERVATION");
     }
 
     private void cancelOrder() {
-        FakeOrder order = getSelectedOrder();
+        try {
+            OrderDTO order = getSelectedOrder();
 
-        if (order == null) {
-            JOptionPane.showMessageDialog(this, "취소할 주문을 선택해주세요.");
-            return;
-        }
+            if (order == null) {
+                JOptionPane.showMessageDialog(this, "취소할 주문을 선택해주세요.");
+                return;
+            }
 
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "주문번호 " + order.getOrderId() + "번을 취소하시겠습니까?",
-                "주문 취소",
-                JOptionPane.YES_NO_OPTION
-        );
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "주문번호 " + order.getOrderId() + "번을 취소하시겠습니까?",
+                    "주문 취소",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            order.setStatus("CANCELED");
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            screenManager.getDutyFlowSystem().cancelOrder(order.getOrderId());
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "주문이 취소되었습니다.",
+                    "취소 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
             loadOrders();
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "주문 취소 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
@@ -152,6 +208,7 @@ public class MemberOrderHistoryPanel extends JPanel implements Refreshable {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         return button;
     }

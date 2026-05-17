@@ -1,16 +1,17 @@
 package gui.member;
 
-
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import gui.fakedata.FakeOrder;
+import order.dto.OrderDTO;
 
 public class MemberPickupReservationPanel extends JPanel implements Refreshable {
 
@@ -23,8 +24,10 @@ public class MemberPickupReservationPanel extends JPanel implements Refreshable 
     private JLabel guideLabel;
     private JLabel statusLabel;
 
+    private Integer currentOrderId;
+    private String currentOrderState = "-";
+
     private static final Color BG_COLOR = new Color(245, 246, 250);
-    private static final Color PRIMARY_COLOR = new Color(52, 152, 219);
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
     private static final Color SECONDARY_COLOR = new Color(149, 165, 166);
     private static final Color TITLE_COLOR = new Color(45, 52, 71);
@@ -90,13 +93,13 @@ public class MemberPickupReservationPanel extends JPanel implements Refreshable 
         statusLabel.setBackground(new Color(235, 247, 239));
         statusLabel.setForeground(new Color(39, 174, 96));
 
-        JLabel mockLabel = new JLabel("※ 현재 화면은 발표 시연용 Mock 데이터입니다.", SwingConstants.CENTER);
-        mockLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
-        mockLabel.setForeground(Color.GRAY);
+        JLabel noticeLabel = new JLabel("※ 실제 예약 로직은 DutyFlowSystem.reservePickup(orderId)와 연결됩니다.", SwingConstants.CENTER);
+        noticeLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
+        noticeLabel.setForeground(Color.GRAY);
 
         guideContent.add(guideLabel);
         guideContent.add(statusLabel);
-        guideContent.add(mockLabel);
+        guideContent.add(noticeLabel);
 
         guidePanel.add(guideContent, BorderLayout.CENTER);
 
@@ -156,40 +159,88 @@ public class MemberPickupReservationPanel extends JPanel implements Refreshable 
     }
 
     private void loadReservationInfo() {
-        FakeOrder selectedOrder = screenManager.getSelectedOrder();
+        try {
+            currentOrderId = screenManager.getSelectedOrderId();
 
-        int orderId = selectedOrder != null ? selectedOrder.getOrderId() : 1;
+            if (currentOrderId == null) {
+                JOptionPane.showMessageDialog(this, "선택된 주문이 없습니다.");
+                screenManager.show("MEMBER_ORDER_HISTORY");
+                return;
+            }
 
-        LocalDateTime departureTime = LocalDateTime.now().plusHours(5);
-        LocalDateTime pickupAvailableTime = departureTime.minusHours(2);
+            List<OrderDTO> orderDetails =
+                    screenManager.getDutyFlowSystem().getOrderDetails(currentOrderId);
 
-        orderIdLabel.setText(String.valueOf(orderId));
-        flightLabel.setText("KE903 / ICN → CDG");
-        departureTimeLabel.setText(departureTime.format(formatter));
-        pickupAvailableTimeLabel.setText(pickupAvailableTime.format(formatter));
+            if (orderDetails != null && !orderDetails.isEmpty()) {
+                currentOrderState = orderDetails.get(0).getOrderState();
+            } else {
+                currentOrderState = "-";
+            }
 
-        if (selectedOrder != null) {
-            statusLabel.setText("현재 상태: " + selectedOrder.getStatus() + " → PICKUP_RESERVED");
-        } else {
-            statusLabel.setText("상태 변경: PAID → PICKUP_RESERVED");
+            LocalDateTime departureTime = LocalDateTime.now().plusHours(5);
+            LocalDateTime pickupAvailableTime = departureTime.minusHours(2);
+
+            orderIdLabel.setText(String.valueOf(currentOrderId));
+            flightLabel.setText("KE903 / ICN → CDG");
+            departureTimeLabel.setText(departureTime.format(formatter));
+            pickupAvailableTimeLabel.setText(pickupAvailableTime.format(formatter));
+
+            statusLabel.setText("현재 상태: " + currentOrderState + " → PICKUP_RESERVED");
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "픽업 예약 정보를 불러오는 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void reservePickup() {
-        FakeOrder selectedOrder = screenManager.getSelectedOrder();
+        try {
+            if (currentOrderId == null) {
+                JOptionPane.showMessageDialog(this, "픽업 예약할 주문이 없습니다.");
+                return;
+            }
 
-        if (selectedOrder != null) {
-            selectedOrder.setStatus("PICKUP_RESERVED");
+            screenManager.getDutyFlowSystem().reservePickup(currentOrderId);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "픽업 예약이 완료되었습니다.\n주문 상태가 PICKUP_RESERVED로 변경되었습니다.",
+                    "픽업 예약 완료",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            screenManager.show("MEMBER_ORDER_HISTORY");
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "픽업 예약 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
-
-        JOptionPane.showMessageDialog(
-                this,
-                "픽업 예약이 완료되었습니다.\n주문 상태가 PICKUP_RESERVED로 변경되었습니다.",
-                "픽업 예약 완료",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-
-        screenManager.show("MEMBER_ORDER_HISTORY");
     }
 
     private JButton createButton(String text, Color color) {

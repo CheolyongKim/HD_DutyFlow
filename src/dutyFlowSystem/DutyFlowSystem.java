@@ -27,6 +27,8 @@ import order.OrderService;
 import order.dto.OrderDTO;
 import payment.PaymentWorker;
 import product.Product;
+import product.ProductService;
+import product.dto.ProductDTO;
 import shoppingCart.ShoppingCartService;
 import shoppingCart.dto.TotalCartDTO;
 
@@ -42,6 +44,7 @@ public class DutyFlowSystem {
 	private final FlightService flightService = new FlightService();;
     private final OrderService orderService = new OrderService();
     private final MemberService memberService = new MemberService();
+    private final ProductService productService = new ProductService();
     
     // 초기에 null로 설정, 로그인 성공 시 loginMemberId값 세팅
     private Integer loginMemberId = null;
@@ -80,8 +83,9 @@ public class DutyFlowSystem {
 	}
 	
 	// 로그인
-	public void login(String loginId, String password) {
+	public int login(String loginId, String password) {
 	    loginMemberId = memberService.login(loginId, password);
+	    return loginMemberId;
 	}
 
 	// 로그아웃
@@ -106,8 +110,44 @@ public class DutyFlowSystem {
 	}
 	
 	// 회원 장바구니에 상품 추가
-	public void addToCart(Product p, int wishAmount) {
-		shoppingCartService.addToCart(getLoginMemberId(), p, wishAmount);
+	public void addToCart(int productId, int wishAmount) {
+	    Product product = productService.getProductDomainById(productId);
+
+	    if (product == null) {
+	        throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
+	    }
+
+	    shoppingCartService.addToCart(getLoginMemberId(), product, wishAmount);
+	}
+
+	// 회원 쇼핑 화면 상품 목록 조회
+	public List<ProductDTO> getShoppingProducts() {
+	    return productService.getShoppingProducts();
+	}
+
+	// 상품 상세 조회
+	public ProductDTO getProductDetail(int productId) {
+	    return productService.getProductDetail(productId);
+	}
+	// 상품명 기준 장바구니 수량 변경
+	public void updateQuantity(String productName, int newAmount) {
+	    Product product = productService.getProduct(productName);
+
+	    shoppingCartService.updateQuantity(
+	            getLoginMemberId(),
+	            product,
+	            newAmount
+	    );
+	}
+
+	// 상품명 기준 장바구니 선택 삭제
+	public void deleteFromCart(String productName) {
+	    Product product = productService.getProduct(productName);
+
+	    shoppingCartService.flush(
+	            getLoginMemberId(),
+	            List.of(product)
+	    );
 	}
 
 	// 장바구니 내 특정 상품 수량 변경

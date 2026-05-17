@@ -2,16 +2,16 @@ package gui.member;
 
 import java.awt.*;
 import java.math.BigDecimal;
-import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
+import exception.DutyFreeException;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import gui.fakedata.FakeCartItem;
-import gui.fakedata.FakeMemberStore;
+import shoppingCart.dto.CartItemDTO;
+import shoppingCart.dto.TotalCartDTO;
 
 public class MemberCartPanel extends JPanel implements Refreshable {
 
@@ -37,7 +37,7 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         add(titleLabel, BorderLayout.NORTH);
 
         String[] columns = {
-                "상품명", "브랜드", "수량", "단가($)", "단가(원)", "합계($)", "합계(원)"
+                "상품명", "용량", "수량", "단가($)", "단가(원)", "합계($)", "합계(원)"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
@@ -49,6 +49,7 @@ public class MemberCartPanel extends JPanel implements Refreshable {
 
         cartTable = new JTable(tableModel);
         cartTable.setRowHeight(30);
+        cartTable.setAutoCreateRowSorter(true);
 
         add(new JScrollPane(cartTable), BorderLayout.CENTER);
 
@@ -117,30 +118,67 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         return button;
     }
 
     private void loadCart() {
-        tableModel.setRowCount(0);
+        try {
+            tableModel.setRowCount(0);
 
-        List<FakeCartItem> cartItems = FakeMemberStore.getCartItems();
+            TotalCartDTO cart = screenManager.getDutyFlowSystem().printCart();
 
-        for (FakeCartItem item : cartItems) {
-            tableModel.addRow(new Object[]{
-                    item.getProduct().getProductName(),
-                    item.getProduct().getBrandName(),
-                    item.getQuantity(),
-                    item.getProduct().getFinalPriceUsd(),
-                    item.getProduct().getFinalPriceKrw(),
-                    item.getTotalUsd(),
-                    item.getTotalKrw()
-            });
+            if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+                totalQuantityLabel.setText("총 상품 수량: 0개");
+                totalUsdLabel.setText("총 달러 금액: $0.00");
+                totalKrwLabel.setText("총 원화 금액: 0원");
+                return;
+            }
+
+            for (CartItemDTO item : cart.getItems()) {
+                BigDecimal dollarPrice = item.getDollarPrice();
+                BigDecimal wonPrice = item.getWonPrice();
+                int quantity = item.getQuantity();
+
+                BigDecimal totalDollarPrice =
+                        dollarPrice.multiply(BigDecimal.valueOf(quantity));
+
+                BigDecimal totalWonPrice =
+                        wonPrice.multiply(BigDecimal.valueOf(quantity));
+
+                tableModel.addRow(new Object[] {
+                        item.getProductName(),
+                        item.getCapacity(),
+                        quantity,
+                        dollarPrice,
+                        wonPrice,
+                        totalDollarPrice,
+                        totalWonPrice
+                });
+            }
+
+            totalQuantityLabel.setText("총 상품 수량: " + cart.getTotalQuantity() + "개");
+            totalUsdLabel.setText("총 달러 금액: $" + cart.getTotalDollarPrice());
+            totalKrwLabel.setText("총 원화 금액: " + cart.getTotalWonPrice() + "원");
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "장바구니 조회 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
-
-        totalQuantityLabel.setText("총 상품 수량: " + FakeMemberStore.getTotalQuantity() + "개");
-        totalUsdLabel.setText("총 달러 금액: $" + FakeMemberStore.getTotalUsd());
-        totalKrwLabel.setText("총 원화 금액: " + FakeMemberStore.getTotalKrw() + "원");
     }
 
     private void updateQuantity() {
@@ -152,27 +190,53 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         }
 
         int modelRow = cartTable.convertRowIndexToModel(selectedRow);
-        FakeCartItem item = FakeMemberStore.getCartItems().get(modelRow);
 
-        String input = JOptionPane.showInputDialog(this, "변경할 수량을 입력하세요.", item.getQuantity());
+        String productName = String.valueOf(tableModel.getValueAt(modelRow, 0));
+        int currentQuantity = (int) tableModel.getValueAt(modelRow, 2);
+
+        String input = JOptionPane.showInputDialog(
+                this,
+                "변경할 수량을 입력하세요.",
+                currentQuantity
+        );
 
         if (input == null) {
             return;
         }
 
         try {
-            int newQuantity = Integer.parseInt(input);
+            int newQuantity = Integer.parseInt(input.trim());
 
             if (newQuantity <= 0) {
                 JOptionPane.showMessageDialog(this, "수량은 1개 이상이어야 합니다.");
                 return;
             }
 
-            item.setQuantity(newQuantity);
+            screenManager.getDutyFlowSystem()
+                    .updateQuantity(productName, newQuantity);
+
+            JOptionPane.showMessageDialog(this, "수량이 변경되었습니다.");
             loadCart();
 
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "수량은 숫자로 입력해야 합니다.");
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "수량 변경 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
@@ -185,27 +249,112 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         }
 
         int modelRow = cartTable.convertRowIndexToModel(selectedRow);
-        FakeCartItem item = FakeMemberStore.getCartItems().get(modelRow);
+        String productName = String.valueOf(tableModel.getValueAt(modelRow, 0));
 
-        FakeMemberStore.removeCartItem(item.getProduct().getProductId());
-        loadCart();
-    }
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "'" + productName + "' 상품을 장바구니에서 삭제하시겠습니까?",
+                "선택 삭제",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
 
-    private void clearCart() {
-        FakeMemberStore.clearCart();
-        loadCart();
-    }
-
-    private void order() {
-        if (FakeMemberStore.getCartItems().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "장바구니가 비어 있습니다.");
+        if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
 
-        FakeMemberStore.createOrderFromCart();
+        try {
+            screenManager.getDutyFlowSystem()
+                    .deleteFromCart(productName);
 
-        JOptionPane.showMessageDialog(this, "주문 및 결제가 완료되었습니다.");
-        screenManager.show("MEMBER_ORDER_HISTORY");
+            JOptionPane.showMessageDialog(this, "선택한 상품이 삭제되었습니다.");
+            loadCart();
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "선택 삭제 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
+    }
+
+    private void clearCart() {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "장바구니를 전체 삭제하시겠습니까?",
+                "전체 삭제",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            screenManager.getDutyFlowSystem().deleteFromCart();
+
+            JOptionPane.showMessageDialog(this, "장바구니가 비워졌습니다.");
+            loadCart();
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "전체 삭제 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
+    }
+
+    private void order() {
+        try {
+            int orderId = screenManager.getDutyFlowSystem().makeOrder();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "주문이 생성되었습니다.\n주문번호: " + orderId
+            );
+
+            screenManager.show("MEMBER_PAYMENT_QUEUE");
+
+        } catch (DutyFreeException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getErrorCode().getMessage(),
+                    "알림",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "주문 처리 중 오류가 발생했습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
     }
 
     @Override

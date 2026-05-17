@@ -9,6 +9,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 
 import admin.airportmanager.AirportManagerDao;
 import admin.airportmanager.AirportManagerService;
+import dutyFlowSystem.DutyFlowSystem;
 import flight.FlightDAO;
 import flight.FlightService;
 import gui.auth.*;
@@ -26,12 +27,9 @@ public class MainFrame extends JFrame {
     private ScreenManager screenManager;
     private PickUpSystem pickUpSystem;
 
-    public MainFrame() {
-        // 1. 전역 UI 스타일 설정 (컴포넌트 생성 전 실행)
-        applyGlobalStyle();
-
+    public MainFrame(DutyFlowSystem dutyFlowSystem) {
         setTitle("현대면세점 공항 인도장 픽업 예약 관리 시스템");
-        setSize(1200, 800); // 가독성을 위해 너비를 조금 더 키웠습니다.
+        setSize(1100, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -39,11 +37,17 @@ public class MainFrame extends JFrame {
         mainPanel = new JPanel(cardLayout);
 
         screenManager = new ScreenManager(cardLayout, mainPanel);
+        screenManager.setDutyFlowSystem(dutyFlowSystem);
 
         initScreens();
 
         add(mainPanel);
+
         screenManager.show("HOME");
+
+        // 화면 초기 렌더링 강제
+        mainPanel.revalidate();
+        mainPanel.repaint();
 
         setVisible(true);
     }
