@@ -524,11 +524,12 @@ public class SimulationContext {
 	/* ── 시나리오 6: 항공 지연 → 재정렬 ── */
 	private void load6() {
 		LocalDateTime n = BASE_TIME;
-		add("이급박", "M11", Grade.GOLD, "KE305", n.plusMinutes(25), n.plusMinutes(1));
-		add("오블랙", "M44", Grade.BLACK, "OZ102", n.plusMinutes(45), n.plusMinutes(2));
-		add("최골드", "M55", Grade.GOLD, "KE081", n.plusMinutes(60), n.plusMinutes(3));
-		add("강부자", "M99", Grade.PRESTIGE, "OZ773", n.plusMinutes(90), n.plusMinutes(4));
-		add("유실버", "M66", Grade.SILVER, "OZ541", n.plusMinutes(120), n.plusMinutes(5));
+		add("김지각", "M10", Grade.SILVER, "KE301", n.plusMinutes(20), n.plusMinutes(1));
+		add("이급박", "M11", Grade.GOLD, "KE305", n.plusMinutes(25), n.plusMinutes(2));
+		add("오블랙", "M44", Grade.BLACK, "OZ102", n.plusMinutes(45), n.plusMinutes(3));
+		add("최골드", "M55", Grade.GOLD, "KE081", n.plusMinutes(60), n.plusMinutes(4));
+		add("강부자", "M99", Grade.PRESTIGE, "OZ773", n.plusMinutes(90), n.plusMinutes(5));
+		add("유실버", "M66", Grade.SILVER, "OZ541", n.plusMinutes(120), n.plusMinutes(6));
 		isCounterOpen = true;
 	}
 
