@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import category.Category;
 import common.OracleConnection;
 import exception.ErrorCode;
 import exception.SystemException;
@@ -65,7 +66,7 @@ public class ShoppingCartDAO {
     // 회원의 장바구니에 새로운 상품 추가
     public void insertCartItem(int memberId, int productId, int amount) {
         String sql = "INSERT INTO ShoppingCart(productId, memberId, amount) VALUES (?, ?, ?)";
-
+        
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -137,7 +138,7 @@ public class ShoppingCartDAO {
 
         // 회원이 장바구니에 담아둔 상품의 id, 이름, 달러가격, 원화가격, 개수
         String sql =
-            "SELECT p.productId, p.productName,  p.priceUsd, p.priceKrw, sc.amount "
+            "SELECT p.productId, p.productName,  p.priceUsd, p.priceKrw, p.capacity, p.categoryId, sc.amount "
             + "FROM ShoppingCart sc "
             + "JOIN Product p ON sc.productId = p.productId "
             + "WHERE sc.memberId = ?";
@@ -148,18 +149,25 @@ public class ShoppingCartDAO {
             pstmt.setInt(1, memberId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                	Product product = Product.builder()
-                		    .productId(rs.getInt("productId"))
-                		    .productName(rs.getString("productName"))
-                		    .priceUsd(rs.getBigDecimal("priceUsd"))
-                		    .priceKrw(rs.getBigDecimal("priceKrw"))
-                		    .build();
+            	while (rs.next()) {
 
-                    int amount = rs.getInt("amount");
+            	    Product product = new Product();
 
-                    products.put(product, amount);
-                }
+            	    product.setProductId(rs.getInt("productId"));
+            	    product.setProductName(rs.getString("productName"));
+            	    product.setPriceUsd(rs.getBigDecimal("priceUsd"));
+            	    product.setPriceKrw(rs.getBigDecimal("priceKrw"));
+            	    product.setCapacity(rs.getInt("capacity"));
+
+            	    Category category = new Category();
+            	    category.setCategoryId(rs.getInt("categoryId"));
+
+            	    product.setCategory(category);
+
+            	    int amount = rs.getInt("amount");
+
+            	    products.put(product, amount);
+            	}
             }
 
         } catch (SQLException e) {
