@@ -60,9 +60,32 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                switch (columnIndex) {
+                    case 3:  // 용량
+                    case 10: // 임계값
+                        return Integer.class;
+
+                    case 4: // 가격($)
+                    case 5: // 가격(원)
+                    case 6: // 할인율
+                    case 8: // 최종가($)
+                    case 9: // 최종가(원)
+                        return BigDecimal.class;
+
+                    default:
+                        return String.class;
+                }
+            }
         };
 
         productTable = new JTable(tableModel);
+
+        // 테이블 헤더 클릭 정렬 기능
+        productTable.setAutoCreateRowSorter(true);
+
         setupTableUI();
 
         JScrollPane scrollPane = new JScrollPane(productTable);
@@ -103,8 +126,81 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
-        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
-        rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(((BigDecimal) value).stripTrailingZeros().toPlainString());
+                    return;
+                }
+
+                setText(value.toString());
+            }
+        };
+
+        DefaultTableCellRenderer usdRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(usdFormat.format(value));
+                    return;
+                }
+
+                setText(value.toString());
+            }
+        };
+
+        DefaultTableCellRenderer krwRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(krwFormat.format(value));
+                    return;
+                }
+
+                setText(value.toString());
+            }
+        };
+
+        DefaultTableCellRenderer discountRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(((BigDecimal) value).stripTrailingZeros().toPlainString() + "%");
+                    return;
+                }
+
+                setText(value + "%");
+            }
+        };
 
         for (int i = 0; i < productTable.getColumnCount(); i++) {
             productTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
@@ -114,11 +210,12 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
         productTable.getColumnModel().getColumn(1).setPreferredWidth(120);
         productTable.getColumnModel().getColumn(2).setPreferredWidth(100);
 
-        int[] rightAlignColumns = {4, 5, 6, 8, 9, 10};
-
-        for (int columnIndex : rightAlignColumns) {
-            productTable.getColumnModel().getColumn(columnIndex).setCellRenderer(rightRenderer);
-        }
+        productTable.getColumnModel().getColumn(4).setCellRenderer(usdRenderer);
+        productTable.getColumnModel().getColumn(5).setCellRenderer(krwRenderer);
+        productTable.getColumnModel().getColumn(6).setCellRenderer(discountRenderer);
+        productTable.getColumnModel().getColumn(8).setCellRenderer(usdRenderer);
+        productTable.getColumnModel().getColumn(9).setCellRenderer(krwRenderer);
+        productTable.getColumnModel().getColumn(10).setCellRenderer(rightRenderer);
     }
 
     private void loadProducts() {
@@ -131,8 +228,7 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
 
             tableModel.setRowCount(0);
 
-            List<ProductDTO> products =
-                    brandSystem.getProductsByBrandName();
+            List<ProductDTO> products = brandSystem.getProductsByBrandName();
 
             if (products == null || products.isEmpty()) {
                 return;
@@ -146,12 +242,12 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
                                 ? product.getCategory().getCategoryName()
                                 : "-",
                         product.getCapacity(),
-                        formatUsd(product.getPriceUsd()),
-                        formatKrw(product.getPriceKrw()),
-                        product.getDiscountRate() + "%",
+                        product.getPriceUsd(),
+                        product.getPriceKrw(),
+                        BigDecimal.valueOf(product.getDiscountRate()),
                         product.isHasEvent() ? "Y" : "N",
-                        formatUsd(product.getFinalPriceUsd()),
-                        formatKrw(product.getFinalPriceKrw()),
+                        product.getFinalPriceUsd(),
+                        product.getFinalPriceKrw(),
                         product.getThresholdValue()
                 });
             }
@@ -181,22 +277,6 @@ public class BrandProductListPanel extends JPanel implements Refreshable {
         }
 
         return brandSystem;
-    }
-
-    private String formatUsd(BigDecimal value) {
-        if (value == null) {
-            return "-";
-        }
-
-        return usdFormat.format(value);
-    }
-
-    private String formatKrw(BigDecimal value) {
-        if (value == null) {
-            return "-";
-        }
-
-        return krwFormat.format(value);
     }
 
     private JButton createStyledButton(String text, Color color) {

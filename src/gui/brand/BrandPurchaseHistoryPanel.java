@@ -3,6 +3,7 @@ package gui.brand;
 import java.awt.*;
 import java.io.File;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import javax.swing.*;
@@ -56,9 +57,34 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                switch (columnIndex) {
+                    case 0: // 발주ID
+                    case 1: // 상품ID
+                    case 6: // 임계값
+                    case 8: // 수량
+                        return Integer.class;
+
+                    case 4: // 가격($)
+                    case 5: // 가격(원)
+                        return BigDecimal.class;
+
+                    case 7: // 발주일시
+                        return LocalDateTime.class;
+
+                    default:
+                        return String.class;
+                }
+            }
         };
 
         purchaseTable = new JTable(tableModel);
+
+        // 테이블 헤더 클릭 정렬 기능
+        purchaseTable.setAutoCreateRowSorter(true);
+
         setupTableUI();
 
         JScrollPane scrollPane = new JScrollPane(purchaseTable);
@@ -102,6 +128,44 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
+        DefaultTableCellRenderer usdRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(String.format("$%,.2f", value));
+                    return;
+                }
+
+                setText(value.toString());
+            }
+        };
+
+        DefaultTableCellRenderer krwRenderer = new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setHorizontalAlignment(JLabel.RIGHT);
+
+                if (value == null) {
+                    setText("-");
+                    return;
+                }
+
+                if (value instanceof BigDecimal) {
+                    setText(String.format("%,.0f원", value));
+                    return;
+                }
+
+                setText(value.toString());
+            }
+        };
+
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
 
@@ -110,9 +174,12 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         }
 
         purchaseTable.getColumnModel().getColumn(2).setPreferredWidth(180);
-        purchaseTable.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
-        purchaseTable.getColumnModel().getColumn(5).setCellRenderer(rightRenderer);
         purchaseTable.getColumnModel().getColumn(7).setPreferredWidth(150);
+
+        purchaseTable.getColumnModel().getColumn(4).setCellRenderer(usdRenderer);
+        purchaseTable.getColumnModel().getColumn(5).setCellRenderer(krwRenderer);
+        purchaseTable.getColumnModel().getColumn(6).setCellRenderer(rightRenderer);
+        purchaseTable.getColumnModel().getColumn(8).setCellRenderer(rightRenderer);
     }
 
     private void loadPurchaseHistory() {
@@ -138,12 +205,12 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
                         purchase.getProductId(),
                         purchase.getProductName(),
                         purchase.getCategoryName(),
-                        formatUsd(purchase.getPriceUsd()),
-                        formatKrw(purchase.getPriceKrw()),
+                        purchase.getPriceUsd(),
+                        purchase.getPriceKrw(),
                         purchase.getThresholdValue(),
                         purchase.getPurchaseDate(),
                         purchase.getAmount(),
-                        purchase.getStatus()
+                        purchase.getStatus() != null ? purchase.getStatus().name() : "-"
                 });
             }
 
@@ -220,22 +287,6 @@ public class BrandPurchaseHistoryPanel extends JPanel implements Refreshable {
         }
 
         return brandSystem;
-    }
-
-    private String formatUsd(BigDecimal value) {
-        if (value == null) {
-            return "-";
-        }
-
-        return String.format("$%,.2f", value);
-    }
-
-    private String formatKrw(BigDecimal value) {
-        if (value == null) {
-            return "-";
-        }
-
-        return String.format("%,.0f원", value);
     }
 
     private JButton createStyledButton(String text, Color color) {
