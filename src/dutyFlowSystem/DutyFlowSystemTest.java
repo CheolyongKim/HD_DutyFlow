@@ -88,8 +88,7 @@ public class DutyFlowSystemTest {
 		System.out.println("[5] 로그인 시작");
 
 		try {
-
-			system.login("user01", "pass01");
+			system.login("user00228", "pw00228");
 
 			System.out.println("로그인 성공");
 
@@ -110,12 +109,12 @@ public class DutyFlowSystemTest {
 
 		System.out.println("조회된 상품 개수 = " + products.size());
 
-		for (Product p : products) {
-			System.out.println(
-					"상품 = " +
-					p.getProductName()
-			);
-		}
+//		for (Product p : products) {
+//			System.out.println(
+//					"상품 = " +
+//					p.getProductName()
+//			);
+//		}
 
 		Product p1 = products.get(0);
 		Product p2 = products.get(1);
