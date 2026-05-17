@@ -331,12 +331,16 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         try {
             int orderId = screenManager.getDutyFlowSystem().makeOrder();
 
+            screenManager.getDutyFlowSystem().processOrderQueue();
+
             JOptionPane.showMessageDialog(
                     this,
-                    "주문이 생성되었습니다.\n주문번호: " + orderId
+                    "주문 처리가 완료되었습니다.\n주문번호: " + orderId,
+                    "주문 완료",
+                    JOptionPane.INFORMATION_MESSAGE
             );
 
-            screenManager.show("MEMBER_PAYMENT_QUEUE");
+            screenManager.show("MEMBER_ORDER_HISTORY");
 
         } catch (DutyFreeException e) {
             JOptionPane.showMessageDialog(
