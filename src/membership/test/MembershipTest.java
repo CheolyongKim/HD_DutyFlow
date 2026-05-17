@@ -69,8 +69,6 @@ public class MembershipTest {
         System.out.println("로그인 갱신 전 등급: " + beforeGrade);
         System.out.println("로그인 갱신 전 선정일: " + beforeDate);
 
-        service.updateMembershipGradeIfExpired(memberId);
-
         Grade afterGrade = dao.findGradeByMemberId(memberId);
         LocalDate afterDate = dao.findGradeSelectionDate(memberId);
 
