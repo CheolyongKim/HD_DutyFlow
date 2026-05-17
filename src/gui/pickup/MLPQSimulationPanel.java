@@ -5,769 +5,914 @@ import java.awt.event.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
-import java.util.ArrayList;
-
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
+import javax.swing.border.*;
 
-import airplane.Airplane;
 import common.CurrentTime;
 import common.Grade;
 import gui.ScreenManager;
 import gui.common.Refreshable;
-import member.Member;
 import pickup.MLPQ;
-import pickup.SimulationContext;
 import pickup.PickUpTicket;
+import pickup.SimulationContext;
 
 /**
- * MLPQ 시뮬레이션 화면 (화면설계서 섹션 4 — 시나리오 6-②③, 발표용)
+ * MLPQ 시뮬레이션 패널 (화면설계서 v2 섹션 4)
  *
- * [좌측] 주문 목록 (시간창 -3h ~ +3h)
- * [중앙] AQ(우선큐) / BQ(일반큐) 이중 큐 카드
- * [우측] 시나리오 패널 (1~7번) + 컨트롤
+ * <p>DB 의존성 제로 — SimulationContext만 사용.
+ * <p>PickUpSystem의 passTime, processPickUp, processNoShow,
+ *    checkCallingTimeout, updateNoShowState 로직이 모두 반영되어 있다.
  *
- * 키보드:
- *   Space     → 시간 1스텝(1분) 전진
- *   BackSpace → 시간 1스텝 후진
- *   Enter     → 현재 시나리오 전체 자동 실행
- *   ESC       → 자동 실행 중단 / 이전 화면 복귀
+ * <p>키 바인딩:
+ *   → (Right) : 시간 +1분
+ *   ← (Left)  : 시간 -1분
+ *   Enter     : 자동 실행
+ *   ESC       : 중단/복귀
  */
 public class MLPQSimulationPanel extends JPanel implements Refreshable {
 
     private final ScreenManager screenManager;
+    private final SimulationContext context;
 
-    private SimulationContext context;
-
-    /* ── 시계 ── */
+    /* ── UI 컴포넌트 ── */
     private JLabel clockLabel;
-    private JLabel modeLabel;
-    private final Timer  clockTimer;
+    private Timer clockTimer;
 
-    /* ── 좌측: 주문 목록 ── */
-    private DefaultListModel<String> orderListModel;
-    private JList<String> orderList;
+    // 좌측: 주문 목록
+    private JPanel orderListPanel;
+    private JScrollPane orderScrollPane;
 
-    /* ── 중앙: AQ / BQ 큐 표시 ── */
-    private DefaultListModel<String> aqModel;
-    private DefaultListModel<String> bqModel;
-    private JList<String> aqList;
-    private JList<String> bqList;
-    private JLabel aqCountLabel;
-    private JLabel bqCountLabel;
+    // 중앙: AQ / BQ
+    private JPanel aqPanel, bqPanel;
+    private JLabel aqCountLabel, bqCountLabel;
+    private JPanel aqCardContainer, bqCardContainer;
 
-    /* ── 우측: 시나리오 ── */
+    // 호출된 고객 표시 영역
+    private JPanel calledPanel;
+    private JButton calledButton;   // ★ 클릭 = 고객 도착(processPickUp)
+
+    // 우측: 시나리오 + 로그
     private JTextArea logArea;
-    private Timer autoRunTimer;
-    private boolean isAutoRunning = false;
 
-    /* ── 항공 지연 알림 팝업 ── */
-    private boolean delayDetected = false;
+    // 자동 실행
+    private Timer autoTimer;
+    private boolean autoRunning = false;
 
-    /* ── 색상 ── */
-    private static final Color BG          = new Color(0xF5F6FA);
-    private static final Color BAR_BG      = new Color(0x1E293B);
-    private static final Color CARD_BG     = Color.WHITE;
-    private static final Color AQ_COLOR    = new Color(0xEF4444);
-    private static final Color BQ_COLOR    = new Color(0x2563EB);
-    private static final Color PRIMARY     = new Color(0x2D6CDF);
-    private static final Color SUCCESS     = new Color(0x16A34A);
-    private static final Color WARNING     = new Color(0xD97706);
-    private static final Color SCENARIO_BG = new Color(0xF0FDF4);
+    /* ── 등급별 색상 ── */
+    private static final Color PRESTIGE_BG  = new Color(0x7C3AED);
+    private static final Color PRESTIGE_FG  = Color.WHITE;
+    private static final Color BLACK_BG     = new Color(0x1E293B);
+    private static final Color BLACK_FG     = Color.WHITE;
+    private static final Color GOLD_BG      = new Color(0xF59E0B);
+    private static final Color GOLD_FG      = new Color(0x451A03);
+    private static final Color SILVER_BG    = new Color(0xCBD5E1);
+    private static final Color SILVER_FG    = new Color(0x1E293B);
+
+    /* ── 일반 색상 ── */
+    private static final Color BG           = new Color(0xF1F5F9);
+    private static final Color CARD_BG      = Color.WHITE;
+    private static final Color BAR_BG       = new Color(0x1E293B);
+    private static final Color AQ_BORDER    = new Color(0xEF4444);
+    private static final Color BQ_BORDER    = new Color(0x3B82F6);
+    private static final Color AQ_HEADER_BG = new Color(0xFEF2F2);
+    private static final Color BQ_HEADER_BG = new Color(0xEFF6FF);
+    private static final Color CALLED_BG    = new Color(0xFFFBEB);
+    private static final Color CALLED_BTN   = new Color(0x059669);
+    private static final Color SCENARIO_BG  = new Color(0xFFFDE7);
+    private static final Color TEXT_DARK    = new Color(0x1E293B);
+    private static final Color TEXT_SUB     = new Color(0x64748B);
+    private static final Color NOSHOW_BG    = new Color(0xFEE2E2);
+    private static final Color TIMEOUT_BG   = new Color(0xFFF7ED);
 
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd (E)  HH:mm:ss");
-    private static final DateTimeFormatter SHORT_FMT =
+    private static final DateTimeFormatter SHORT_TIME =
             DateTimeFormatter.ofPattern("HH:mm");
 
-    /* ── 등급 색상 ── */
-    private static Color gradeColor(Grade g) {
-        if (g == null) return new Color(0x9CA3AF);
-        switch (g) {
-            case PRESTIGE: return new Color(0x7C3AED);
-            case BLACK:    return new Color(0x374151);
-            case GOLD:     return new Color(0xD97706);
-            default:       return new Color(0x9CA3AF);
-        }
-    }
-
-    /* ============================================================ */
-
+    /* ================================================================
+     *  생성자
+     * ================================================================ */
     public MLPQSimulationPanel(ScreenManager screenManager) {
-    	this.context = new SimulationContext();
         this.screenManager = screenManager;
+        this.context = new SimulationContext();
 
         setLayout(new BorderLayout());
         setBackground(BG);
 
-        /* ── 상단: 모드 + 시계 ── */
-        JPanel topBar = createTopBar();
-        add(topBar, BorderLayout.NORTH);
+        add(createTopBar(), BorderLayout.NORTH);
+        add(createMainContent(), BorderLayout.CENTER);
+
+        bindKeys();
 
         clockTimer = new Timer(1000, e -> updateClock());
         clockTimer.start();
-
-        /* ── 3분할 본문 ── */
-        JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                createLeftPanel(), createCenterRightPanel());
-        mainSplit.setDividerLocation(260);
-        mainSplit.setResizeWeight(0.22);
-        mainSplit.setBorder(null);
-
-        add(mainSplit, BorderLayout.CENTER);
-
-        /* ── 키보드 바인딩 ── */
-        bindKeys();
     }
 
-    /* ═══════════════════ 상단 바 ═══════════════════ */
+    /** 하위 호환 — PickUpSystem을 받아도 무시 (다른 패널과 통합 시) */
+    public void setPickUpSystem(Object ps) { /* 무시 */ }
 
+    /* ================================================================
+     *  상단 바 — 시계 + 모드 표시 + 메인 버튼
+     * ================================================================ */
     private JPanel createTopBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBackground(BAR_BG);
         bar.setBorder(new EmptyBorder(6, 16, 6, 16));
 
-        modeLabel = new JLabel("⏱ 시뮬레이션 모드");
+        JLabel modeLabel = new JLabel("◻ 시뮬레이션 모드");
         modeLabel.setFont(new Font("맑은 고딕", Font.BOLD, 13));
         modeLabel.setForeground(new Color(0xFBBF24));
+        bar.add(modeLabel, BorderLayout.WEST);
 
         clockLabel = new JLabel();
         clockLabel.setFont(new Font("D2Coding", Font.BOLD, 16));
         clockLabel.setForeground(Color.WHITE);
         clockLabel.setHorizontalAlignment(SwingConstants.CENTER);
         updateClock();
-
-        JButton backBtn = new JButton("← 메인");
-        backBtn.setFont(new Font("맑은 고딕", Font.BOLD, 12));
-        backBtn.setForeground(Color.WHITE);
-        backBtn.setBackground(new Color(0x475569));
-        backBtn.setBorderPainted(false);
-        backBtn.setFocusPainted(false);
-        backBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        backBtn.addActionListener(e -> screenManager.show("PICKUP_MAIN"));
-
-        bar.add(modeLabel, BorderLayout.WEST);
         bar.add(clockLabel, BorderLayout.CENTER);
-        bar.add(backBtn, BorderLayout.EAST);
+
+        JButton mainBtn = new JButton("← 메인");
+        mainBtn.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+        mainBtn.setForeground(Color.WHITE);
+        mainBtn.setBackground(new Color(0x475569));
+        mainBtn.setFocusPainted(false);
+        mainBtn.setBorderPainted(false);
+        mainBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        mainBtn.addActionListener(e -> goBack());
+        bar.add(mainBtn, BorderLayout.EAST);
 
         return bar;
     }
 
-    /* ═══════════════════ 좌측: 주문 목록 ═══════════════════ */
+    private void updateClock() {
+        if (clockLabel != null) {
+            clockLabel.setText(CurrentTime.curTime.format(TIME_FMT));
+        }
+    }
 
+    /* ================================================================
+     *  메인 콘텐츠 — 3분할
+     * ================================================================ */
+    private JPanel createMainContent() {
+        JPanel main = new JPanel(new BorderLayout(8, 0));
+        main.setBackground(BG);
+        main.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        main.add(createLeftPanel(), BorderLayout.WEST);
+        main.add(createCenterPanel(), BorderLayout.CENTER);
+        main.add(createRightPanel(), BorderLayout.EAST);
+
+        return main;
+    }
+
+    /* ── 좌측: 주문 목록 (시간창) ── */
     private JPanel createLeftPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        JPanel panel = new JPanel(new BorderLayout(0, 4));
+        panel.setPreferredSize(new Dimension(280, 0));
         panel.setBackground(BG);
-        panel.setBorder(new EmptyBorder(10, 10, 10, 4));
 
-        JLabel title = new JLabel("📋 주문 목록 (±3h)");
+        JLabel title = new JLabel("  ◻ 주문 목록 (±3h)");
         title.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+        title.setForeground(TEXT_DARK);
+        title.setBorder(new EmptyBorder(4, 0, 4, 0));
         panel.add(title, BorderLayout.NORTH);
 
-        orderListModel = new DefaultListModel<>();
-        orderList = new JList<>(orderListModel);
-        orderList.setFont(new Font("D2Coding", Font.PLAIN, 12));
-        orderList.setCellRenderer(new OrderCellRenderer());
+        orderListPanel = new JPanel();
+        orderListPanel.setLayout(new BoxLayout(orderListPanel, BoxLayout.Y_AXIS));
+        orderListPanel.setBackground(CARD_BG);
 
-        JScrollPane sp = new JScrollPane(orderList);
-        sp.setBorder(new LineBorder(new Color(0xE2E8F0)));
-        panel.add(sp, BorderLayout.CENTER);
+        orderScrollPane = new JScrollPane(orderListPanel);
+        orderScrollPane.setBorder(BorderFactory.createLineBorder(new Color(0xE2E8F0)));
+        orderScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        orderScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        panel.add(orderScrollPane, BorderLayout.CENTER);
 
-        // 시간 기준선 안내
-        JLabel hint = new JLabel("━ 굵은 선 = 현재 시각 기준");
+        JLabel hint = new JLabel("  — 굵은 선 = 현재 시각 기준");
         hint.setFont(new Font("맑은 고딕", Font.PLAIN, 11));
-        hint.setForeground(new Color(0x6B7280));
+        hint.setForeground(TEXT_SUB);
         panel.add(hint, BorderLayout.SOUTH);
 
         return panel;
     }
 
-    /* ═══════════════════ 중앙+우측 ═══════════════════ */
-
-    private JSplitPane createCenterRightPanel() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                createCenterPanel(), createRightPanel());
-        split.setDividerLocation(420);
-        split.setResizeWeight(0.55);
-        split.setBorder(null);
-        return split;
-    }
-
-    /* ── 중앙: AQ / BQ 이중 큐 카드 ── */
+    /* ── 중앙: 호출된 고객 + AQ + BQ ── */
     private JPanel createCenterPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1, 0, 8));
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
         panel.setBackground(BG);
-        panel.setBorder(new EmptyBorder(10, 6, 10, 6));
 
-        // AQ (우선 큐)
-        aqModel = new DefaultListModel<>();
-        aqList  = new JList<>(aqModel);
-        aqList.setFont(new Font("D2Coding", Font.PLAIN, 12));
-        aqList.setCellRenderer(new QueueCellRenderer(AQ_COLOR));
+        // ── 호출된 고객 영역 ──
+        calledPanel = new JPanel(new BorderLayout(8, 0));
+        calledPanel.setBackground(CALLED_BG);
+        calledPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xF59E0B), 2),
+                new EmptyBorder(10, 14, 10, 14)
+        ));
+
+        JLabel calledTitle = new JLabel("📢 현재 호출");
+        calledTitle.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+        calledPanel.add(calledTitle, BorderLayout.WEST);
+
+        calledButton = new JButton("대기 중...");
+        calledButton.setFont(new Font("D2Coding", Font.BOLD, 13));
+        calledButton.setBackground(new Color(0xE2E8F0));
+        calledButton.setForeground(TEXT_SUB);
+        calledButton.setFocusPainted(false);
+        calledButton.setBorderPainted(false);
+        calledButton.setEnabled(false);
+        calledButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        calledButton.addActionListener(e -> onCalledTicketClicked());
+        calledPanel.add(calledButton, BorderLayout.CENTER);
+
+        panel.add(calledPanel, BorderLayout.NORTH);
+
+        // ── AQ + BQ 분할 ──
+        JPanel queuesPanel = new JPanel(new GridLayout(2, 1, 0, 6));
+        queuesPanel.setBackground(BG);
+
+        // AQ
+        JPanel aqWrapper = new JPanel(new BorderLayout());
+        aqWrapper.setBackground(CARD_BG);
+        aqWrapper.setBorder(BorderFactory.createLineBorder(AQ_BORDER, 2));
+
+        JPanel aqHeader = new JPanel(new BorderLayout());
+        aqHeader.setBackground(AQ_HEADER_BG);
+        aqHeader.setBorder(new EmptyBorder(6, 12, 6, 12));
+        JLabel aqTitle = new JLabel("◻ AQ — 우선 큐 (출국임박·Starvation)");
+        aqTitle.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        aqTitle.setForeground(AQ_BORDER);
         aqCountLabel = new JLabel("AQ: 0명");
+        aqCountLabel.setFont(new Font("D2Coding", Font.BOLD, 12));
+        aqCountLabel.setForeground(AQ_BORDER);
+        aqHeader.add(aqTitle, BorderLayout.WEST);
+        aqHeader.add(aqCountLabel, BorderLayout.EAST);
+        aqWrapper.add(aqHeader, BorderLayout.NORTH);
 
-        JPanel aqPanel = createQueueCard("🔴  AQ — 우선 큐 (출국임박·Starvation)",
-                aqList, aqCountLabel, AQ_COLOR);
+        aqCardContainer = new JPanel();
+        aqCardContainer.setLayout(new BoxLayout(aqCardContainer, BoxLayout.Y_AXIS));
+        aqCardContainer.setBackground(CARD_BG);
+        JScrollPane aqScroll = new JScrollPane(aqCardContainer);
+        aqScroll.setBorder(null);
+        aqScroll.getVerticalScrollBar().setUnitIncrement(16);
+        aqWrapper.add(aqScroll, BorderLayout.CENTER);
 
-        // BQ (일반 큐)
-        bqModel = new DefaultListModel<>();
-        bqList  = new JList<>(bqModel);
-        bqList.setFont(new Font("D2Coding", Font.PLAIN, 12));
-        bqList.setCellRenderer(new QueueCellRenderer(BQ_COLOR));
+        // BQ
+        JPanel bqWrapper = new JPanel(new BorderLayout());
+        bqWrapper.setBackground(CARD_BG);
+        bqWrapper.setBorder(BorderFactory.createLineBorder(BQ_BORDER, 2));
+
+        JPanel bqHeader = new JPanel(new BorderLayout());
+        bqHeader.setBackground(BQ_HEADER_BG);
+        bqHeader.setBorder(new EmptyBorder(6, 12, 6, 12));
+        JLabel bqTitle = new JLabel("◻ BQ — 일반 큐 (등급→대기순)");
+        bqTitle.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        bqTitle.setForeground(BQ_BORDER);
         bqCountLabel = new JLabel("BQ: 0명");
+        bqCountLabel.setFont(new Font("D2Coding", Font.BOLD, 12));
+        bqCountLabel.setForeground(BQ_BORDER);
+        bqHeader.add(bqTitle, BorderLayout.WEST);
+        bqHeader.add(bqCountLabel, BorderLayout.EAST);
+        bqWrapper.add(bqHeader, BorderLayout.NORTH);
 
-        JPanel bqPanel = createQueueCard("🔵  BQ — 일반 큐 (등급→대기순)",
-                bqList, bqCountLabel, BQ_COLOR);
+        bqCardContainer = new JPanel();
+        bqCardContainer.setLayout(new BoxLayout(bqCardContainer, BoxLayout.Y_AXIS));
+        bqCardContainer.setBackground(CARD_BG);
+        JScrollPane bqScroll = new JScrollPane(bqCardContainer);
+        bqScroll.setBorder(null);
+        bqScroll.getVerticalScrollBar().setUnitIncrement(16);
+        bqWrapper.add(bqScroll, BorderLayout.CENTER);
 
-        panel.add(aqPanel);
-        panel.add(bqPanel);
+        queuesPanel.add(aqWrapper);
+        queuesPanel.add(bqWrapper);
+        panel.add(queuesPanel, BorderLayout.CENTER);
+
         return panel;
     }
 
-    private JPanel createQueueCard(String title, JList<String> list,
-                                    JLabel countLabel, Color accentColor) {
-        JPanel card = new JPanel(new BorderLayout(0, 4));
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(accentColor, 2),
-                new EmptyBorder(8, 10, 8, 10)
-        ));
-
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(CARD_BG);
-
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("맑은 고딕", Font.BOLD, 13));
-        titleLbl.setForeground(accentColor);
-
-        countLabel.setFont(new Font("D2Coding", Font.BOLD, 13));
-        countLabel.setForeground(accentColor);
-
-        header.add(titleLbl, BorderLayout.WEST);
-        header.add(countLabel, BorderLayout.EAST);
-
-        card.add(header, BorderLayout.NORTH);
-        card.add(new JScrollPane(list), BorderLayout.CENTER);
-
-        return card;
-    }
-
-    /* ── 우측: 시나리오 패널 ── */
+    /* ── 우측: 시나리오 버튼 + 키 안내 + 로그 ── */
     private JPanel createRightPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setPreferredSize(new Dimension(320, 0));
         panel.setBackground(BG);
-        panel.setBorder(new EmptyBorder(10, 4, 10, 10));
 
-        JLabel title = new JLabel("🎬 시연 시나리오");
-        title.setFont(new Font("맑은 고딕", Font.BOLD, 14));
-        panel.add(title, BorderLayout.NORTH);
+        // 시나리오 패널
+        JPanel scenarioPanel = new JPanel();
+        scenarioPanel.setLayout(new BoxLayout(scenarioPanel, BoxLayout.Y_AXIS));
+        scenarioPanel.setBackground(CARD_BG);
+        scenarioPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xE2E8F0)),
+                new EmptyBorder(12, 12, 12, 12)
+        ));
 
-        // 시나리오 버튼들
-        JPanel btnPanel = new JPanel(new GridLayout(0, 1, 0, 4));
-        btnPanel.setBackground(SCENARIO_BG);
-        btnPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+        JLabel scenTitle = new JLabel("◻ 시연 시나리오");
+        scenTitle.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        scenTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scenarioPanel.add(scenTitle);
+        scenarioPanel.add(Box.createVerticalStrut(8));
 
         String[] scenarios = {
-                "1. 정상 호출",
-                "2. 호출 후 미도착",
-                "3. 노쇼 처리",
-                "4. 우선 등급 입장",
-                "5. Starvation 방지 승급",
-                "6. 항공 지연 → 재정렬",
-                "7. 노쇼 자동 처리",
+            "1. 정상 호출",
+            "2. 호출 후 미도착",
+            "3. 노쇼 처리",
+            "4. 우선 등급 입장",
+            "5. Starvation 방지 승급",
+            "6. 항공 지연 → 재정렬",
+            "7. 노쇼 자동 처리"
         };
 
         for (int i = 0; i < scenarios.length; i++) {
-            JButton btn = scenarioButton(scenarios[i]);
-            final int idx = i + 1;
-            btn.addActionListener(e -> runScenario(idx));
-            btnPanel.add(btn);
+            final int num = i + 1;
+            JButton btn = new JButton(scenarios[i]);
+            btn.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+            btn.setBackground(SCENARIO_BG);
+            btn.setForeground(TEXT_DARK);
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(0xFDE68A)),
+                    new EmptyBorder(8, 12, 8, 12)
+            ));
+            btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+            btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btn.addActionListener(e -> runScenario(num));
+
+            btn.addMouseListener(new MouseAdapter() {
+                @Override public void mouseEntered(MouseEvent e) {
+                    btn.setBackground(new Color(0xFEF3C7));
+                }
+                @Override public void mouseExited(MouseEvent e) {
+                    btn.setBackground(SCENARIO_BG);
+                }
+            });
+
+            scenarioPanel.add(btn);
+            scenarioPanel.add(Box.createVerticalStrut(4));
         }
 
-        JScrollPane scenarioScroll = new JScrollPane(btnPanel);
-        scenarioScroll.setBorder(null);
-        scenarioScroll.setPreferredSize(new Dimension(220, 240));
+        panel.add(scenarioPanel, BorderLayout.NORTH);
 
-        // 컨트롤 안내
-        JPanel controlHint = new JPanel(new GridLayout(0, 1, 0, 2));
-        controlHint.setBackground(new Color(0xFEF3C7));
-        controlHint.setBorder(new EmptyBorder(8, 10, 8, 10));
-        controlHint.add(hintLabel("Space     → 시간 +1분"));
-        controlHint.add(hintLabel("BackSpace → 시간 -1분"));
-        controlHint.add(hintLabel("Enter     → 자동 실행"));
-        controlHint.add(hintLabel("ESC       → 중단/복귀"));
+        // 키 안내
+        JPanel keyPanel = new JPanel(new GridLayout(4, 1, 0, 2));
+        keyPanel.setBackground(new Color(0xFEF9C3));
+        keyPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xFDE68A)),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        keyPanel.add(keyLabel("→ (Right)", "시간 +1분"));
+        keyPanel.add(keyLabel("← (Left)", "시간 -1분"));
+        keyPanel.add(keyLabel("Enter", "자동 실행"));
+        keyPanel.add(keyLabel("ESC", "중단/복귀"));
+        panel.add(keyPanel, BorderLayout.CENTER);
 
-        // 로그 영역
-        logArea = new JTextArea(6, 20);
+        // 실행 로그
+        JPanel logPanel = new JPanel(new BorderLayout(0, 4));
+        logPanel.setBackground(BG);
+
+        JLabel logTitle = new JLabel("  실행 로그");
+        logTitle.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        logPanel.add(logTitle, BorderLayout.NORTH);
+
+        logArea = new JTextArea();
         logArea.setFont(new Font("D2Coding", Font.PLAIN, 12));
         logArea.setEditable(false);
         logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(true);
         logArea.setBackground(new Color(0xF8FAFC));
         JScrollPane logScroll = new JScrollPane(logArea);
-        logScroll.setBorder(BorderFactory.createTitledBorder(
-                new LineBorder(new Color(0xCBD5E1)),
-                "실행 로그",
-                TitledBorder.LEFT, TitledBorder.TOP,
-                new Font("맑은 고딕", Font.BOLD, 12)));
+        logScroll.setPreferredSize(new Dimension(0, 200));
+        logScroll.setBorder(BorderFactory.createLineBorder(new Color(0xE2E8F0)));
+        logPanel.add(logScroll, BorderLayout.CENTER);
 
-        // 조합
-        JPanel mid = new JPanel(new BorderLayout(0, 6));
-        mid.setBackground(BG);
-        mid.add(scenarioScroll, BorderLayout.CENTER);
-        mid.add(controlHint, BorderLayout.SOUTH);
-
-        panel.add(mid, BorderLayout.CENTER);
-        panel.add(logScroll, BorderLayout.SOUTH);
+        panel.add(logPanel, BorderLayout.SOUTH);
 
         return panel;
     }
 
-    /* ═══════════════════ 큐 화면 갱신 ═══════════════════ */
-
-    private void refreshQueueDisplay() {
-        if (context == null) return;
-
-        MLPQ pq = context.pq;
-
-        // AQ
-        List<PickUpTicket> aqTickets = pq.getAllFromAq();
-        aqModel.clear();
-        int rank = 1;
-        for (PickUpTicket t : aqTickets) {
-            aqModel.addElement(formatTicket(rank++, t, true));
-        }
-        aqCountLabel.setText("AQ: " + aqTickets.size() + "명");
-
-        // BQ
-        List<PickUpTicket> bqTickets = pq.getAllFromBq();
-        bqModel.clear();
-        rank = 1;
-        for (PickUpTicket t : bqTickets) {
-            bqModel.addElement(formatTicket(rank++, t, false));
-        }
-        bqCountLabel.setText("BQ: " + bqTickets.size() + "명");
-
-        // 주문 목록 (시간창)
-        refreshOrderList();
-
-        updateClock();
+    private JLabel keyLabel(String key, String desc) {
+        JLabel lbl = new JLabel(key + "    → " + desc);
+        lbl.setFont(new Font("D2Coding", Font.BOLD, 12));
+        lbl.setForeground(new Color(0x92400E));
+        return lbl;
     }
 
-    private String formatTicket(int rank, PickUpTicket t, boolean isAQ) {
-        Member m  = t.getMember();
-        Airplane a = t.getAirplane();
-        long waitMin = Duration.between(t.getTicketIssueTime(), CurrentTime.curTime).toMinutes();
-        long toDepart = Duration.between(CurrentTime.curTime, a.getDepartureAt()).toMinutes();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("[%d] ", rank));
-        sb.append(String.format("%-6s", m.getName()));
-        sb.append(String.format(" | %s", m.getGrade()));
-        sb.append(String.format(" | %s", a.getFlightCode()));
-        sb.append(String.format(" | 출국 %s", a.getDepartureAt().format(SHORT_FMT)));
-        sb.append(String.format(" (%+d분)", toDepart));
-        sb.append(String.format(" | 대기 %d분", waitMin));
-
-        if (waitMin >= 40) sb.append(" ⚠️STARV");
-        if (toDepart <= 30 && !isAQ) sb.append(" 🔺승급대상");
-
-        return sb.toString();
-    }
-
-    private void refreshOrderList() {
-        orderListModel.clear();
-
-        if (context == null) return;
-
-        MLPQ pq = context.pq;
-        List<PickUpTicket> all = new ArrayList<>();
-        all.addAll(pq.getAllFromAq());
-        all.addAll(pq.getAllFromBq());
-
-        // 현재 호출된 고객도 표시
-        PickUpTicket current = context.getCurrentTicket();
-
-        // -3h ~ +3h 기준 필터
-        LocalDateTime rangeStart = CurrentTime.curTime.minusHours(3);
-        LocalDateTime rangeEnd   = CurrentTime.curTime.plusHours(3);
-
-        // 현재 시각 기준선
-        orderListModel.addElement("──── 현재 " + CurrentTime.curTime.format(SHORT_FMT) + " ────");
-
-        if (current != null) {
-            orderListModel.addElement("▶ [호출중] " + current.getMember().getName()
-                    + " | " + current.getAirplane().getFlightCode()
-                    + " | " + current.getAirplane().getDepartureAt().format(SHORT_FMT));
-        }
-
-        for (PickUpTicket t : all) {
-            LocalDateTime dept = t.getAirplane().getDepartureAt();
-            if (dept.isBefore(rangeStart) || dept.isAfter(rangeEnd)) continue;
-
-            String status = "PICKUP_RESERVED";
-            if (CurrentTime.curTime.isAfter(dept)) {
-                status = "NO_SHOW";
-            }
-
-            orderListModel.addElement(String.format("  %s  %-6s  %s  [%s]  %s",
-                    dept.format(SHORT_FMT),
-                    t.getMember().getName(),
-                    t.getAirplane().getFlightCode(),
-                    t.getMember().getGrade(),
-                    status));
-        }
-    }
-
-    /* ═══════════════════ 시나리오 실행 ═══════════════════ */
-
-    private void runScenario(int num) {
-    	// 시나리오 버튼을 누르면 먼저 해당 시나리오 데이터를 로드 [cite: 159]
-        context.loadScenario(num);
-        appendLog("\n═══ 시나리오 " + num + " 실행 ═══");
-
-        appendLog("\n═══ 시나리오 " + num + " 실행 ═══");
-
-        try {
-            switch (num) {
-                case 1: scenarioNormalCall();       break;
-                case 2: scenarioCallNoArrival();    break;
-                case 3: scenarioNoShow();           break;
-                case 4: scenarioPriorityEntry();    break;
-                case 5: scenarioStarvation();       break;
-                case 6: scenarioFlightDelay();      break;
-                case 7: scenarioAutoNoShow();        break;
-            }
-        } catch (Exception ex) {
-            appendLog("❌ 오류: " + ex.getMessage());
-        }
-
-        refreshQueueDisplay();
-    }
-
-    /** 1. 정상 호출 */
-    private void scenarioNormalCall() {
-        appendLog("대기열에서 다음 고객을 호출합니다.");
-        try {
-            context.openCounter();
-            PickUpTicket current = context.getCurrentTicket();
-            if (current != null) {
-                appendLog("📢 호출: " + current.getMember().getName()
-                        + " (" + current.getAirplane().getFlightCode() + ")");
-            }
-        } catch (Exception ex) {
-            appendLog("호출 실패: " + ex.getMessage());
-        }
-    }
-
-    /** 2. 호출 후 미도착 */
-    private void scenarioCallNoArrival() {
-        PickUpTicket current = context.getCurrentTicket();
-        if (current == null) {
-            appendLog("현재 호출된 고객이 없습니다. 먼저 시나리오 1을 실행하세요.");
-            return;
-        }
-        appendLog("📢 " + current.getMember().getName() + " 고객 호출 중...");
-        appendLog("⏳ 고객이 카운터에 도착하지 않았습니다.");
-        appendLog("   (시나리오 3 '노쇼 처리'로 진행할 수 있습니다.)");
-    }
-
-    /** 3. 노쇼 처리 */
-    private void scenarioNoShow() {
-        PickUpTicket current = context.getCurrentTicket();
-        if (current == null) {
-            appendLog("현재 호출된 고객이 없습니다.");
-            return;
-        }
-        String name = current.getMember().getName();
-        appendLog("❌ " + name + " 고객 노쇼 처리");
-        appendLog("   대기열에서 제거하고 다음 고객을 호출합니다.");
-        context.pq.removeTicket(current);
-    }
-
-    /** 4. 우선 등급 입장 */
-    private void scenarioPriorityEntry() {
-        appendLog("🌟 프레스티지/블랙 등급 고객이 번호표를 뽑습니다.");
-        appendLog("   등급 가중치에 따라 BQ 내 우선 배치됩니다.");
-
-        // 데모용: 프레스티지 고객 추가
-        Member vip = new Member(999, "VIP고객", "V99999999", true, Grade.PRESTIGE);
-        Airplane ap = new Airplane(999, "KE999",
-                CurrentTime.curTime.plusHours(2));
-        PickUpTicket ticket = new PickUpTicket(vip, ap, context.pq.nextNum(), 999);
-        context.pq.enqueue(ticket);
-
-        appendLog("✅ VIP고객 (PRESTIGE) 추가 → BQ 상위 배치 확인");
-    }
-
-    /** 5. Starvation 방지 승급 */
-    private void scenarioStarvation() {
-        appendLog("⏰ 40분 이상 대기한 고객이 있는지 확인합니다.");
-        appendLog("   시간을 40분 전진시켜 에이징 효과를 확인합니다.");
-
-        for (int i = 0; i < 40; i++) {
-            context.pq.passTime();
-        }
-
-        appendLog("✅ 40분 경과. pop() 시 Starvation 대상이 최우선 호출됩니다.");
-    }
-
-    /** 6. 항공 지연 → 재정렬 */
-    private void scenarioFlightDelay() {
-        appendLog("✈️ 항공편 지연 시나리오를 실행합니다.");
-
-        List<PickUpTicket> allAq = context.pq.getAllFromAq();
-        List<PickUpTicket> allBq = context.pq.getAllFromBq();
-
-        PickUpTicket target = null;
-        if (!allAq.isEmpty()) target = allAq.get(0);
-        else if (!allBq.isEmpty()) target = allBq.get(0);
-
-        if (target == null) {
-            appendLog("대기열에 고객이 없습니다.");
-            return;
-        }
-
-        String flightCode = target.getAirplane().getFlightCode();
-        LocalDateTime oldTime = target.getAirplane().getDepartureAt();
-        LocalDateTime newTime = oldTime.plusHours(2);
-
-        appendLog("🔔 " + flightCode + "편 지연 감지: "
-                + oldTime.format(SHORT_FMT) + " → " + newTime.format(SHORT_FMT));
-
-        context.delayFlight(flightCode, newTime);
-        context.rescheduledPq();
-
-        appendLog("✅ 대기열이 재정렬되었습니다.");
-
-        // 지연 알림 팝업 (화면설계서: 상단 모달)
-        SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(this,
-                    "✈️ " + flightCode + "편 " +
-                            Duration.between(oldTime, newTime).toMinutes() + "분 지연 감지\n" +
-                            "— 픽업 큐가 재정렬되었습니다.",
-                    "항공편 지연 알림",
-                    JOptionPane.WARNING_MESSAGE);
-        });
-    }
-
-    /** 7. 노쇼 자동 처리 */
-    private void scenarioAutoNoShow() {
-        appendLog("🕐 출국시간 경과 주문을 자동 NO_SHOW 처리합니다.");
-
-        List<PickUpTicket> expired =
-                context.pq.getExpiredTickets(CurrentTime.curTime);
-
-        if (expired.isEmpty()) {
-            appendLog("   현재 출국시간이 경과한 대기자가 없습니다.");
-            appendLog("   시간을 3시간 전진시켜 경과 상황을 만듭니다.");
-
-            for (int i = 0; i < 180; i++) {
-                CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
-            }
-            expired = context.pq.getExpiredTickets(CurrentTime.curTime);
-        }
-
-        if (!expired.isEmpty()) {
-            for (PickUpTicket t : expired) {
-                appendLog("   ❌ " + t.getMember().getName()
-                        + " (" + t.getAirplane().getFlightCode() + ") → NO_SHOW");
-            }
-            context.pq.removeExpiredTickets(expired);
-            appendLog("✅ 총 " + expired.size() + "건 자동 노쇼 처리 완료");
-        } else {
-            appendLog("   처리할 항목이 없습니다.");
-        }
-    }
-
-    /* ═══════════════════ 시간 컨트롤 ═══════════════════ */
-
-    private void stepForward() {
-        if (context != null) {
-            context.pq.passTime(); // 내부에서 +1분 + promote
-        } else {
-            CurrentTime.curTime = CurrentTime.curTime.plusMinutes(1);
-        }
-        appendLog("⏩ +1분 → " + CurrentTime.curTime.format(SHORT_FMT));
-        refreshQueueDisplay();
-    }
-
-    private void stepBackward() {
-        CurrentTime.curTime = CurrentTime.curTime.minusMinutes(1);
-        appendLog("⏪ -1분 → " + CurrentTime.curTime.format(SHORT_FMT));
-        refreshQueueDisplay();
-    }
-
-    private void toggleAutoRun() {
-        if (isAutoRunning) {
-            stopAutoRun();
-        } else {
-            isAutoRunning = true;
-            appendLog("▶ 자동 실행 시작 (1초 간격)");
-            autoRunTimer = new Timer(1000, e -> {
-                stepForward();
-            });
-            autoRunTimer.start();
-        }
-    }
-
-    private void stopAutoRun() {
-        isAutoRunning = false;
-        if (autoRunTimer != null) {
-            autoRunTimer.stop();
-            autoRunTimer = null;
-        }
-        appendLog("⏸ 자동 실행 중단");
-    }
-
-    /* ═══════════════════ 키보드 바인딩 ═══════════════════ */
-
+    /* ================================================================
+     *  키 바인딩  (Space → Right Arrow 로 변경)
+     * ================================================================ */
     private void bindKeys() {
-        InputMap im  = getInputMap(WHEN_IN_FOCUSED_WINDOW);
+        InputMap im = getInputMap(WHEN_IN_FOCUSED_WINDOW);
         ActionMap am = getActionMap();
 
-        // 오른쪽키 → +1분
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, 0), "stepFwd");
-        am.put("stepFwd", new AbstractAction() {
+        // → : 시간 +1분
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "stepForward");
+        am.put("stepForward", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { stepForward(); }
         });
 
-        // 왼쪽키 → -1분
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, 0), "stepBack");
-        am.put("stepBack", new AbstractAction() {
+        // ← : 시간 -1분
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "stepBackward");
+        am.put("stepBackward", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { stepBackward(); }
         });
 
-        // Enter → 자동 실행 토글
+        // Enter : 자동 실행
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "autoRun");
         am.put("autoRun", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { toggleAutoRun(); }
         });
 
-        // ESC → 자동 실행 중단 + 이전 화면
+        // ESC : 중단 / 복귀
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "escape");
         am.put("escape", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) {
-                if (isAutoRunning) {
-                    stopAutoRun();
-                } else {
-                    screenManager.show("PICKUP_MAIN");
-                }
+                if (autoRunning) { stopAutoRun(); }
+                else { goBack(); }
             }
         });
     }
 
-    /* ═══════════════════ 유틸 ═══════════════════ */
+    /* ================================================================
+     *  시간 조작
+     * ================================================================ */
 
-    private void updateClock() {
-        clockLabel.setText(CurrentTime.curTime.format(TIME_FMT));
+    private void stepForward() {
+        context.passTime();   // ★ 타임아웃 + 노쇼 + promote 모두 포함
+        flushContextLog();
+        refreshQueueDisplay();
+        updateClock();
     }
 
+    private void stepBackward() {
+        CurrentTime.curTime = CurrentTime.curTime.minusMinutes(1);
+        appendLog("⏪ " + CurrentTime.curTime.toLocalTime() + " (1분 후진)");
+        refreshQueueDisplay();
+        updateClock();
+    }
+
+    private void toggleAutoRun() {
+        if (autoRunning) {
+            stopAutoRun();
+        } else {
+            autoRunning = true;
+            appendLog("▶ 자동 실행 시작");
+            autoTimer = new Timer(500, e -> {
+                stepForward();
+                // 큐가 비고 호출 중인 고객도 없으면 자동 정지
+                if (context.pq.size() == 0 && context.getCurrentTicket() == null) {
+                    stopAutoRun();
+                    appendLog("■ 자동 실행 완료 (대기열 소진)");
+                }
+            });
+            autoTimer.start();
+        }
+    }
+
+    private void stopAutoRun() {
+        autoRunning = false;
+        if (autoTimer != null) {
+            autoTimer.stop();
+            autoTimer = null;
+        }
+        appendLog("■ 자동 실행 중단");
+    }
+
+    /* ================================================================
+     *  시나리오 실행
+     * ================================================================ */
+
+    private void runScenario(int num) {
+        if (autoRunning) stopAutoRun();
+
+        context.loadScenario(num);
+
+        appendLog("\n═══════════════════════════════════");
+        appendLog("   시나리오 " + num + " 실행");
+        appendLog("═══════════════════════════════════");
+
+        flushContextLog();
+
+        try {
+            switch (num) {
+                case 1: scenarioNormalCall();      break;
+                case 2: scenarioCallNoArrival();   break;
+                case 3: scenarioNoShow();          break;
+                case 4: scenarioPriorityEntry();   break;
+                case 5: scenarioStarvation();      break;
+                case 6: scenarioFlightDelay();     break;
+                case 7: scenarioAutoNoShow();      break;
+            }
+        } catch (Exception ex) {
+            appendLog("❌ 오류: " + ex.getMessage());
+        }
+
+        flushContextLog();
+        refreshQueueDisplay();
+    }
+
+    private void scenarioNormalCall() {
+        appendLog("대기열에서 다음 고객을 호출합니다.");
+        context.openCounter();
+        flushContextLog();
+
+        PickUpTicket current = context.getCurrentTicket();
+        if (current != null) {
+            appendLog("  호출: " + current.getMember().getName()
+                    + " (" + current.getAirplane().getFlightCode() + ")");
+        }
+    }
+
+    private void scenarioCallNoArrival() {
+        // loadScenario에서 이미 openCounter()까지 실행됨
+        PickUpTicket current = context.getCurrentTicket();
+        if (current != null) {
+            appendLog("📢 호출된 고객: " + current.getMember().getName());
+            appendLog("   → 고객이 아직 도착하지 않았습니다.");
+            appendLog("   → 시간을 전진(→)시키면 타임아웃이 작동합니다.");
+            appendLog("   (기본 " + 10 + "분, 다음 대기자 출국 임박 시 5분으로 단축)");
+        }
+    }
+
+    private void scenarioNoShow() {
+        PickUpTicket current = context.getCurrentTicket();
+        if (current != null) {
+            String name = current.getMember().getName();
+            appendLog("📢 호출된 고객: " + name);
+            appendLog("   → 노쇼(No-Show) 처리합니다.");
+            context.processNoShow(current);
+            context.pq.removeTicket(current);
+            context.clearCurrentTicket();
+            flushContextLog();
+            appendLog("   ✅ " + name + " 고객 대기열에서 제거 완료");
+        }
+    }
+
+    private void scenarioPriorityEntry() {
+        appendLog("현재 대기열 (SILVER, GOLD 위주)을 확인하세요.");
+        appendLog("프레스티지 고객을 추가합니다...");
+
+        LocalDateTime now = CurrentTime.curTime;
+        member.Member vip = new member.Member(999, "VIP고객", "M99999999", true, Grade.PRESTIGE);
+        airplane.Airplane vipFlight = new airplane.Airplane(999, "KE777", now.plusHours(1));
+        PickUpTicket vipTicket = new PickUpTicket(vip, vipFlight, context.pq.nextNum(), 0);
+        context.pq.enqueue(vipTicket);
+
+        appendLog("   ✅ [VIP고객] PRESTIGE 등급 추가 → BQ 최상위 확인!");
+    }
+
+    private void scenarioStarvation() {
+        appendLog("40분을 전진시켜 에이징(Starvation) 효과를 확인합니다...");
+        for (int i = 0; i < 40; i++) {
+            context.passTime();
+        }
+        flushContextLog();
+        appendLog("   → 40분 경과 후 pop() 시 에이징 대상자가 최우선 호출됩니다.");
+        appendLog("   → '정상 호출' 시나리오를 실행하거나 → 키로 확인하세요.");
+    }
+
+    private void scenarioFlightDelay() {
+        appendLog("KE081 항공편을 3시간 지연시킵니다...");
+        LocalDateTime newTime = CurrentTime.curTime.plusHours(4);
+        context.delayFlight("KE081", newTime);
+        flushContextLog();
+
+        appendLog("대기열을 재정렬합니다...");
+        context.rescheduledPq();
+        flushContextLog();
+
+        appendLog("   → KE081(김민준)의 우선순위가 변경된 것을 확인하세요.");
+    }
+
+    private void scenarioAutoNoShow() {
+        appendLog("출국 시간이 경과한 티켓을 자동 NO_SHOW 처리합니다...");
+
+        List<PickUpTicket> expired = context.pq.getExpiredTickets(CurrentTime.curTime);
+        if (expired.isEmpty()) {
+            appendLog("   → 현재 출국 경과 티켓 없음. 시간을 전진시키세요.");
+        } else {
+            for (PickUpTicket t : expired) {
+                context.processNoShow(t);
+            }
+            context.pq.removeExpiredTickets(expired);
+            flushContextLog();
+            appendLog("   ✅ " + expired.size() + "건 NO_SHOW 처리 완료");
+        }
+    }
+
+    /* ================================================================
+     *  호출된 티켓 클릭 → 물품 인도 (processPickUp)
+     * ================================================================ */
+    private void onCalledTicketClicked() {
+        if (context.getCurrentTicket() == null) return;
+        context.processPickUp();
+        flushContextLog();
+        refreshQueueDisplay();
+    }
+
+    /* ================================================================
+     *  화면 갱신
+     * ================================================================ */
+
+    private void refreshQueueDisplay() {
+        // ── 호출된 고객 표시 ──
+        PickUpTicket called = context.getCurrentTicket();
+        if (called != null) {
+            String name = called.getMember().getName();
+            Grade grade = called.getMember().getGrade();
+            String flight = called.getAirplane().getFlightCode();
+            String depTime = called.getAirplane().getDepartureAt().format(SHORT_TIME);
+
+            long waitMin = Duration.between(called.getTicketIssueTime(), CurrentTime.curTime)
+                    .toMinutes();
+
+            calledButton.setText("  [" + name + "]  " + grade.name() + "  |  " + flight
+                    + "  출국 " + depTime + "  |  대기 " + waitMin + "분  — 클릭: 물품 전달");
+            calledButton.setBackground(CALLED_BTN);
+            calledButton.setForeground(Color.WHITE);
+            calledButton.setEnabled(true);
+            calledPanel.setBackground(CALLED_BG);
+
+            // 호출 후 대기 시간 표시
+            if (context.getCallTime() != null) {
+                long callWait = Duration.between(context.getCallTime(), CurrentTime.curTime).toMinutes();
+                calledButton.setToolTipText("호출 후 " + callWait + "분 경과 (타임아웃: 10분)");
+            }
+        } else {
+            calledButton.setText("  대기 중... (시나리오를 실행하세요)");
+            calledButton.setBackground(new Color(0xE2E8F0));
+            calledButton.setForeground(TEXT_SUB);
+            calledButton.setEnabled(false);
+            calledPanel.setBackground(new Color(0xF8FAFC));
+        }
+
+        // ── AQ 카드 ──
+        aqCardContainer.removeAll();
+        List<PickUpTicket> aqList = context.pq.getAllFromAq();
+        aqList.sort(Comparator.comparing((PickUpTicket t) -> t.getAirplane().getDepartureAt())
+                .thenComparingInt(PickUpTicket::getTicketNum));
+        aqCountLabel.setText("AQ: " + aqList.size() + "명");
+
+        int rank = 1;
+        for (PickUpTicket t : aqList) {
+            aqCardContainer.add(createTicketCard(t, rank++, true));
+            aqCardContainer.add(Box.createVerticalStrut(2));
+        }
+
+        // ── BQ 카드 ──
+        bqCardContainer.removeAll();
+        List<PickUpTicket> bqList = context.pq.getAllFromBq();
+        bqList.sort(Comparator.comparingInt((PickUpTicket t) -> t.getMember().getGrade().getPriority())
+                .thenComparingInt(PickUpTicket::getTicketNum));
+        bqCountLabel.setText("BQ: " + bqList.size() + "명");
+
+        rank = 1;
+        for (PickUpTicket t : bqList) {
+            bqCardContainer.add(createTicketCard(t, rank++, false));
+            bqCardContainer.add(Box.createVerticalStrut(2));
+        }
+
+        // ── 주문 목록 (좌측) ──
+        refreshOrderList();
+
+        // 리페인트
+        aqCardContainer.revalidate();
+        aqCardContainer.repaint();
+        bqCardContainer.revalidate();
+        bqCardContainer.repaint();
+        calledPanel.revalidate();
+        calledPanel.repaint();
+
+        updateClock();
+    }
+
+    /* ── 티켓 카드 생성 (등급별 색상 적용) ── */
+    private JPanel createTicketCard(PickUpTicket t, int rank, boolean isAq) {
+        Grade grade = t.getMember().getGrade();
+        Color gradeBg = getGradeBackground(grade);
+        Color gradeFg = getGradeForeground(grade);
+
+        JPanel card = new JPanel(new BorderLayout(8, 0));
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, gradeBg),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        // 순번
+        JLabel rankLabel = new JLabel("[" + rank + "]");
+        rankLabel.setFont(new Font("D2Coding", Font.BOLD, 12));
+        rankLabel.setForeground(TEXT_SUB);
+        rankLabel.setPreferredSize(new Dimension(30, 20));
+        card.add(rankLabel, BorderLayout.WEST);
+
+        // 정보
+        String name = t.getMember().getName();
+        String flight = t.getAirplane().getFlightCode();
+        String depTime = t.getAirplane().getDepartureAt().format(SHORT_TIME);
+        long minsLeft = Duration.between(CurrentTime.curTime, t.getAirplane().getDepartureAt())
+                .toMinutes();
+        long waitMin = Duration.between(t.getTicketIssueTime(), CurrentTime.curTime).toMinutes();
+
+        String info = name + "  ";
+
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        infoPanel.setBackground(CARD_BG);
+
+        // 이름
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+        infoPanel.add(nameLabel);
+
+        // 등급 칩
+        JLabel gradeChip = new JLabel(" " + grade.name() + " ");
+        gradeChip.setFont(new Font("D2Coding", Font.BOLD, 10));
+        gradeChip.setOpaque(true);
+        gradeChip.setBackground(gradeBg);
+        gradeChip.setForeground(gradeFg);
+        gradeChip.setBorder(new EmptyBorder(1, 4, 1, 4));
+        infoPanel.add(gradeChip);
+
+        // 항공편
+        JLabel flightLabel = new JLabel(flight);
+        flightLabel.setFont(new Font("D2Coding", Font.PLAIN, 11));
+        flightLabel.setForeground(TEXT_SUB);
+        infoPanel.add(flightLabel);
+
+        // 출국 시간
+        String timeStr = "출국 " + depTime + " (";
+        if (minsLeft > 0) timeStr += "+" + minsLeft + "분)";
+        else timeStr += minsLeft + "분)";
+
+        JLabel timeLabel = new JLabel(timeStr);
+        timeLabel.setFont(new Font("D2Coding", Font.PLAIN, 11));
+        timeLabel.setForeground(minsLeft <= 30 ? AQ_BORDER : TEXT_SUB);
+        infoPanel.add(timeLabel);
+
+        card.add(infoPanel, BorderLayout.CENTER);
+
+        // 대기 시간
+        JLabel waitLabel = new JLabel("대기 " + waitMin + "분");
+        waitLabel.setFont(new Font("D2Coding", Font.PLAIN, 11));
+        if (waitMin >= 40) {
+            waitLabel.setForeground(new Color(0xDC2626));
+            waitLabel.setText("⚠ " + waitMin + "분");
+        } else {
+            waitLabel.setForeground(TEXT_SUB);
+        }
+        card.add(waitLabel, BorderLayout.EAST);
+
+        return card;
+    }
+
+    /* ── 주문 목록 갱신 ── */
+    private void refreshOrderList() {
+        orderListPanel.removeAll();
+
+        // AQ + BQ + 호출 중인 티켓 전부 모으기
+        java.util.List<PickUpTicket> all = new java.util.ArrayList<>();
+        if (context.getCurrentTicket() != null) {
+            all.add(context.getCurrentTicket());
+        }
+        all.addAll(context.pq.getAllFromAq());
+        all.addAll(context.pq.getAllFromBq());
+
+        // 출국 시간 순 정렬
+        all.sort(Comparator.comparing(t -> t.getAirplane().getDepartureAt()));
+
+        LocalDateTime now = CurrentTime.curTime;
+        boolean lineDrawn = false;
+
+        for (PickUpTicket t : all) {
+            LocalDateTime dep = t.getAirplane().getDepartureAt();
+
+            // 현재 시각 기준선
+            if (!lineDrawn && dep.isAfter(now)) {
+                orderListPanel.add(createTimeLine());
+                lineDrawn = true;
+            }
+
+            orderListPanel.add(createOrderRow(t, t == context.getCurrentTicket()));
+        }
+        if (!lineDrawn) {
+            orderListPanel.add(createTimeLine());
+        }
+
+        orderListPanel.revalidate();
+        orderListPanel.repaint();
+    }
+
+    private JPanel createTimeLine() {
+        JPanel line = new JPanel(new BorderLayout());
+        line.setBackground(CARD_BG);
+        line.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+
+        JLabel lbl = new JLabel("── 현재 " + CurrentTime.curTime.format(SHORT_TIME) + " ──");
+        lbl.setFont(new Font("D2Coding", Font.BOLD, 11));
+        lbl.setForeground(AQ_BORDER);
+        lbl.setHorizontalAlignment(SwingConstants.CENTER);
+        line.add(lbl);
+        return line;
+    }
+
+    private JPanel createOrderRow(PickUpTicket t, boolean isCalled) {
+        Grade grade = t.getMember().getGrade();
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+
+        if (isCalled) {
+            row.setBackground(CALLED_BG);
+        } else if (CurrentTime.curTime.isAfter(t.getAirplane().getDepartureAt())) {
+            row.setBackground(NOSHOW_BG);
+        } else {
+            row.setBackground(CARD_BG);
+        }
+
+        String depTime = t.getAirplane().getDepartureAt().format(SHORT_TIME);
+        String status = isCalled ? "호출중"
+                : CurrentTime.curTime.isAfter(t.getAirplane().getDepartureAt()) ? "NO_SHOW"
+                : "PICKUP_RESERVED";
+
+        JLabel timeLbl = new JLabel(depTime);
+        timeLbl.setFont(new Font("D2Coding", Font.BOLD, 11));
+        row.add(timeLbl);
+
+        JLabel nameLbl = new JLabel(t.getMember().getName());
+        nameLbl.setFont(new Font("맑은 고딕", Font.PLAIN, 11));
+        row.add(nameLbl);
+
+        JLabel flightLbl = new JLabel(t.getAirplane().getFlightCode());
+        flightLbl.setFont(new Font("D2Coding", Font.PLAIN, 10));
+        flightLbl.setForeground(TEXT_SUB);
+        row.add(flightLbl);
+
+        // 등급 칩 (작은 버전)
+        JLabel chip = new JLabel(grade.name());
+        chip.setFont(new Font("D2Coding", Font.BOLD, 9));
+        chip.setOpaque(true);
+        chip.setBackground(getGradeBackground(grade));
+        chip.setForeground(getGradeForeground(grade));
+        chip.setBorder(new EmptyBorder(0, 3, 0, 3));
+        row.add(chip);
+
+        JLabel statusLbl = new JLabel(status);
+        statusLbl.setFont(new Font("D2Coding", Font.PLAIN, 9));
+        statusLbl.setForeground(
+                "NO_SHOW".equals(status) ? AQ_BORDER :
+                "호출중".equals(status) ? CALLED_BTN : TEXT_SUB
+        );
+        row.add(statusLbl);
+
+        return row;
+    }
+
+    /* ── 등급별 색상 유틸 ── */
+    private Color getGradeBackground(Grade grade) {
+        switch (grade) {
+            case PRESTIGE: return PRESTIGE_BG;
+            case BLACK:    return BLACK_BG;
+            case GOLD:     return GOLD_BG;
+            case SILVER:   return SILVER_BG;
+            default:       return SILVER_BG;
+        }
+    }
+
+    private Color getGradeForeground(Grade grade) {
+        switch (grade) {
+            case PRESTIGE: return PRESTIGE_FG;
+            case BLACK:    return BLACK_FG;
+            case GOLD:     return GOLD_FG;
+            case SILVER:   return SILVER_FG;
+            default:       return SILVER_FG;
+        }
+    }
+
+    /* ================================================================
+     *  로그 관리
+     * ================================================================ */
     private void appendLog(String msg) {
         logArea.append(msg + "\n");
         logArea.setCaretPosition(logArea.getDocument().getLength());
     }
 
-    private JButton scenarioButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("맑은 고딕", Font.BOLD, 12));
-        btn.setForeground(new Color(0x1E293B));
-        btn.setBackground(Color.WHITE);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(new Color(0xD1D5DB)),
-                new EmptyBorder(6, 10, 6, 10)
-        ));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
-
-        btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(0xEFF6FF));
-            }
-            @Override public void mouseExited(MouseEvent e) {
-                btn.setBackground(Color.WHITE);
-            }
-        });
-
-        return btn;
-    }
-
-    private JLabel hintLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("D2Coding", Font.PLAIN, 12));
-        lbl.setForeground(new Color(0x92400E));
-        return lbl;
-    }
-
-    /* ═══════════════════ 셀 렌더러 ═══════════════════ */
-
-    /** 주문 목록용 렌더러 */
-    private static class OrderCellRenderer extends DefaultListCellRenderer {
-        @Override
-        public Component getListCellRendererComponent(
-                JList<?> list, Object value, int idx, boolean sel, boolean foc) {
-            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, idx, sel, foc);
-            String text = value.toString();
-
-            if (text.startsWith("────")) {
-                lbl.setFont(new Font("D2Coding", Font.BOLD, 12));
-                lbl.setForeground(AQ_COLOR);
-                lbl.setBackground(new Color(0xFEF2F2));
-                lbl.setOpaque(true);
-            } else if (text.contains("NO_SHOW")) {
-                lbl.setForeground(new Color(0x9CA3AF));
-                lbl.setFont(new Font("D2Coding", Font.ITALIC, 11));
-            } else if (text.startsWith("▶")) {
-                lbl.setForeground(SUCCESS);
-                lbl.setFont(new Font("D2Coding", Font.BOLD, 12));
-            }
-
-            return lbl;
+    /** SimulationContext 내부 로그를 패널 로그로 옮김 */
+    private void flushContextLog() {
+        for (String msg : context.drainLog()) {
+            appendLog("  " + msg);
         }
     }
 
-    /** 큐 카드용 렌더러 */
-    private static class QueueCellRenderer extends DefaultListCellRenderer {
-        private final Color accent;
-
-        QueueCellRenderer(Color accent) {
-            this.accent = accent;
-        }
-
-        @Override
-        public Component getListCellRendererComponent(
-                JList<?> list, Object value, int idx, boolean sel, boolean foc) {
-            JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, idx, sel, foc);
-            lbl.setFont(new Font("D2Coding", Font.PLAIN, 12));
-
-            String text = value.toString();
-
-            if (text.contains("⚠️STARV")) {
-                lbl.setBackground(new Color(0xFEF3C7));
-                lbl.setOpaque(true);
-            } else if (text.contains("🔺승급대상")) {
-                lbl.setBackground(new Color(0xFEE2E2));
-                lbl.setOpaque(true);
-            }
-
-            if (idx == 0) {
-                lbl.setForeground(accent);
-                lbl.setFont(new Font("D2Coding", Font.BOLD, 13));
-            }
-
-            return lbl;
-        }
+    /* ================================================================
+     *  네비게이션
+     * ================================================================ */
+    private void goBack() {
+        if (autoRunning) stopAutoRun();
+        screenManager.show("PICKUP_MAIN");
     }
-
-    /* ═══════════════════ Refreshable ═══════════════════ */
 
     @Override
     public void refresh() {
-        logArea.setText("");
-        appendLog("시뮬레이션 화면 진입 — " + CurrentTime.curTime.format(TIME_FMT));
+        if (autoRunning) stopAutoRun();
         refreshQueueDisplay();
+        updateClock();
     }
 }
