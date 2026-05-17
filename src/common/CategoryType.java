@@ -2,7 +2,7 @@ package common;
 
 public enum CategoryType {
     ALCOHOL,
-    COSMETICS,
+    PERFUME,
     ELECTRONICS,
     GENERAL,
     FOOD;

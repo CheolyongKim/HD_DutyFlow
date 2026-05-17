@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderUpdateDTO {
 	private int orderId;
-	private String newState; // DB에 들어갈 값 (예: "PICKED_UP")
+	private String newState;
 }
