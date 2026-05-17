@@ -89,7 +89,7 @@ public class DutyFlowSystemTest {
 
 		try {
 
-			system.login("testuser01", "1234");
+			system.login("user01", "pass01");
 
 			System.out.println("로그인 성공");
 
