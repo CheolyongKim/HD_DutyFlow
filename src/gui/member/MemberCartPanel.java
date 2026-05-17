@@ -327,62 +327,110 @@ public class MemberCartPanel extends JPanel implements Refreshable {
         }
     }
 
-    private void order() {
-        try {
-            String cardNumber = JOptionPane.showInputDialog(
-                    this,
-                    "카드번호를 입력하세요.\n예: 4111-1111-1111-1111",
-                    "카드 결제",
-                    JOptionPane.PLAIN_MESSAGE
-            );
+	private void order() {
+	    String cardNumber = JOptionPane.showInputDialog(
+	            this,
+	            "카드번호를 입력하세요.\n예: 4111-1111-1111-1111",
+	            "카드 결제",
+	            JOptionPane.PLAIN_MESSAGE
+	    );
+	
+	    if (cardNumber == null) {
+	        return;
+	    }
+	
+	    cardNumber = cardNumber.trim();
+	
+	    if (cardNumber.isEmpty()) {
+	        JOptionPane.showMessageDialog(
+	                this,
+	                "카드번호를 입력해주세요.",
+	                "알림",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+	    }
+	
+	    showPaymentLoading(cardNumber);
+	}
+	
+	private void showPaymentLoading(String cardNumber) {
+	    JDialog loadingDialog = new JDialog(
+	            SwingUtilities.getWindowAncestor(this),
+	            "결제 진행 중",
+	            Dialog.ModalityType.APPLICATION_MODAL
+	    );
 
-            if (cardNumber == null) {
-                return;
-            }
+	    JPanel panel = new JPanel(new BorderLayout(15, 15));
+	    panel.setBorder(new EmptyBorder(30, 40, 30, 40));
+	    panel.setBackground(Color.WHITE);
 
-            cardNumber = cardNumber.trim();
+	    JLabel messageLabel = new JLabel("결제 처리 중입니다...", SwingConstants.CENTER);
+	    messageLabel.setFont(new Font("맑은 고딕", Font.BOLD, 18));
 
-            if (cardNumber.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "카드번호를 입력해주세요.",
-                        "알림",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
+	    JLabel subMessageLabel = new JLabel("잠시만 기다려주세요.", SwingConstants.CENTER);
+	    subMessageLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
+	    subMessageLabel.setForeground(Color.GRAY);
 
-            int orderId = screenManager.getDutyFlowSystem().makeOrder(cardNumber);
+	    JProgressBar progressBar = new JProgressBar();
+	    progressBar.setIndeterminate(true);
 
-            screenManager.getDutyFlowSystem().processOrderQueue();
+	    panel.add(messageLabel, BorderLayout.NORTH);
+	    panel.add(progressBar, BorderLayout.CENTER);
+	    panel.add(subMessageLabel, BorderLayout.SOUTH);
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    "주문 처리가 완료되었습니다.\n주문번호: " + orderId,
-                    "주문 완료",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+	    loadingDialog.setContentPane(panel);
+	    loadingDialog.setSize(350, 180);
+	    loadingDialog.setLocationRelativeTo(this);
+	    loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 
-            screenManager.show("MEMBER_ORDER_HISTORY");
+	    Timer timer = new Timer(2000, e -> {
+	        loadingDialog.dispose();
+	        processOrderAfterPaymentLoading(cardNumber);
+	        ((Timer) e.getSource()).stop();
+	    });
 
-        } catch (DutyFreeException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    e.getErrorCode().getMessage(),
-                    "알림",
-                    JOptionPane.WARNING_MESSAGE
-            );
+	    timer.setRepeats(false);
+	    timer.start();
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "주문 처리 중 오류가 발생했습니다.",
-                    "오류",
-                    JOptionPane.ERROR_MESSAGE
-            );
-            e.printStackTrace();
-        }
-    }
+	    loadingDialog.setVisible(true);
+	}
+	
+	private void processOrderAfterPaymentLoading(String cardNumber) {
+	    try {
+	        int orderId = screenManager.getDutyFlowSystem()
+	                .makeOrder(cardNumber);
+
+	        screenManager.getDutyFlowSystem()
+	                .processOrderQueue();
+
+	        JOptionPane.showMessageDialog(
+	                this,
+	                "주문 처리가 완료되었습니다.\n주문번호: " + orderId,
+	                "주문 완료",
+	                JOptionPane.INFORMATION_MESSAGE
+	        );
+
+	        screenManager.show("MEMBER_ORDER_HISTORY");
+
+	    } catch (DutyFreeException e) {
+	        JOptionPane.showMessageDialog(
+	                this,
+	                e.getErrorCode().getMessage(),
+	                "알림",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+
+	    } catch (Exception e) {
+	        JOptionPane.showMessageDialog(
+	                this,
+	                "주문 처리 중 오류가 발생했습니다.",
+	                "오류",
+	                JOptionPane.ERROR_MESSAGE
+	        );
+	        e.printStackTrace();
+	    }
+	}
 
     @Override
     public void refresh() {
