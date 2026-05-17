@@ -36,7 +36,6 @@ public class DutyFlowSystem {
 	
 	private Queue<Order> orderQueue = new LinkedList<>();
 	private List<BrandSystem> brandList;
-	public String cardNumber = "4111-1111-1111-1111"; // 추후 Swing 입력 값
 
 	// private TaxCalculator taxCalculator;
 
@@ -225,7 +224,7 @@ public class DutyFlowSystem {
 	    while (!orderQueue.isEmpty()) {
 	        try {
 	            Order order = orderQueue.poll();
-	            processOrder(order.getOrderId());
+	            processOrder(order.getOrderId(), order.getCardNumber());
 	        } catch (Exception e) {
 	            e.printStackTrace();
 	            break; // 👈 에러 나면 다음 루프 돌지 말고 즉시 멈추기!
@@ -247,7 +246,7 @@ public class DutyFlowSystem {
 		return orderService.getOrdersByOrderId(orderId);
 	}
 
-	private void processOrder(int orderId) {
+	private void processOrder(int orderId, String cardNumber) {
 	    int reservationId;
 	    List<OrderDTO> orderDetails;
 
@@ -362,7 +361,7 @@ public class DutyFlowSystem {
 	    this.brandList = brandList;
 	}
 	
-	public int makeOrder() {
+	public int makeOrder(String cardNumber) {
 	    int memberId = getLoginMemberId();
 
 	    TotalCartDTO totalCart = shoppingCartService.getCart(memberId);
@@ -384,7 +383,7 @@ public class DutyFlowSystem {
 	            totalCart.getItems()
 	    );
 
-	    Order order = new Order();
+	    Order order = new Order(cardNumber);
 	    order.setOrderId(orderId);
 	    order.setMemberId(memberId);
 	    order.setReservationId(reservationId);

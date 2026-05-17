@@ -329,7 +329,30 @@ public class MemberCartPanel extends JPanel implements Refreshable {
 
     private void order() {
         try {
-            int orderId = screenManager.getDutyFlowSystem().makeOrder();
+            String cardNumber = JOptionPane.showInputDialog(
+                    this,
+                    "카드번호를 입력하세요.\n예: 4111-1111-1111-1111",
+                    "카드 결제",
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (cardNumber == null) {
+                return;
+            }
+
+            cardNumber = cardNumber.trim();
+
+            if (cardNumber.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "카드번호를 입력해주세요.",
+                        "알림",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            int orderId = screenManager.getDutyFlowSystem().makeOrder(cardNumber);
 
             screenManager.getDutyFlowSystem().processOrderQueue();
 
