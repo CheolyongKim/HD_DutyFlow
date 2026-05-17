@@ -65,6 +65,7 @@ public class DutyFlowSystem {
 		paymentWorkerThread = new Thread(paymentWorker);
 		paymentWorkerThread.start();
 	}
+	
 
 	// PaymentWorker 종료
 	// DutyFlowSystem 종료 시 Worker도 함께 종료
@@ -393,5 +394,14 @@ public class DutyFlowSystem {
 	    deleteFromCart();
 
 	    return orderId;
+	}
+	public String getMyGradeName() {
+	    Member member = memberService.getMemberById(getLoginMemberId());
+
+	    if (member == null) {
+	        throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+	    }
+
+	    return member.getGrade().name();
 	}
 }
