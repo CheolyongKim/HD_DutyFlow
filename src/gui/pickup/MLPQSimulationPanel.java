@@ -509,7 +509,7 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
             left.setOpaque(false);
             left.add(lbl(ti.airplane.getDepartureAt().format(SF), "D2Coding", Font.BOLD, 12, TD));
             left.add(lbl(ti.member.getName(), "맑은 고딕", Font.BOLD, 12, TD));
-            left.add(gradeChip(ti.member.getGrade(), 10));
+            //left.add(gradeChip(ti.member.getGrade(), 10));
             row.add(left, BorderLayout.WEST);
 
             // 오른쪽: 상태
