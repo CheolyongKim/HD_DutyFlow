@@ -2,409 +2,569 @@ package pickup;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import airplane.Airplane;
 import common.CurrentTime;
 import common.Grade;
 import member.Member;
 
-/**
- * MLPQ 시뮬레이션 전용 컨텍스트.
- * PickUpSystem이 제공하는 모든 큐 조작·타임아웃·노쇼 로직을
- * DB 의존성 없이 순수 Java로 재구현한다.
- *
- * <p>새로 만드는 파일: 이 파일 1개
- * <p>수정하는 파일: MLPQSimulationPanel.java 1개
- */
 public class SimulationContext {
 
-    /* ── 핵심 데이터 ── */
+    // ── 기준 시각 (시나리오 시작 시 복원) ──
+    public static final LocalDateTime BASE_TIME = LocalDateTime.of(2026, 5, 1, 9, 30, 0);
+
+    // ── 티켓 정보 ──
+    public static class TicketInfo {
+        public final Member member;
+        public final Airplane airplane;
+        public final LocalDateTime issueAt;
+        public boolean issued = false;
+        public PickUpTicket ticket;
+        public String status = "WAITING"; // WAITING→PICKUP_RESERVED→CALLED→PICKED_UP/NO_SHOW/TIMEOUT
+
+        public TicketInfo(Member m, Airplane a, LocalDateTime issueAt) {
+            this.member = m; this.airplane = a; this.issueAt = issueAt;
+        }
+    }
+
+    // ── 스냅샷 (언두용) ──
+    private static class Snapshot {
+        LocalDateTime time;
+        int calledTIIdx;        // -1 if none
+        LocalDateTime callTime;
+        boolean counterOpen, calledFromAq;
+        boolean[] issued;
+        String[] statuses;
+        PickUpTicket[] tickets;
+        LocalDateTime[] departures;
+    }
+
+    // ── 핵심 데이터 ──
     public MLPQ pq;
     private PickUpTicket currentTicket;
-    private LocalDateTime callTime;       // 고객 호출 시각
+    private LocalDateTime callTime;
     private boolean isCounterOpen = false;
+    private boolean calledFromAq = false;
+    private boolean pickupInProgress = false;
+    private static final int CALL_TIMEOUT_LIMIT = 10;
 
-    /* ── 타임아웃 상수 (PickUpSystem과 동일) ── */
-    private static final int CALL_TIMEOUT_LIMIT = 10;  // 기본 10분
-
-    /* ── 가상 데이터 저장소 ── */
-    private List<Member> members = new ArrayList<>();
-    private List<Airplane> flights = new ArrayList<>();
-
-    /* ── 이벤트 로그 (패널에서 표시) ── */
+    // ── 시나리오 ──
+    private List<TicketInfo> ticketInfos = new ArrayList<>();
     private final List<String> eventLog = new ArrayList<>();
+    private final List<String> promotionAlerts = new ArrayList<>();
+    private final Deque<Snapshot> undoStack = new ArrayDeque<>();
 
-    /* ================================================================
-     *  생성자
-     * ================================================================ */
     public SimulationContext() {
         this.pq = new MLPQ();
         this.pq.makeMLPQ(new DepartureSoonSortStrategy(), new PrioritySortStrategy());
     }
 
-    /* ================================================================
+    /* ============================================================
+     *  스냅샷 저장/복원
+     * ============================================================ */
+    private Snapshot createSnapshot() {
+        Snapshot s = new Snapshot();
+        s.time = CurrentTime.curTime;
+        s.calledTIIdx = findTIIndex(currentTicket);
+        s.callTime = callTime;
+        s.counterOpen = isCounterOpen;
+        s.calledFromAq = calledFromAq;
+        int n = ticketInfos.size();
+        s.issued = new boolean[n];
+        s.statuses = new String[n];
+        s.tickets = new PickUpTicket[n];
+        s.departures = new LocalDateTime[n];
+        for (int i = 0; i < n; i++) {
+            TicketInfo ti = ticketInfos.get(i);
+            s.issued[i] = ti.issued;
+            s.statuses[i] = ti.status;
+            s.tickets[i] = ti.ticket;
+            s.departures[i] = ti.airplane.getDepartureAt();
+        }
+        return s;
+    }
+
+    private void restoreSnapshot(Snapshot s) {
+        CurrentTime.curTime = s.time;
+        isCounterOpen = s.counterOpen;
+        calledFromAq = s.calledFromAq;
+        callTime = s.callTime;
+
+        for (int i = 0; i < ticketInfos.size(); i++) {
+            TicketInfo ti = ticketInfos.get(i);
+            ti.issued = s.issued[i];
+            ti.status = s.statuses[i];
+            ti.ticket = s.tickets[i];
+            ti.airplane.setDepartureAt(s.departures[i]);
+        }
+
+        currentTicket = (s.calledTIIdx >= 0) ? ticketInfos.get(s.calledTIIdx).ticket : null;
+
+        // 큐 재구성
+        pq.clearAll();
+        for (int i = 0; i < ticketInfos.size(); i++) {
+            TicketInfo ti = ticketInfos.get(i);
+            if (ti.issued && ti.ticket != null
+                    && !"PICKED_UP".equals(ti.status) && !"NO_SHOW".equals(ti.status)
+                    && !"TIMEOUT".equals(ti.status) && !"CALLED".equals(ti.status)) {
+                pq.enqueue(ti.ticket);
+            }
+        }
+    }
+
+    public boolean canUndo() { return !undoStack.isEmpty(); }
+
+    public void undo() {
+        if (undoStack.isEmpty()) return;
+        restoreSnapshot(undoStack.pop());
+        log("⏪ " + CurrentTime.curTime.toLocalTime() + " 복원");
+    }
+
+    private int findTIIndex(PickUpTicket t) {
+        if (t == null) return -1;
+        for (int i = 0; i < ticketInfos.size(); i++)
+            if (ticketInfos.get(i).ticket == t) return i;
+        return -1;
+    }
+
+    /* ============================================================
+     *  시간 경과
+     * ============================================================ */
+    public void passTime() {
+        undoStack.push(createSnapshot());
+        if (undoStack.size() > 300) ((ArrayDeque<Snapshot>) undoStack).removeLast();
+
+        List<PickUpTicket> aqBefore = new ArrayList<>(pq.getAllFromAq());
+        pq.passTime(); // +1min + promote
+
+        // 프로모션 감지
+        for (PickUpTicket t : pq.getAllFromAq()) {
+            if (!aqBefore.contains(t)) {
+                promotionAlerts.add(t.getMember().getName() + " 고객 출국 30분 미만 → AQ 승격!");
+                log("⬆️ [승격] " + t.getMember().getName() + " BQ→AQ");
+            }
+        }
+        issueScheduledTickets();
+
+        if (!pickupInProgress) {
+            updateNoShowState();
+            checkCallingTimeout();
+            tryCallNextCustomer();
+        } else {
+            updateNoShowStateQueueOnly();
+        }
+    }
+
+    private void issueScheduledTickets() {
+        for (TicketInfo ti : ticketInfos) {
+            if (!ti.issued && !CurrentTime.curTime.isBefore(ti.issueAt)) {
+                ti.ticket = new PickUpTicket(ti.member, ti.airplane, pq.nextNum(), 0);
+                pq.enqueue(ti.ticket);
+                ti.issued = true;
+                ti.status = "PICKUP_RESERVED";
+                log("🎫 [발권] " + ti.member.getName() + " (" + ti.member.getGrade().name()
+                        + ", " + ti.airplane.getFlightCode() + ")");
+            }
+        }
+    }
+
+    /* ============================================================
+     *  창구 조작
+     * ============================================================ */
+    public void openCounter() {
+        isCounterOpen = true;
+        log("🏢 창구 오픈 (" + CurrentTime.curTime.toLocalTime() + ")");
+        tryCallNextCustomer();
+    }
+
+    private void tryCallNextCustomer() {
+        if (isCounterOpen && currentTicket == null && pq.size() > 0) {
+            // 호출 전 AQ 스냅샷 → 어느 큐에서 나왔는지 판별
+            List<PickUpTicket> aqBefore = new ArrayList<>(pq.getAllFromAq());
+            currentTicket = pq.pop();
+            calledFromAq = aqBefore.contains(currentTicket);
+            callTime = CurrentTime.curTime;
+            TicketInfo ti = findTI(currentTicket);
+            if (ti != null) ti.status = "CALLED";
+            log("📢 [호출] " + currentTicket.getMember().getName()
+                    + (calledFromAq ? " (AQ)" : " (BQ)"));
+        }
+    }
+
+    public PickUpTicket getCurrentTicket() { return currentTicket; }
+    public LocalDateTime getCallTime() { return callTime; }
+    public boolean isCalledFromAq() { return calledFromAq; }
+    public boolean isCounterOpen() { return isCounterOpen; }
+
+    public void clearCurrentTicket() { currentTicket = null; callTime = null; }
+
+    /* ============================================================
+     *  물품 인도
+     * ============================================================ */
+    public void setPickupInProgress(boolean v) { this.pickupInProgress = v; }
+    public boolean isPickupInProgress() { return pickupInProgress; }
+
+    public void processPickUp() {
+        if (currentTicket == null) { log("⚠️ 호출된 고객 없음"); return; }
+        TicketInfo ti = findTI(currentTicket);
+        if (ti != null) ti.status = "PICKED_UP";
+        log("✅ [수령] " + currentTicket.getMember().getName() + " 인도 완료 ("
+                + CurrentTime.curTime.toLocalTime() + ")");
+        currentTicket = null; callTime = null;
+        pickupInProgress = false;
+        tryCallNextCustomer();
+    }
+
+    /* ============================================================
+     *  노쇼
+     * ============================================================ */
+    private void updateNoShowState() {
+        if (currentTicket != null &&
+                CurrentTime.curTime.isAfter(currentTicket.getAirplane().getDepartureAt())) {
+            doNoShow(currentTicket);
+            currentTicket = null; callTime = null;
+        }
+        processQueueNoShows();
+    }
+
+    private void updateNoShowStateQueueOnly() {
+        processQueueNoShows();
+    }
+
+    private void processQueueNoShows() {
+        List<PickUpTicket> expired = pq.getExpiredTickets(CurrentTime.curTime);
+        for (PickUpTicket t : expired) doNoShow(t);
+        if (!expired.isEmpty()) pq.removeExpiredTickets(expired);
+    }
+
+    public void doNoShow(PickUpTicket ticket) {
+        TicketInfo ti = findTI(ticket);
+        if (ti != null) ti.status = "NO_SHOW";
+        log("🛫 [NO_SHOW] " + ticket.getMember().getName() + " (" +
+                ticket.getAirplane().getFlightCode() + ")");
+    }
+
+    /* ============================================================
+     *  호출 타임아웃
+     * ============================================================ */
+    private void checkCallingTimeout() {
+        if (currentTicket == null || callTime == null) return;
+        long waited = Duration.between(callTime, CurrentTime.curTime).toMinutes();
+        int timeout = CALL_TIMEOUT_LIMIT;
+        if (pq.size() > 0) {
+            long ml = Duration.between(CurrentTime.curTime,
+                    pq.peek().getAirplane().getDepartureAt()).toMinutes();
+            if (ml < (CALL_TIMEOUT_LIMIT * 1.5))
+                timeout = (int) (CALL_TIMEOUT_LIMIT * 0.5);
+        }
+        if (waited >= timeout) {
+            TicketInfo ti = findTI(currentTicket);
+            if (ti != null) ti.status = "TIMEOUT";
+            log("⏰ [타임아웃] " + currentTicket.getMember().getName()
+                    + " (" + waited + "/" + timeout + "분)"
+                    + (timeout < CALL_TIMEOUT_LIMIT ? " — 골든타임 보호 발동!" : ""));
+            pq.removeTicket(currentTicket);
+            currentTicket = null; callTime = null;
+        }
+    }
+
+    /* ============================================================
+     *  항공 지연
+     * ============================================================ */
+    public void delayFlight(String code, LocalDateTime newTime) {
+        boolean found = false;
+        for (PickUpTicket t : pq.getAllFromAq())
+            if (t.getAirplane().getFlightCode().equals(code))
+            { t.getAirplane().setDepartureAt(newTime); found = true; break; }
+        if (!found) for (PickUpTicket t : pq.getAllFromBq())
+            if (t.getAirplane().getFlightCode().equals(code))
+            { t.getAirplane().setDepartureAt(newTime); found = true; break; }
+        if (!found && currentTicket != null
+                && currentTicket.getAirplane().getFlightCode().equals(code))
+        { currentTicket.getAirplane().setDepartureAt(newTime); found = true; }
+        if (found) log("✈️ [지연] " + code + " → " + newTime.toLocalTime());
+    }
+
+    public void rescheduledPq() {
+        if (pq.size() == 0) return;
+        List<PickUpTicket> all = new ArrayList<>();
+        all.addAll(pq.getAllFromAq()); all.addAll(pq.getAllFromBq());
+        pq.clearAll();
+        for (PickUpTicket t : all) pq.enqueue(t);
+        log("🔄 재정렬 완료 (" + pq.size() + "명)");
+    }
+
+    /* ============================================================
+     *  조회
+     * ============================================================ */
+    public List<TicketInfo> getTicketInfos() { return ticketInfos; }
+
+    public List<TicketInfo> getActiveTicketInfos() {
+        return ticketInfos.stream().filter(ti -> ti.issued)
+                .filter(ti -> !"PICKED_UP".equals(ti.status)
+                        && !"NO_SHOW".equals(ti.status)
+                        && !"TIMEOUT".equals(ti.status))
+                .collect(Collectors.toList());
+    }
+
+    private TicketInfo findTI(PickUpTicket t) {
+        if (t == null) return null;
+        for (TicketInfo ti : ticketInfos) if (ti.ticket == t) return ti;
+        return null;
+    }
+
+    private void log(String m) { eventLog.add(m); }
+    public List<String> drainLog() {
+        List<String> c = new ArrayList<>(eventLog); eventLog.clear(); return c; }
+    public List<String> drainPromotionAlerts() {
+        List<String> c = new ArrayList<>(promotionAlerts); promotionAlerts.clear(); return c; }
+
+    /* ============================================================
      *  시나리오 로딩
-     * ================================================================ */
-    public void loadScenario(int scenarioNum) {
+     * ============================================================ */
+    public void loadScenario(int num) {
         resetAll();
-        switch (scenarioNum) {
-            case 1: loadScenario1_NormalCall();      break;
-            case 2: loadScenario2_CallNoArrival();   break;
-            case 3: loadScenario3_NoShow();          break;
-            case 4: loadScenario4_PriorityEntry();   break;
-            case 5: loadScenario5_Starvation();      break;
-            case 6: loadScenario6_FlightDelay();     break;
-            case 7: loadScenario7_AutoNoShow();      break;
+        CurrentTime.curTime = BASE_TIME;
+        switch (num) {
+            case 1: load1(); break; case 2: load2(); break; case 3: load3(); break;
+            case 4: load4(); break; case 5: load5(); break; case 6: load6(); break;
+            case 7: load7(); break;
         }
     }
 
     public void resetAll() {
-        pq.clearAll();
-        members.clear();
-        flights.clear();
-        currentTicket = null;
-        callTime = null;
-        isCounterOpen = false;
-        eventLog.clear();
+        pq.clearAll(); ticketInfos.clear(); undoStack.clear();
+        currentTicket = null; callTime = null;
+        isCounterOpen = false; calledFromAq = false;
+        pickupInProgress = false;
+        eventLog.clear(); promotionAlerts.clear();
     }
 
-    /* ================================================================
-     *  큐 조작 — PickUpSystem에서 DB 코드만 제거한 버전
-     * ================================================================ */
-
-    /** 창구 오픈 (= 업무 시작 + 첫 고객 자동 호출) */
-    public void openCounter() {
-        this.isCounterOpen = true;
-        log("🏢 인도장 창구 업무가 시작되었습니다. (" + CurrentTime.curTime.toLocalTime() + ")");
-        tryCallNextCustomer();
+    private void add(String name, String pp, Grade g, String fl,
+                     LocalDateTime dep, LocalDateTime issue) {
+        int id = ticketInfos.size() + 1;
+        ticketInfos.add(new TicketInfo(
+                new Member(id, name, pp, true, g),
+                new Airplane(id, fl, dep), issue));
     }
 
-    /** 현재 호출된 고객 반환 */
-    public PickUpTicket getCurrentTicket() {
-        return currentTicket;
+    /* ── 시나리오 1: 정상 호출 흐름 ── */
+    private void load1() {
+        LocalDateTime n = BASE_TIME;
+        add("이급박","M11",Grade.GOLD,   "KE305",n.plusMinutes(25), n.plusMinutes(1));
+        add("오블랙","M44",Grade.BLACK,  "OZ102",n.plusMinutes(45), n.plusMinutes(2));
+        add("최골드","M55",Grade.GOLD,   "KE081",n.plusMinutes(60), n.plusMinutes(3));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90),n.plusMinutes(4));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(120),n.plusMinutes(5));
+        add("김철용","M33",Grade.SILVER, "KE651",n.plusMinutes(100),n.plusMinutes(6));
+        isCounterOpen = true;
     }
 
-    /** 호출 시각 반환 */
-    public LocalDateTime getCallTime() {
-        return callTime;
+    /* ── 시나리오 2: 호출 타임아웃 ── */
+    private void load2() {
+        LocalDateTime n = BASE_TIME;
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90), n.plusMinutes(1));
+        add("오블랙","M44",Grade.BLACK,  "KE081",n.plusMinutes(60), n.plusMinutes(2));
+        add("최골드","M55",Grade.GOLD,   "KE305",n.plusMinutes(50), n.plusMinutes(3));
+        add("박지각","M22",Grade.SILVER, "OZ102",n.plusMinutes(40), n.plusMinutes(4));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(120),n.plusMinutes(5));
+        isCounterOpen = true;
     }
 
-    /** 현재 호출 상태 비우기 (다음 자동 호출은 하지 않음) */
-    public void clearCurrentTicket() {
-        currentTicket = null;
-        callTime = null;
+    /* ── 시나리오 3: 노쇼 자동 처리 ── */
+    private void load3() {
+        LocalDateTime n = BASE_TIME;
+        add("박지각","M22",Grade.SILVER, "KE999",n.plusMinutes(8),  n.plusMinutes(1));
+        add("이급박","M11",Grade.GOLD,   "OZ888",n.plusMinutes(12), n.plusMinutes(1));
+        add("최골드","M55",Grade.GOLD,   "KE081",n.plusMinutes(60), n.plusMinutes(2));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90),n.plusMinutes(3));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(120),n.plusMinutes(4));
+        isCounterOpen = true;
     }
 
-    /** 큐에서 꺼내서 호출 — 내부 전용 */
-    private void tryCallNextCustomer() {
-        if (isCounterOpen && currentTicket == null && pq.size() > 0) {
-            currentTicket = pq.pop();
-            callTime = CurrentTime.curTime;
-            log("📢 띵동~ [" + currentTicket.getMember().getName() + "] 고객님, 창구로 와주세요!");
+    /* ── 시나리오 4: 우선 등급 입장 ── */
+    private void load4() {
+        LocalDateTime n = BASE_TIME;
+        add("김철용","M33",Grade.SILVER, "KE651",n.plusMinutes(100),n.plusMinutes(1));
+        add("최골드","M55",Grade.GOLD,   "KE081",n.plusMinutes(60), n.plusMinutes(2));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(120),n.plusMinutes(3));
+        add("약블랙","M77",Grade.BLACK,  "KE305",n.plusMinutes(80), n.plusMinutes(4));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90),n.plusMinutes(9));
+        isCounterOpen = true;
+    }
+
+    /* ── 시나리오 5: Starvation 방지 (에이징) ── */
+    private void load5() {
+        LocalDateTime n = BASE_TIME;
+        add("김철용","M33",Grade.SILVER, "KE651",n.plusMinutes(100),n.plusMinutes(1));
+        add("오블랙","M44",Grade.BLACK,  "OZ102",n.plusMinutes(80), n.plusMinutes(5));
+        add("최골드","M55",Grade.GOLD,   "KE081",n.plusMinutes(90), n.plusMinutes(6));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(120),n.plusMinutes(7));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(110),n.plusMinutes(8));
+        isCounterOpen = true;
+    }
+
+    /* ── 시나리오 6: 항공 지연 → 재정렬 ── */
+    private void load6() {
+        LocalDateTime n = BASE_TIME;
+        add("이급박","M11",Grade.GOLD,   "KE305",n.plusMinutes(25), n.plusMinutes(1));
+        add("오블랙","M44",Grade.BLACK,  "OZ102",n.plusMinutes(45), n.plusMinutes(2));
+        add("최골드","M55",Grade.GOLD,   "KE081",n.plusMinutes(60), n.plusMinutes(3));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90),n.plusMinutes(4));
+        add("유실버","M66",Grade.SILVER, "OZ541",n.plusMinutes(120),n.plusMinutes(5));
+        isCounterOpen = true;
+    }
+
+    /* ── 시나리오 7: 골든타임 보호 (동적 타임아웃) ── */
+    private void load7() {
+        LocalDateTime n = BASE_TIME;
+        // 구민 dep 09:43 (AQ), 이급박 dep 09:47 (AQ, 다음 대기자)
+        // 09:33에 이급박 출국 14분 < 15분 → 골든타임 발동 → 타임아웃 5분
+        // 09:36에 구민 5분 대기 → 타임아웃 (일반이면 09:41에 10분)
+        add("구민",  "M00",Grade.GOLD,   "KE081",n.plusMinutes(13), n.plusMinutes(1));
+        add("이급박","M11",Grade.GOLD,   "KE305",n.plusMinutes(17), n.plusMinutes(2));
+        add("오블랙","M44",Grade.BLACK,  "OZ102",n.plusMinutes(60), n.plusMinutes(3));
+        add("강부자","M99",Grade.PRESTIGE,"OZ773",n.plusMinutes(90),n.plusMinutes(4));
+        add("최골드","M55",Grade.GOLD,   "OZ541",n.plusMinutes(100),n.plusMinutes(5));
+        isCounterOpen = true;
+    }
+
+    /* ============================================================
+     *  시나리오 설명
+     * ============================================================ */
+    public static String getDescription(int num) {
+        switch (num) {
+            case 1: return
+                "【정상 호출 흐름】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 이급박(GOLD, KE305) 출국 09:55 → AQ\n" +
+                " 오블랙(BLACK, OZ102) 출국 10:15 → BQ\n" +
+                " 최골드(GOLD, KE081) 출국 10:30 → BQ\n" +
+                " 강부자(PRESTIGE, OZ773) 출국 11:00 → BQ\n" +
+                " 유실버(SILVER, OZ541) 출국 11:30 → BQ\n" +
+                " 김철용(SILVER, KE651) 출국 11:10 → BQ\n\n" +
+                "[진행]\n" +
+                "1) → 6회: 번호표 순차 발권\n" +
+                "   이급박→AQ, 나머지→BQ\n" +
+                "2) 이급박 자동 호출 → 수령 클릭 (3분)\n" +
+                "3) 다음: 강부자(PRESTIGE) BQ 1순위\n" +
+                "4) 강부자→오블랙→최골드→김철용→유실버\n\n" +
+                "[관찰] AQ 우선 → BQ 등급순 처리";
+
+            case 2: return
+                "【호출 타임아웃】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 강부자(PRESTIGE) 출국 11:00 → BQ 1순위\n" +
+                " 오블랙(BLACK) 출국 10:30 → BQ\n" +
+                " 최골드(GOLD) 출국 10:20 → BQ\n" +
+                " 박지각(SILVER) 출국 10:10 → BQ\n" +
+                " 유실버(SILVER) 출국 11:30 → BQ\n\n" +
+                "[진행]\n" +
+                "1) → 5회: 전원 발권\n" +
+                "2) 강부자 자동 호출\n" +
+                "3) 수령 버튼 누르지 않고 → 계속 전진\n" +
+                "4) 10분 후 → 타임아웃 발생!\n" +
+                "5) 강부자 큐+타임라인에서 제거\n" +
+                "6) 다음 호출: 오블랙\n\n" +
+                "[관찰] 10분 미방문 → 자동 타임아웃";
+
+            case 3: return
+                "【노쇼 자동 처리】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 박지각(SILVER, KE999) 출국 09:38 → AQ\n" +
+                " 이급박(GOLD, OZ888) 출국 09:42 → AQ\n" +
+                " 최골드(GOLD) 출국 10:30 → BQ\n" +
+                " 강부자(PRESTIGE) 출국 11:00 → BQ\n" +
+                " 유실버(SILVER) 출국 11:30 → BQ\n\n" +
+                "[진행]\n" +
+                "1) → 키로 발권 후 계속 전진\n" +
+                "2) 박지각 호출 → 수령 안 함\n" +
+                "3) 09:38 경과 → 박지각 NO_SHOW\n" +
+                "4) 이급박 호출 → 수령 안 함\n" +
+                "5) 09:42 경과 → 이급박 NO_SHOW\n" +
+                "6) 주문섹션에서 NO_SHOW 표시 확인\n\n" +
+                "[관찰] 출국시간 경과 → 자동 NO_SHOW";
+
+            case 4: return
+                "【우선 등급 입장】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버] (발권 순서)\n" +
+                " 김철용(SILVER) → BQ 하위\n" +
+                " 최골드(GOLD) → BQ 중위\n" +
+                " 유실버(SILVER) → BQ 하위\n" +
+                " 약블랙(BLACK) → BQ 상위\n" +
+                " 강부자(PRESTIGE) ← 9분 후 합류!\n\n" +
+                "[진행]\n" +
+                "1) → 4회: 4명 발권\n" +
+                "   BQ: 약블랙>최골드>김철용>유실버\n" +
+                "2) → 5회 더: 강부자(PRESTIGE) 발권\n" +
+                "3) 강부자 → BQ 최상위로 등극!\n\n" +
+                "[관찰] PRESTIGE가 늦게 와도 BQ 1순위";
+
+            case 5: return
+                "【Starvation 방지 (에이징)】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 김철용(SILVER) 09:31 발권 (최초 발권!)\n" +
+                " 오블랙(BLACK) 09:35 발권\n" +
+                " 최골드(GOLD) 09:36 발권\n" +
+                " 강부자(PRESTIGE) 09:37 발권\n" +
+                " 유실버(SILVER) 09:38 발권\n\n" +
+                "[진행]\n" +
+                "1) → 키로 전원 발권 (8회)\n" +
+                "   BQ: 강부자>오블랙>최골드>김철용>유실버\n" +
+                "2) → 계속 전진 (40분 이상)\n" +
+                "3) 10:11경: 김철용 대기 40분 도달!\n" +
+                "4) 다음 pop() 시 김철용이 최우선 호출\n" +
+                "   (SILVER임에도 에이징으로 1순위!)\n\n" +
+                "[관찰] 40분 대기 → 등급 무시 최우선 호출";
+
+            case 6: return
+                "【항공 지연 → 재정렬】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 이급박(GOLD, KE305) 출국 09:55 → AQ\n" +
+                " 오블랙(BLACK) 출국 10:15 → BQ\n" +
+                " 최골드(GOLD) 출국 10:30 → BQ\n" +
+                " 강부자(PRESTIGE) 출국 11:00 → BQ\n" +
+                " 유실버(SILVER) 출국 11:30 → BQ\n\n" +
+                "[진행]\n" +
+                "1) → 5회: 전원 발권\n" +
+                "   AQ: 이급박 | BQ: 강부자>오블랙>최골드>유실버\n" +
+                "2) 시나리오 6 버튼 재클릭!\n" +
+                "   → KE305 3시간 지연 (09:55→12:55)\n" +
+                "3) 이급박 AQ→BQ 강등 확인\n" +
+                "   BQ: 강부자>오블랙>최골드>이급박>유실버\n\n" +
+                "[관찰] 항공 지연 시 AQ↔BQ 재분류";
+
+            case 7: return
+                "【골든타임 보호 (동적 타임아웃)】\n" +
+                "권장 인도시간: 3분\n\n" +
+                "[멤버]\n" +
+                " 구민(GOLD, KE081) 출국 09:43 → AQ\n" +
+                " 이급박(GOLD, KE305) 출국 09:47 → AQ\n" +
+                " 오블랙(BLACK) 출국 10:30 → BQ\n" +
+                " 강부자(PRESTIGE) 출국 11:00 → BQ\n" +
+                " 최골드(GOLD) 출국 11:10 → BQ\n\n" +
+                "[진행]\n" +
+                "1) → 5회: 전원 발권\n" +
+                "   구민 AQ 호출 (출국 가장 빠름)\n" +
+                "2) 수령 안 함 → 계속 전진\n" +
+                "3) 09:33 (→ 3회): 이급박 출국까지 14분\n" +
+                "   < 15분 감지 → 타임아웃 5분 단축!\n" +
+                "4) 09:36 (→ 6회): 구민 5분 대기\n" +
+                "   → 골든타임 타임아웃 발동!\n" +
+                "   (일반이면 09:41에 10분 타임아웃)\n\n" +
+                "[관찰] 다음 대기자 출국 임박 시\n" +
+                "       타임아웃 10분→5분 자동 단축\n" +
+                "       → 5분 더 빠르게 다음 고객 서비스";
+
+            default: return "";
         }
-    }
-
-    /* ================================================================
-     *  물품 인도 처리 (processPickUp) — DB 없는 버전
-     * ================================================================ */
-
-    /**
-     * 호출된 고객이 실제로 도착해서 물품을 수령하는 처리.
-     * GUI에서 "호출된 티켓 클릭" = 이 메서드 호출.
-     */
-    public void processPickUp() {
-        if (currentTicket == null) {
-            log("⚠️ 현재 호출된 고객이 없습니다.");
-            return;
-        }
-
-        String name = currentTicket.getMember().getName();
-        String grade = currentTicket.getMember().getGrade().name();
-        String flight = currentTicket.getAirplane().getFlightCode();
-
-        log("✅ [" + name + "] (" + grade + ", " + flight + ") 물품 인도 완료! ("
-                + CurrentTime.curTime.toLocalTime() + ")");
-
-        // 창구 비움 → 다음 사람 자동 호출
-        currentTicket = null;
-        callTime = null;
-        tryCallNextCustomer();
-    }
-
-    /* ================================================================
-     *  시간 경과 (passTime) — PickUpSystem.passTime() 완전 복제
-     * ================================================================ */
-
-    /**
-     * 1분 경과 + 승격(promote) + 노쇼 자동 처리 + 타임아웃 감시 + 자동 호출.
-     * PickUpSystem.passTime()과 동일한 순서로 동작한다.
-     */
-    public void passTime() {
-        pq.passTime();  // 1분 전진 + promote
-        log("⏳ " + CurrentTime.curTime.toLocalTime() + " 경과...");
-
-        // 노쇼 자동 처리
-        updateNoShowState();
-
-        // 호출 타임아웃 검사
-        checkCallingTimeout();
-
-        // 비어있으면 다음 고객 자동 호출
-        tryCallNextCustomer();
-    }
-
-    /* ================================================================
-     *  노쇼 처리 — PickUpSystem.updateNoShowState() + processNoShow()
-     * ================================================================ */
-
-    private void updateNoShowState() {
-        // 1. 현재 호출 중인 currentTicket 검사
-        if (currentTicket != null) {
-            LocalDateTime departure = currentTicket.getAirplane().getDepartureAt();
-            if (CurrentTime.curTime.isAfter(departure)) {
-                processNoShow(currentTicket);
-                currentTicket = null;
-                callTime = null;
-            }
-        }
-
-        // 2. 큐 내 출국 경과 티켓 일괄 처리
-        List<PickUpTicket> expiredTickets = pq.getExpiredTickets(CurrentTime.curTime);
-        for (PickUpTicket ticket : expiredTickets) {
-            processNoShow(ticket);
-        }
-        if (!expiredTickets.isEmpty()) {
-            pq.removeExpiredTickets(expiredTickets);
-        }
-    }
-
-    /** 개별 노쇼 처리 (DB 없는 버전 — 로그만 기록) */
-    public void processNoShow(PickUpTicket ticket) {
-        String name = ticket.getMember().getName();
-        String flight = ticket.getAirplane().getFlightCode();
-        log("🛫 [NO_SHOW] " + name + " (" + flight + ") — 출국 시간 경과로 미수령 처리 완료");
-    }
-
-    /* ================================================================
-     *  호출 타임아웃 — PickUpSystem.checkCallingTimeout() 완전 복제
-     * ================================================================ */
-
-    private void checkCallingTimeout() {
-        if (currentTicket == null || callTime == null) return;
-
-        long waitedMinutes = Duration.between(callTime, CurrentTime.curTime).toMinutes();
-
-        // 기본 타임아웃 10분
-        int dynamicTimeout = CALL_TIMEOUT_LIMIT;
-
-        // 다음 대기자의 출국이 15분(10 * 1.5) 미만이면 타임아웃 5분으로 단축
-        if (pq.size() > 0) {
-            PickUpTicket nextTicket = pq.peek();
-            long minsLeft = Duration.between(
-                    CurrentTime.curTime, nextTicket.getAirplane().getDepartureAt()).toMinutes();
-            if (minsLeft < (CALL_TIMEOUT_LIMIT * 1.5)) {
-                dynamicTimeout = (int) (CALL_TIMEOUT_LIMIT * 0.5);
-            }
-        }
-
-        // 타임아웃 초과 시 호출 취소 + 큐에서 제거
-        if (waitedMinutes >= dynamicTimeout) {
-            String name = currentTicket.getMember().getName();
-            log("⏰ [호출 타임아웃] " + name + " 고객님 미방문으로 호출 취소 (대기 "
-                    + waitedMinutes + "분, 제한 " + dynamicTimeout + "분)");
-
-            if (dynamicTimeout < CALL_TIMEOUT_LIMIT) {
-                log("   🚨 사유: 다음 대기자 출국 임박 → 골든타임 보호 발동");
-            }
-
-            pq.removeTicket(currentTicket);
-            currentTicket = null;
-            callTime = null;
-        }
-    }
-
-    /* ================================================================
-     *  항공 지연 — DB 없는 버전
-     * ================================================================ */
-
-    public void delayFlight(String flightCode, LocalDateTime newTime) {
-        boolean found = false;
-
-        // AQ 검색
-        for (PickUpTicket t : pq.getAllFromAq()) {
-            if (t.getAirplane().getFlightCode().equals(flightCode)) {
-                t.getAirplane().setDepartureAt(newTime);
-                found = true;
-                break;
-            }
-        }
-        // BQ 검색
-        if (!found) {
-            for (PickUpTicket t : pq.getAllFromBq()) {
-                if (t.getAirplane().getFlightCode().equals(flightCode)) {
-                    t.getAirplane().setDepartureAt(newTime);
-                    found = true;
-                    break;
-                }
-            }
-        }
-        // currentTicket도 확인
-        if (!found && currentTicket != null
-                && currentTicket.getAirplane().getFlightCode().equals(flightCode)) {
-            currentTicket.getAirplane().setDepartureAt(newTime);
-            found = true;
-        }
-
-        if (found) {
-            log("✈️ [항공 지연] " + flightCode + " → " + newTime.toLocalTime() + " 으로 변경");
-        } else {
-            log("⚠️ 해당 항공편(" + flightCode + ") 없음");
-        }
-    }
-
-    /** 큐 재정렬 — AQ/BQ 전체를 꺼냈다가 다시 삽입 */
-    public void rescheduledPq() {
-        if (pq.size() == 0) return;
-
-        List<PickUpTicket> all = new ArrayList<>();
-        all.addAll(pq.getAllFromAq());
-        all.addAll(pq.getAllFromBq());
-        pq.clearAll();
-
-        for (PickUpTicket t : all) {
-            pq.enqueue(t);
-        }
-        log("🔄 대기열 재정렬 완료 (현재 " + pq.size() + "명)");
-    }
-
-    /* ================================================================
-     *  이벤트 로그
-     * ================================================================ */
-
-    private void log(String message) {
-        eventLog.add(message);
-    }
-
-    /** 패널에서 새 로그를 가져가고 비움 */
-    public List<String> drainLog() {
-        List<String> copy = new ArrayList<>(eventLog);
-        eventLog.clear();
-        return copy;
-    }
-
-    /* ================================================================
-     *  가상 멤버/항공편 조회 (주문 목록 패널용)
-     * ================================================================ */
-    public List<Member> getMembers() { return members; }
-    public List<Airplane> getFlights() { return flights; }
-
-    /* ================================================================
-     *  시나리오별 데이터 세팅
-     * ================================================================ */
-
-    /** 기본 대기열 6명 */
-    private void loadDefaultPassengers() {
-        LocalDateTime now = CurrentTime.curTime;
-
-        Member m1 = new Member(1, "김민준", "M12345678", true, Grade.GOLD);
-        Member m2 = new Member(2, "박서연", "M23456789", true, Grade.PRESTIGE);
-        Member m3 = new Member(3, "이도윤", "M34567890", true, Grade.SILVER);
-        Member m4 = new Member(4, "최수아", "M45678901", true, Grade.BLACK);
-        Member m5 = new Member(5, "정하준", "M56789012", true, Grade.SILVER);
-        Member m6 = new Member(6, "강지우", "M67890123", true, Grade.GOLD);
-        members.addAll(List.of(m1, m2, m3, m4, m5, m6));
-
-        Airplane a1 = new Airplane(1, "KE081", now.plusHours(1).plusMinutes(30));
-        Airplane a2 = new Airplane(2, "OZ102", now.plusMinutes(25));   // AQ
-        Airplane a3 = new Airplane(3, "KE651", now.plusHours(2));
-        Airplane a4 = new Airplane(4, "OZ541", now.plusMinutes(20));   // AQ
-        Airplane a5 = new Airplane(5, "KE305", now.plusHours(1));
-        Airplane a6 = new Airplane(6, "OZ773", now.plusHours(3));
-        flights.addAll(List.of(a1, a2, a3, a4, a5, a6));
-
-        pq.enqueue(new PickUpTicket(m1, a1, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m2, a2, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m3, a3, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m4, a4, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m5, a5, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m6, a6, pq.nextNum(), 0));
-    }
-
-    // ── 시나리오 1: 정상 호출 ──
-    private void loadScenario1_NormalCall() {
-        loadDefaultPassengers();
-    }
-
-    // ── 시나리오 2: 호출 후 미도착 ──
-    private void loadScenario2_CallNoArrival() {
-        loadDefaultPassengers();
-        openCounter();  // 미리 한 명 호출해둠
-    }
-
-    // ── 시나리오 3: 노쇼 처리 ──
-    private void loadScenario3_NoShow() {
-        loadDefaultPassengers();
-        openCounter();  // 호출된 상태에서 시작
-    }
-
-    // ── 시나리오 4: 우선 등급 입장 (PRESTIGE 제외한 대기열) ──
-    private void loadScenario4_PriorityEntry() {
-        LocalDateTime now = CurrentTime.curTime;
-
-        Member m1 = new Member(1, "김민준", "M12345678", true, Grade.GOLD);
-        Member m3 = new Member(3, "이도윤", "M34567890", true, Grade.SILVER);
-        Member m5 = new Member(5, "정하준", "M56789012", true, Grade.SILVER);
-        Member m6 = new Member(6, "강지우", "M67890123", true, Grade.GOLD);
-        members.addAll(List.of(m1, m3, m5, m6));
-
-        Airplane a1 = new Airplane(1, "KE081", now.plusHours(1).plusMinutes(30));
-        Airplane a3 = new Airplane(3, "KE651", now.plusHours(2));
-        Airplane a5 = new Airplane(5, "KE305", now.plusHours(1));
-        Airplane a6 = new Airplane(6, "OZ773", now.plusHours(3));
-        flights.addAll(List.of(a1, a3, a5, a6));
-
-        pq.enqueue(new PickUpTicket(m1, a1, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m3, a3, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m5, a5, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m6, a6, pq.nextNum(), 0));
-    }
-
-    // ── 시나리오 5: Starvation 방지 승급 ──
-    private void loadScenario5_Starvation() {
-        loadDefaultPassengers();
-    }
-
-    // ── 시나리오 6: 항공 지연 → 재정렬 ──
-    private void loadScenario6_FlightDelay() {
-        loadDefaultPassengers();
-    }
-
-    // ── 시나리오 7: 노쇼 자동 처리 ──
-    private void loadScenario7_AutoNoShow() {
-        LocalDateTime now = CurrentTime.curTime;
-
-        // 기본 멤버 + 이미 출국시간이 지난 멤버 2명 포함
-        Member m1 = new Member(1, "김민준", "M12345678", true, Grade.GOLD);
-        Member m2 = new Member(2, "박서연", "M23456789", true, Grade.PRESTIGE);
-        Member m3 = new Member(3, "이도윤", "M34567890", true, Grade.SILVER);
-        Member m7 = new Member(7, "한지연", "M77777777", true, Grade.SILVER);
-        Member m8 = new Member(8, "윤태호", "M88888888", true, Grade.GOLD);
-        members.addAll(List.of(m1, m2, m3, m7, m8));
-
-        Airplane a1 = new Airplane(1, "KE081", now.plusHours(1));
-        Airplane a2 = new Airplane(2, "OZ102", now.plusMinutes(25));
-        Airplane a3 = new Airplane(3, "KE651", now.plusHours(2));
-        // 출국 시간이 이미 지난 항공편
-        Airplane a7 = new Airplane(7, "KE999", now.minusMinutes(5));
-        Airplane a8 = new Airplane(8, "OZ888", now.minusMinutes(10));
-        flights.addAll(List.of(a1, a2, a3, a7, a8));
-
-        pq.enqueue(new PickUpTicket(m1, a1, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m2, a2, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m3, a3, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m7, a7, pq.nextNum(), 0));
-        pq.enqueue(new PickUpTicket(m8, a8, pq.nextNum(), 0));
     }
 }
