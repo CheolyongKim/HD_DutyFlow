@@ -25,6 +25,9 @@ public class Order {
     private int orderId;
     private int memberId;
     private int reservationId;
+    private String cardNumber;
+    
+
 
     private BigDecimal totalPrice;
 
@@ -40,6 +43,11 @@ public class Order {
 	public Order() {
 		this.state = new PendingState(); //초기 객체는 검증 대기 객체
 	}
+	
+    public Order(String cardNumber){
+    	this.cardNumber= cardNumber;
+    }
+    
     public void pay() {
         state.pay(this);
     }
