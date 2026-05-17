@@ -113,7 +113,7 @@ public class BrandSystem implements StockObserver {
         return purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
     }
     
-    public List<Product> getProductsByBrandName() {
+    public List<ProductDTO> getProductsByBrandName() {
         return productService.getProductsByBrandName(brandName);
     }
 
@@ -131,82 +131,82 @@ public class BrandSystem implements StockObserver {
         return stockService.getTotalAmountByProductName(productName);
     }
 
-    public void printStockStatus(String productName) {
-        validateMyBrandProduct(productName);
-
-        int totalAmount = stockService.getTotalAmountByProductName(productName);
-
-        System.out.println("===== [" + brandName + "] 재고 조회 =====");
-        System.out.println("상품명: " + productName);
-        System.out.println("총 재고: " + totalAmount);
-    }
-
-    public void printMyBrandStocks() {
-        System.out.println("===== [" + brandName + "] 전체 재고 목록 =====");
-        stockService.printAllStockByBrandName(brandName);
-    }
-
-    public void printPurchaseHistory() {
-        System.out.println("===== [" + brandName + "] 브랜드 발주 이력 =====");
-
-        List<StockPurchaseHistoryDto> purchases =
-                purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
-
-        printPurchaseHistory(purchases);
-    }
-
-    public void printPurchaseHistoryByProductName(String productName) {
-        validateMyBrandProduct(productName);
-
-        System.out.println("===== [" + brandName + "] 상품별 발주 이력 =====");
-        System.out.println("상품명: " + productName);
-
-        List<StockPurchaseHistoryDto> purchases =
-                purchaseService.getPurchaseHistoryByProductName(productName);
-
-        printPurchaseHistory(purchases);
-    }
-
-    public void printPurchaseHistoryByStatus(StockPurchaseStatus status) {
-        System.out.println("===== [" + brandName + "] 상태별 발주 이력 =====");
-        System.out.println("상태: " + status);
-
-        List<StockPurchaseHistoryDto> purchases =
-                purchaseService.getPurchaseHistoryByStatus(status);
-
-        printPurchaseHistory(purchases);
-    }
-
-    private void printPurchaseHistory(List<StockPurchaseHistoryDto> purchases) {
-        if (purchases == null || purchases.isEmpty()) {
-            System.out.println("조회된 발주 이력이 없습니다.");
-            return;
-        }
-
-        for (StockPurchaseHistoryDto purchase : purchases) {
-            System.out.println(purchase);
-        }
-    }
-    
-    public void printProductsByBrandName() {
-        List<Product> products = productService.getProductsByBrandName(brandName);
-
-        System.out.println("===== [" + brandName + "] 브랜드 상품 목록 =====");
-
-        for (Product product : products) {
-            System.out.println(product);
-        }
-    }
-
-    public void printOrdersByBrandName() {
-        List<OrderDTO> orders = orderService.getOrdersByBrandName(brandName);
-
-        System.out.println("===== [" + brandName + "] 브랜드 판매 내역 =====");
-
-        for (OrderDTO order : orders) {
-            System.out.println(order);
-        }
-    }
+//    public void printStockStatus(String productName) {
+//        validateMyBrandProduct(productName);
+//
+//        int totalAmount = stockService.getTotalAmountByProductName(productName);
+//
+//        System.out.println("===== [" + brandName + "] 재고 조회 =====");
+//        System.out.println("상품명: " + productName);
+//        System.out.println("총 재고: " + totalAmount);
+//    }
+//
+//    public void printMyBrandStocks() {
+//        System.out.println("===== [" + brandName + "] 전체 재고 목록 =====");
+//        stockService.printAllStockByBrandName(brandName);
+//    }
+//
+//    public void printPurchaseHistory() {
+//        System.out.println("===== [" + brandName + "] 브랜드 발주 이력 =====");
+//
+//        List<StockPurchaseHistoryDto> purchases =
+//                purchaseService.getPurchaseHistoryDtoByBrandName(brandName);
+//
+//        printPurchaseHistory(purchases);
+//    }
+//
+//    public void printPurchaseHistoryByProductName(String productName) {
+//        validateMyBrandProduct(productName);
+//
+//        System.out.println("===== [" + brandName + "] 상품별 발주 이력 =====");
+//        System.out.println("상품명: " + productName);
+//
+//        List<StockPurchaseHistoryDto> purchases =
+//                purchaseService.getPurchaseHistoryByProductName(productName);
+//
+//        printPurchaseHistory(purchases);
+//    }
+//
+//    public void printPurchaseHistoryByStatus(StockPurchaseStatus status) {
+//        System.out.println("===== [" + brandName + "] 상태별 발주 이력 =====");
+//        System.out.println("상태: " + status);
+//
+//        List<StockPurchaseHistoryDto> purchases =
+//                purchaseService.getPurchaseHistoryByStatus(status);
+//
+//        printPurchaseHistory(purchases);
+//    }
+//
+//    private void printPurchaseHistory(List<StockPurchaseHistoryDto> purchases) {
+//        if (purchases == null || purchases.isEmpty()) {
+//            System.out.println("조회된 발주 이력이 없습니다.");
+//            return;
+//        }
+//
+//        for (StockPurchaseHistoryDto purchase : purchases) {
+//            System.out.println(purchase);
+//        }
+//    }
+//    
+//    public void printProductsByBrandName() {
+//        List<Product> products = productService.getProductsByBrandName(brandName);
+//
+//        System.out.println("===== [" + brandName + "] 브랜드 상품 목록 =====");
+//
+//        for (Product product : products) {
+//            System.out.println(product);
+//        }
+//    }
+//
+//    public void printOrdersByBrandName() {
+//        List<OrderDTO> orders = orderService.getOrdersByBrandName(brandName);
+//
+//        System.out.println("===== [" + brandName + "] 브랜드 판매 내역 =====");
+//
+//        for (OrderDTO order : orders) {
+//            System.out.println(order);
+//        }
+//    }
 
 
     @Override
