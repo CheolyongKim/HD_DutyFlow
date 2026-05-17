@@ -65,14 +65,14 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
         setLayout(new BorderLayout(0, 0));
         setBackground(BG);
 
-        // NORTH: 탑바 + 타임라인(200px) + 수령버튼
+        // NORTH: 탑바 + 타임라인(300px) + 수령버튼
         JPanel north = new JPanel();
         north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
         north.setBackground(BG);
         north.add(buildTopBar());
         timelinePanel = new TimelinePanel();
-        timelinePanel.setPreferredSize(new Dimension(0, 200));
-        timelinePanel.setMinimumSize(new Dimension(0, 200));
+        timelinePanel.setPreferredSize(new Dimension(0, 300));
+        timelinePanel.setMinimumSize(new Dimension(0, 300));
         north.add(timelinePanel);
         north.add(buildPickupBar());
         add(north, BorderLayout.NORTH);
@@ -224,35 +224,47 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
     private JPanel buildRightPanel() {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setPreferredSize(new Dimension(290, 0));
+        p.setPreferredSize(new Dimension(600, 0));
         p.setBackground(BG);
 
-        // ── 시나리오 선택 ──
+     // ── 시나리오 선택 ──
         JPanel scen = boxed();
+        scen.setLayout(new BoxLayout(scen, BoxLayout.Y_AXIS));
         scen.add(title("시나리오 선택"));
         scen.add(Box.createVerticalStrut(3));
-        String[] names = {"1. 정상 호출","2. 호출 타임아웃","3. 노쇼 자동 처리",
-                "4. 우선 등급 입장","5. Starvation 에이징",
-                "6. 항공 지연 재정렬","7. 골든타임 보호"};
+
+        String[] names = {
+            "1. 정상 호출", "2. 호출 타임아웃", "3. 노쇼 자동 처리", "4. 우선 등급 입장",
+            "5. Starvation 에이징", "6. 항공 지연 재정렬", "7. 골든타임 보호"
+        };
+
+        // 버튼들을 담을 2x4 패널
+        JPanel btnGrid = new JPanel(new GridLayout(2, 4, 4, 4));
+        btnGrid.setOpaque(false);
+
         for (int i = 0; i < names.length; i++) {
             final int n = i + 1;
             JButton b = flatBtn(names[i], new Color(0xFFFDE7), TD);
-            b.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+            b.setFont(new Font("맑은 고딕", Font.BOLD, 10));
             b.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(0xFDE68A)),
                     new EmptyBorder(5, 6, 5, 6)));
-            b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-            b.setAlignmentX(LEFT_ALIGNMENT);
             b.addActionListener(e -> runScenario(n));
-            scen.add(b); scen.add(Box.createVerticalStrut(2));
+            btnGrid.add(b);
         }
-        p.add(scen); p.add(Box.createVerticalStrut(4));
+
+        // 7개만 있으니 마지막 칸 1개를 비워두기 위한 더미 컴포넌트
+        btnGrid.add(new JLabel());
+
+        scen.add(btnGrid);
+        p.add(scen);
+        p.add(Box.createVerticalStrut(4));
 
         // ── 시나리오 설명 ──
         JPanel descW = boxed();
         descW.add(title("시나리오 설명"));
         descArea = new JTextArea("시나리오를 선택하세요.");
-        descArea.setFont(new Font("D2Coding", Font.PLAIN, 11));
+        descArea.setFont(new Font("D2Coding", Font.PLAIN, 12));
         descArea.setEditable(false); descArea.setLineWrap(true); descArea.setWrapStyleWord(true);
         descArea.setBackground(new Color(0xFFFBEB));
         JScrollPane dsp = new JScrollPane(descArea);
@@ -297,11 +309,11 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
         JPanel logW = boxed();
         logW.add(title("실행 로그"));
         logArea = new JTextArea();
-        logArea.setFont(new Font("D2Coding", Font.PLAIN, 11));
+        logArea.setFont(new Font("D2Coding", Font.PLAIN, 12));
         logArea.setEditable(false); logArea.setLineWrap(true); logArea.setWrapStyleWord(true);
         logArea.setBackground(new Color(0xF8FAFC));
         JScrollPane lsp = new JScrollPane(logArea);
-        lsp.setPreferredSize(new Dimension(0, 240));
+        lsp.setPreferredSize(new Dimension(0, 300));
         lsp.setBorder(BorderFactory.createLineBorder(new Color(0xE2E8F0)));
         logW.add(lsp);
         p.add(logW);
@@ -554,7 +566,7 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
 
         JPanel box = new JPanel();
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
-        box.setPreferredSize(new Dimension(82, 62));
+        box.setPreferredSize(new Dimension(123, 93));
         // 배경: 호출=연빨강, 선택=노랑, 기본=흰
         box.setBackground(isCalled ? CALLED_BG : hl ? HIGHLIGHT : CARD);
         // 테두리: 항상 등급색 (호출이어도!)
@@ -563,27 +575,27 @@ public class MLPQSimulationPanel extends JPanel implements Refreshable {
                 new EmptyBorder(3, 3, 3, 3)));
 
         JLabel nm = new JLabel(t.getMember().getName());
-        nm.setFont(new Font("맑은 고딕", Font.BOLD, 10));
+        nm.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         nm.setAlignmentX(CENTER_ALIGNMENT);
         box.add(nm);
 
         long ml = Duration.between(CurrentTime.curTime, t.getAirplane().getDepartureAt()).toMinutes();
         JLabel dep = new JLabel("출국~" + ml + "분");
-        dep.setFont(new Font("D2Coding", Font.PLAIN, 9));
+        dep.setFont(new Font("D2Coding", Font.PLAIN, 12));
         dep.setForeground(ml < 30 ? AQ_C : TS);
         dep.setAlignmentX(CENTER_ALIGNMENT);
         box.add(dep);
 
         long wt = Duration.between(t.getTicketIssueTime(), CurrentTime.curTime).toMinutes();
         JLabel wl = new JLabel("대기+" + wt + "분");
-        wl.setFont(new Font("D2Coding", Font.PLAIN, 9));
+        wl.setFont(new Font("D2Coding", Font.PLAIN, 12));
         wl.setForeground(wt >= 40 ? AQ_C : TS);
         wl.setAlignmentX(CENTER_ALIGNMENT);
         box.add(wl);
 
         if (isCalled) {
             JLabel tag = new JLabel("● 호출중");
-            tag.setFont(new Font("맑은 고딕", Font.BOLD, 9));
+            tag.setFont(new Font("맑은 고딕", Font.BOLD, 11));
             tag.setForeground(AQ_C);
             tag.setAlignmentX(CENTER_ALIGNMENT);
             box.add(tag);
