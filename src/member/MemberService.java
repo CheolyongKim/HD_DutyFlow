@@ -146,8 +146,6 @@ public class MemberService {
         
         validatePassportNotExpired(member);
 
-        membershipService.updateMembershipGradeIfExpired(member.getMemberId());
-
         return member.getMemberId();
     }
     

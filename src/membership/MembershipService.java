@@ -28,17 +28,4 @@ public class MembershipService {
             membershipDAO.updateGrade(memberId, newGrade);
         }
     }
-
-    // 로그인 시 등급 선정일 1년 경과 여부 확인 후 갱신
-    public void updateMembershipGradeIfExpired(int memberId) {
-
-        LocalDate gradeSelectionDate = membershipDAO.findGradeSelectionDate(memberId);
-
-        // 1년이 지나지 않았으면 return 후 메서드 종료
-        if (gradeSelectionDate.plusYears(1).isAfter(LocalDate.now())) {
-            return;
-        }
-
-        updateMembershipGrade(memberId);
-    }
 }
