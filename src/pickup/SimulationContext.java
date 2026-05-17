@@ -499,11 +499,25 @@ public class SimulationContext {
 	/* ── 시나리오 5: Starvation 방지 (에이징) ── */
 	private void load5() {
 		LocalDateTime n = BASE_TIME;
-		add("김철용", "M33", Grade.SILVER, "KE651", n.plusMinutes(100), n.plusMinutes(1));
-		add("오블랙", "M44", Grade.BLACK, "OZ102", n.plusMinutes(80), n.plusMinutes(5));
-		add("최골드", "M55", Grade.GOLD, "KE081", n.plusMinutes(90), n.plusMinutes(6));
-		add("강부자", "M99", Grade.PRESTIGE, "OZ773", n.plusMinutes(120), n.plusMinutes(7));
-		add("유실버", "M66", Grade.SILVER, "OZ541", n.plusMinutes(110), n.plusMinutes(8));
+
+		// 09:30에 선행 서비스가 시작되고, 김철용은 09:31에 발권된 뒤
+		// 이후 13명의 BLACK / PRESTIGE 고객이 계속 발권되어 BQ에 오래 머무르게 한다.
+		add("김부자", "M71", Grade.PRESTIGE, "OZ901", n.plusMinutes(50), n.plusMinutes(1));
+		add("김철용", "M33", Grade.SILVER, "KE651", n.plusMinutes(100), n.plusMinutes(2));
+		add("이부자", "M72", Grade.BLACK, "KE902", n.plusMinutes(95), n.plusMinutes(3));
+		add("박부자", "M73", Grade.PRESTIGE, "OZ903", n.plusMinutes(98), n.plusMinutes(4));
+		add("최부자", "M74", Grade.BLACK, "KE904", n.plusMinutes(102), n.plusMinutes(5));
+		add("정부자", "M75", Grade.PRESTIGE, "OZ905", n.plusMinutes(106), n.plusMinutes(6));
+		add("강부자", "M76", Grade.BLACK, "KE906", n.plusMinutes(110), n.plusMinutes(7));
+		add("한부자", "M77", Grade.PRESTIGE, "OZ907", n.plusMinutes(114), n.plusMinutes(8));
+		add("송부자", "M78", Grade.BLACK, "KE908", n.plusMinutes(118), n.plusMinutes(9));
+		add("윤부자", "M79", Grade.PRESTIGE, "OZ909", n.plusMinutes(122), n.plusMinutes(10));
+		add("오부자", "M80", Grade.BLACK, "KE910", n.plusMinutes(126), n.plusMinutes(11));
+		add("문부자", "M81", Grade.PRESTIGE, "OZ911", n.plusMinutes(130), n.plusMinutes(12));
+		add("임부자", "M82", Grade.BLACK, "KE912", n.plusMinutes(134), n.plusMinutes(13));
+		add("서부자", "M83", Grade.PRESTIGE, "OZ913", n.plusMinutes(138), n.plusMinutes(14));
+		add("조부자", "M84", Grade.BLACK, "KE914", n.plusMinutes(142), n.plusMinutes(15));
+		add("왕부자", "M85", Grade.PRESTIGE, "KE915", n.plusMinutes(146), n.plusMinutes(16));
 		isCounterOpen = true;
 	}
 
@@ -568,12 +582,17 @@ public class SimulationContext {
 					+ "2) → 5회 더: 강부자(PRESTIGE) 발권\n" + "3) 강부자 → BQ 최상위로 등극!\n\n" + "[관찰] PRESTIGE가 늦게 와도 BQ 1순위";
 
 		case 5:
-			return "【Starvation 방지 (에이징)】\n" + "권장 인도시간: 3분\n\n" + "[멤버]\n" + " 김철용(SILVER) 09:31 발권 (최초 발권!)\n"
-					+ " 오블랙(BLACK) 09:35 발권\n" + " 최골드(GOLD) 09:36 발권\n" + " 강부자(PRESTIGE) 09:37 발권\n"
-					+ " 유실버(SILVER) 09:38 발권\n\n" + "[진행]\n" + "1) → 키로 전원 발권 (8회)\n" + "   BQ: 강부자>오블랙>최골드>김철용>유실버\n"
-					+ "2) → 계속 전진 (40분 이상)\n" + "3) 10:11경: 김철용 대기 40분 도달!\n" + "4) 다음 pop() 시 김철용이 최우선 호출\n"
-					+ "   (SILVER임에도 에이징으로 1순위!)\n\n" + "[관찰] 40분 대기 → 등급 무시 최우선 호출";
-
+			return "【Starvation 방지 (에이징)】\n" + "권장 인도시간: 3분\n\n" + "[멤버]\n" + " 김부자1(PRESTIGE) 09:30 발권 → 선행 서비스 시작\n"
+					+ " 김철용(SILVER) 09:31 발권 → BQ 대기 진입\n" + " 이부자2(BLACK) 09:32 발권\n" + " 박부자3(PRESTIGE) 09:33 발권\n"
+					+ " 최부자4(BLACK) 09:34 발권\n" + " 정부자5(PRESTIGE) 09:35 발권\n" + " 강부자6(BLACK) 09:36 발권\n"
+					+ " 한부자7(PRESTIGE) 09:37 발권\n" + " 송부자8(BLACK) 09:38 발권\n" + " 윤부자9(PRESTIGE) 09:39 발권\n"
+					+ " 오부자10(BLACK) 09:40 발권\n" + " 문부자11(PRESTIGE) 09:41 발권\n" + " 임부자12(BLACK) 09:42 발권\n"
+					+ " 서부자13(PRESTIGE) 09:43 발권\n" + " 조부자14(BLACK) 09:44 발권\n\n" + "[진행]\n"
+					+ "1) 09:30 김부자1 선행 호출 및 인도 시작\n" + "2) 09:31 김철용 발권 후 BQ 대기 유지\n"
+					+ "3) 이후 09:32~09:44 사이 BLACK / PRESTIGE 고객 13명 추가 발권\n" + "   → 매번 BQ 우선 호출 / 인도 반복\n"
+					+ "4) 김철용은 계속 BQ에 남아 40분 이상 대기\n" + "5) 10:11경: 김철용 대기 40분 도달!\n" + "6) 다음 pop() 시 김철용이 최우선 호출\n"
+					+ "   (SILVER임에도 에이징으로 1순위!)\n\n" + "[관찰] 장기 대기 고객이 BQ 하위에 묶여 있다가\n"
+					+ "       40분 기준 도달 시 등급 무시 최우선 호출";
 		case 6:
 			return "【항공 지연 → 재정렬】\n" + "권장 인도시간: 3분\n\n" + "[멤버]\n" + " 이급박(GOLD, KE305) 출국 09:55 → AQ\n"
 					+ " 오블랙(BLACK) 출국 10:15 → BQ\n" + " 최골드(GOLD) 출국 10:30 → BQ\n" + " 강부자(PRESTIGE) 출국 11:00 → BQ\n"
