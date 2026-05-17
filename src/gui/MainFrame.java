@@ -128,6 +128,10 @@ public class MainFrame extends JFrame {
         
         PickupVerificationPanel verifyPanel = new PickupVerificationPanel(screenManager);
         verifyPanel.setPickUpSystem(pickUpSystem);
+
         screenManager.addScreen("PICKUP_VERIFY", verifyPanel);
+        
+        MLPQSimulationPanel simPanel = new MLPQSimulationPanel(screenManager);
+        screenManager.addScreen("PICKUP_SIMULATION", simPanel);
     }
 }
