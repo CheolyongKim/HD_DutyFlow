@@ -11,8 +11,8 @@ import exception.SystemException;
 public class OracleConnection {
 
     private static final String URL =
-             "jdbc:oracle:thin:@localhost:1521/XEPDB1";
-//            "jdbc:oracle:thin:@192.168.2.168:1521/XEPDB1";
+//             "jdbc:oracle:thin:@localhost:1521/XEPDB1";
+            "jdbc:oracle:thin:@192.168.2.168:1521/XEPDB1";
 //			  "jdbc:oracle:thin:@//localhost:1521/freepdb1";
 
     private static final String USER = "DUTY_MANAGER";

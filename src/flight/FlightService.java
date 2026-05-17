@@ -107,7 +107,7 @@ public class FlightService {
         // 1. 형식 검증 (정규식)
         if (reservationCode == null || !reservationCode.matches(RESV_CODE_REGEX)) {
             System.out.println("[FlightService] 유효하지 않은 예약 코드 형식: " + reservationCode);
-            throw new BusinessException(ErrorCode.INVALID_INPUT); // 적절한 에러코드 사용
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
         // 2. DB 존재 여부 검증
