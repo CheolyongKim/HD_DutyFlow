@@ -11,6 +11,27 @@
 본 프로젝트는 Java, Oracle DB, JDBC, Swing GUI, 디자인 패턴, Scheduler, Trigger 등을 활용하여 면세점 도메인의 주문/결제/픽업 흐름을 구현하는 것을 목표로 했습니다.
 
 ---
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0001" src="https://github.com/user-attachments/assets/f2e9b5f8-e5df-4f7b-a884-abf24d1a9939" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0003" src="https://github.com/user-attachments/assets/13876156-d822-4c33-9a28-f6b3556e67c4" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0005" src="https://github.com/user-attachments/assets/3f6898ac-93d1-41e8-a143-e8b52f159f23" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0006" src="https://github.com/user-attachments/assets/8bf3696f-2da9-49a2-b7d8-9caaf1f2855a" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0007" src="https://github.com/user-attachments/assets/617a7083-2cfa-452b-8e19-727729731219" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0009" src="https://github.com/user-attachments/assets/e3c4944d-ff5f-4b0a-9a6e-84feb00d0608" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0010" src="https://github.com/user-attachments/assets/2fe0ba74-f53a-4da2-8e09-dc090de7e86e" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0012" src="https://github.com/user-attachments/assets/a9016668-ffcb-409f-a40a-cf33a250d66d" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0014" src="https://github.com/user-attachments/assets/bfdfa745-191d-442e-9f24-aa7760a411f0" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0016" src="https://github.com/user-attachments/assets/9000bb2d-7e5b-4136-9e23-85b90afd8b04" />
+<img width="8000" height="4500" alt="image" src="https://github.com/user-attachments/assets/b474363b-6c0e-44c4-a3a3-fd7f4efaefd7" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0018" src="https://github.com/user-attachments/assets/cd82bf84-98dc-4771-8b38-214458415647" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0019" src="https://github.com/user-attachments/assets/67ccf512-53d2-4f35-946a-55d1283749fa" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0020" src="https://github.com/user-attachments/assets/f0085990-1b4a-4471-aa57-662379c8d806" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0021" src="https://github.com/user-attachments/assets/7eed7f4b-c4a5-4372-90dd-479e66eac926" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0023" src="https://github.com/user-attachments/assets/419ee323-3c6c-4f64-b552-90ea27bf18ea" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0024" src="https://github.com/user-attachments/assets/d62e5e8b-3276-4c12-988d-723d5fd8761c" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0025" src="https://github.com/user-attachments/assets/072b0996-7cb5-4d2b-b44d-f1841a5ba779" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0026" src="https://github.com/user-attachments/assets/5df0093f-28f5-46cd-82b4-bbb1d631896e" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0027" src="https://github.com/user-attachments/assets/da92ea19-0fc7-4644-b5b4-e7635680fc4e" />
+<img width="8000" height="4500" alt="1조_DutyFlowSystem_page-0028" src="https://github.com/user-attachments/assets/5667704a-d37c-46d9-a822-2e002182fa8d" />
 
 ## 🛫 주요 기능
 
