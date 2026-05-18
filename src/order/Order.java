@@ -95,5 +95,9 @@ public class Order {
     public void noShow() {
         state.noShow(this);
     }
+
+	public void pending() {
+		state.pending(this);
+	}
     
 }

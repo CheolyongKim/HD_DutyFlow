@@ -138,7 +138,7 @@ public class MemberPaymentQueuePanel extends JPanel implements Refreshable {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setOpaque(false);
 
-        JButton enqueueButton = createButton("결제 요청 추가", PRIMARY_COLOR);
+        JButton enqueueButton = createButton("결제 요청", PRIMARY_COLOR);
         JButton startButton = createButton("Worker 시작", SUCCESS_COLOR);
         JButton stopButton = createButton("Worker 중지", DANGER_COLOR);
         JButton backButton = createButton("뒤로가기", SECONDARY_COLOR);

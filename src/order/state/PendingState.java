@@ -7,7 +7,7 @@ public class PendingState implements OrderState {
 
     @Override
     public String name() {
-        return "ORDERED";
+        return "PENDING";
     }
 
     // ORDERED → VERIFIED
@@ -20,5 +20,10 @@ public class PendingState implements OrderState {
     @Override
     public void cancel(Order order) {
         order.setState(new CanceledState());
+    }
+    
+    @Override
+    public void pending(Order order) {
+    	order.setState(new PendingState());
     }
 }

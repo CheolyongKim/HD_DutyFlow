@@ -203,8 +203,11 @@ public class OrderService {
 
 		try {
 			boolean paySuccess = paymentService.payment(orderId, finalAmount, cardNumber);
-			if (!paySuccess)
+			if (!paySuccess) {
+				order.pending();
 				throw new BusinessException(ErrorCode.PAYMENT_FAILED);
+			}
+				
 
 			if (totalTax.compareTo(BigDecimal.ZERO) > 0) {
 				order.applyTax(totalTax);
