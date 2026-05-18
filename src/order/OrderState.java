@@ -25,5 +25,7 @@ public interface OrderState {
     default void noShow(Order order) {
         throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
     }
-    
+    default void pending(Order order) {
+        throw new BusinessException(ErrorCode.ORDER_INVALID_STATE);
+    }
 }
